@@ -37,6 +37,8 @@ namespace JoyOI.ManagementService.DbContexts
             actorEntity.HasAlternateKey(x => x.Name);
 
             var blobsEntity = modelBuilder.Entity<BlobEntity>();
+            blobsEntity.HasIndex(x => x.BlobId);
+            blobsEntity.HasAlternateKey(x => new { x.BlobId, x.ChunkIndex });
 
             var stateMachineEntity = modelBuilder.Entity<StateMachineEntity>();
             stateMachineEntity.HasAlternateKey(x => x.Name);
