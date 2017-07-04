@@ -106,15 +106,20 @@ systemctl status docker
 mkdir -pv ~/.docker
 cp -v {ca,cert,key}.pem ~/.docker
 
-# 生成管理服务用的客户端证书, 生成时会问密码, 记住这个密码
-openssl pkcs12 -export -inkey key.pem -in cert.pem -out key.pfx
-
 # 测试客户端证书, 如果输出正常则表示配置成功
 docker --tlsverify -H="tcp://$(hostname):2376" images
 
 # 删除临时文件夹
 cd ..
 rm -rfv tmp
+
+# 生成管理服务用的客户端证书, 生成时会问密码, 记住这个密码
+cd ~/.docker
+openssl pkcs12 -export -inkey key.pem -in cert.pem -out key.pfx
+
+# 生成管理服务用的CA证书, 生成时会问密码, 记住这个密码
+cd /etc/docker/cert.d
+openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 
 ############ 构建docker镜像 ############
 # 你可以选择拖取hub上的镜像, 或者自己构建
@@ -132,6 +137,52 @@ docker images
 ```
 
 # 配置管理服务
+
+**导入CA证书**:
+
+下载所有docker节点生成的ca-key.pfx, 然后双击导入到"本地计算机", 并选择导入到"受信任的根证书颁发机构".
+
+注意检查导入的证书的有效期, 有效期之前请重新生成并更新证书.
+
+**修改网站下的appsettings.json, 例如**:
+
+``` json
+{
+	"ConnectionStrings": {
+		"DefaultConnection": "Server=127.0.0.1;Port=3306;Database=joyoi;User Id=root;Password=123456;"
+	},
+	"Logging": {
+		"IncludeScopes": false,
+		"LogLevel": {
+			"Default": "Warning"
+		}
+	},
+	"JoyOIManagement": {
+		"DockerImage": "joyoi",
+		"Nodes": {
+			"docker-1": {
+				"Address": "http://docker-1:2376",
+				"ClientCertificatePath": "ClientCerts/docker-1.pfx",
+				"ClientCertificatePassword": "123456"
+			},
+			"docker-2": {
+				"Address": "http://docker-2:2376",
+				"ClientCertificatePath": "ClientCerts/docker-2.pfx",
+				"ClientCertificatePassword": "123456"
+			}
+		}
+	}
+}
+```
+
+"DockerImage"是docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi".
+"Nodes"是各个节点的设置.
+
+**存放客户端证书**
+
+下载所有docker节点生成的key.pfx, 放到上面配置的"Address"属性对应的目录下.
+
+### Webapi的客户端验证
 
 TODO
 

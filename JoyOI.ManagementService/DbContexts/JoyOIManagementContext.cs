@@ -15,8 +15,6 @@ namespace JoyOI.ManagementService.DbContexts
 
         public JoyOIManagementContext() : base() { }
 
-        public JoyOIManagementContext(DbContextOptions options) : base(options) { }
-
         public JoyOIManagementContext(DbContextOptions<JoyOIManagementContext> options) : base(options) { }
 
         public static string ConnectionString { get; set; }

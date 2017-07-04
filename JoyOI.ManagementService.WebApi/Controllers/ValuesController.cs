@@ -4,6 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using JoyOI.ManagementService.DbContexts;
+using System.Security.Cryptography.X509Certificates;
+using Docker.DotNet.X509;
+using Docker.DotNet;
+using Docker.DotNet.Models;
 
 namespace JoyOI.ManagementService.WebApi.Controllers
 {
@@ -17,9 +21,13 @@ namespace JoyOI.ManagementService.WebApi.Controllers
 
         // GET api/values
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IEnumerable<string>> Get()
         {
-            return new string[] { "value1", "value2" };
+            var credentials = new CertificateCredentials(new X509Certificate2("ClientCerts/docker-1.pfx", "123456"));
+            var config = new DockerClientConfiguration(new Uri("http://docker-1:2376"), credentials);
+            DockerClient client = config.CreateClient();
+            var images = await client.Images.ListImagesAsync(new ImagesListParameters());
+            return images.Select(x => x.ID + " " + string.Join(" ", x.RepoTags)).ToArray();
         }
 
         // GET api/values/5
