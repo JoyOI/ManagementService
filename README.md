@@ -35,15 +35,15 @@ Mgmt Svc与Docker Node使用Docker Remote Api通信, Docker Node需要使用自�
 # 项目文件
 
 - JoyOI.ManagementService
-  - TODO
+  - 管理服务的核心项目
 - JoyOI.ManagementService.FunctionalTests
-  - TODO
+  - 功能测试项目, 要求节点可以正常连接
 - JoyOI.ManagementService.Model
-  - TODO
+  - 储存模型类的项目
 - JoyOI.ManagementService.Tests
-  - TODO
+  - 单元测试项目, 不要求节点可以正常连接
 - JoyOI.ManagementService.WebApi
-  - TODO
+  - WebApi项目, 提供对外的Http接口
 
 # 配置节点
 
@@ -158,14 +158,15 @@ docker images
 		}
 	},
 	"JoyOIManagement": {
-		"DockerImage": "joyoi",
 		"Nodes": {
 			"docker-1": {
+				"Image": "joyoi",
 				"Address": "http://docker-1:2376",
 				"ClientCertificatePath": "ClientCerts/docker-1.pfx",
 				"ClientCertificatePassword": "123456"
 			},
 			"docker-2": {
+				"Image": "joyoi",
 				"Address": "http://docker-2:2376",
 				"ClientCertificatePath": "ClientCerts/docker-2.pfx",
 				"ClientCertificatePassword": "123456"
@@ -173,14 +174,20 @@ docker images
 		}
 	}
 }
+
 ```
 
-"DockerImage"是docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi".
-"Nodes"是各个节点的设置.
+"Image"是docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi".
+
+"Address"是节点的地址.
+
+"ClientCertificatePath"是客户端证书的路径.
+
+"ClientCertificatePassword"是客户端证书的密码.
 
 **存放客户端证书**
 
-下载所有docker节点生成的key.pfx, 放到上面配置的"Address"属性对应的目录下.
+下载所有docker节点生成的key.pfx, 放到上面配置的"ClientCertificatePath"属性对应的目录下.
 
 ### Webapi的客户端验证
 

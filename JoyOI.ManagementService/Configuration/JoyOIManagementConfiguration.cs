@@ -11,17 +11,12 @@ namespace JoyOI.ManagementService.Configuration
     public class JoyOIManagementConfiguration
     {
         /// <summary>
-        /// Docker镜像名称
-        /// </summary>
-        public string DockerImage { get; set; }
-        /// <summary>
         /// { 节点名称: 节点配置 }
         /// </summary>
         public IDictionary<string, Node> Nodes { get; set; }
 
         public JoyOIManagementConfiguration()
         {
-            DockerImage = null;
             Nodes = new Dictionary<string, Node>();
         }
 
@@ -30,6 +25,10 @@ namespace JoyOI.ManagementService.Configuration
         /// </summary>
         public class Node
         {
+            /// <summary>
+            /// Docker镜像名称
+            /// </summary>
+            public string Image { get; set; }
             /// <summary>
             /// 节点地址
             /// 例如: http://docker-1:2376
