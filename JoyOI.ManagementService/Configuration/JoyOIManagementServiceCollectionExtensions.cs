@@ -7,17 +7,18 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class JoyOIManagementServiceCollectionExtensions
     {
-        public static void AddJoyOIMgmt(this IServiceCollection services)
+        public static void AddJoyOIManagement(this IServiceCollection services)
         {
 
         }
 
-        public static void AddJoyIOMgmt(this IServiceCollection services, JoyOIManagementConfiguration configuration)
+        public static void AddJoyOIManagement(
+            this IServiceCollection services, JoyOIManagementConfiguration configuration)
         {
 
         }
 
-        public static void AddJoyIOMgmt(this IServiceCollection services, string jsonPath)
+        public static void AddJoyOIManagement(this IServiceCollection services, string jsonPath)
         {
 
         }
