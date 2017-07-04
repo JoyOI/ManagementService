@@ -1,0 +1,17 @@
+﻿项目名称：
+JoyOI.ManagementService
+JoyOI.ManagementService.Tests
+JoyOI.ManagementService.FunctionalTests
+JoyOI.LinuxRunner
+JoyOI.InstanceDockerImage
+
+验收内容：
+1、Management Service
+2、Linux runner（通过Stdin输入两行，第一行是运行时间限制（毫秒），第二行是欲运行的程序及参数如gcc Main.c，然后调用bash执行这个命令行，同时重定向这个命令行的stdin stdout stderr到文件stdin.txt stdout.txt stderr.txt，并返回runner.json包含如下信息）
+{
+    "Command": "gcc Main.c",
+    "UsedTime": 15461, //进程用户态时间ms
+    "PeakMemory": 123456, //峰值内存字节
+    "ExitCode" 0 //程序exit code
+}
+3、Docker Image，包含dotnet, java 1.8, gcc, g++最新版, fpc最新版, nodejs最新版，包含linux runner

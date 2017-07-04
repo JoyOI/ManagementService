@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService", "JoyOI.ManagementService\JoyOI.ManagementService.csproj", "{44D4F985-F50C-4909-AE49-C51B4485FC67}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService.WebApi", "JoyOI.ManagementService.WebApi\JoyOI.ManagementService.WebApi.csproj", "{D952F65A-072A-43E2-AB21-220F081B1675}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService.Tests", "JoyOI.ManagementService.Tests\JoyOI.ManagementService.Tests.csproj", "{752DFEDB-052F-4AB4-85BD-16D4CDB94A30}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService.FunctionalTests", "JoyOI.ManagementService.FunctionalTests\JoyOI.ManagementService.FunctionalTests.csproj", "{CEA0F437-A34D-4D3D-937B-2E046BC9B35C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService.Model", "JoyOI.ManagementService.Model\JoyOI.ManagementService.Model.csproj", "{BCE8051F-387D-487A-AAB6-AB35C260AE21}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Projects", "Projects", "{3703B989-41C6-4194-B1D5-14E63C1F9C3D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B7FDCE83-DE67-4656-9573-95692B5CEB76}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{44D4F985-F50C-4909-AE49-C51B4485FC67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44D4F985-F50C-4909-AE49-C51B4485FC67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44D4F985-F50C-4909-AE49-C51B4485FC67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44D4F985-F50C-4909-AE49-C51B4485FC67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D952F65A-072A-43E2-AB21-220F081B1675}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D952F65A-072A-43E2-AB21-220F081B1675}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D952F65A-072A-43E2-AB21-220F081B1675}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D952F65A-072A-43E2-AB21-220F081B1675}.Release|Any CPU.Build.0 = Release|Any CPU
+		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{44D4F985-F50C-4909-AE49-C51B4485FC67} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
+		{D952F65A-072A-43E2-AB21-220F081B1675} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
+		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
+		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
+		{BCE8051F-387D-487A-AAB6-AB35C260AE21} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,57 @@
+﻿using JoyOI.ManagementService.Model.Entities.Interfaces;
+using JoyOI.ManagementService.Model.Enums;
+using Microsoft.EntityFrameworkCore.Migrations;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace JoyOI.ManagementService.Model.Entities
+{
+    /// <summary>
+    /// 状态机实例
+    /// </summary>
+    public class StateMachineInstanceEntity : IEntity<Guid>
+    {
+        /// <summary>
+        /// 状态机实例Id
+        /// </summary>
+        public Guid Id { get; set; }
+        /// <summary>
+        /// 状态机名称
+        /// </summary>
+        public string Name { get; set; }
+        /// <summary>
+        /// 状态机修订号
+        /// 这里只记录第一次创建时的修订号, 如果后面有变更不应该更新这个字段
+        /// </summary>
+        public long RefRevision { get; set; }
+        /// <summary>
+        /// 状态机的当前状态
+        /// </summary>
+        public StateMachineStatus Status { get; set; }
+        /// <summary>
+        /// 已执行的任务列表
+        /// </summary>
+        public JsonObject<ActorInfo[]> FinishedActors { get; set; }
+        /// <summary>
+        /// 当前执行的任务
+        /// </summary>
+        public JsonObject<ActorInfo> CurrentActor { get; set; }
+        /// <summary>
+        /// 当前执行的Docker节点名称 (不是地址而是名称)
+        /// </summary>
+        public string CurrentNode { get; set; }
+        /// <summary>
+        /// 当前执行的Docker容器Id (例如b9a51f0805de)
+        /// </summary>
+        public string CurrentContainer { get; set; }
+        /// <summary>
+        /// 第一个任务的开始时间
+        /// </summary>
+        public DateTime StartTime { get; set; }
+        /// <summary>
+        /// 最后一个任务的结束时间
+        /// </summary>
+        public DateTime EndTime { get; set; }
+    }
+}

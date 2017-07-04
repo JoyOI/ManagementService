@@ -1,0 +1,109 @@
+﻿返回是 { code: 200, msg: null, data:{ ... } }
+controller里不要throw
+catch住了 return { code: 5xx, msg: "exception", data: null }
+用户错误4xx
+
+- 创建、强制修改statemachine PUT/PATCH /StateMachine/<GUID>
+{
+    "Name" : "StandardJudge",
+    "CurrentActor": {
+        "Name": "CompileUserCode",
+        "Inputs": [{ Name: "Main.cpp", Id: <GUID> }]
+    }
+}
+
+- 删除(终止)一个statemachine DELETE /StateMachine/<GUID>
+
+- 获取statemachine信息 GET /StateMachine/<GUID>
+Sample #1(正在进行的):
+
+{
+    "Name" : "StandardJudge",
+    "Status": "Running",
+    "CurrentActor": {
+        "Name": "RunUserProgram",
+        "StartTimeStamp": 1499053632371,
+        "Inputs": [{ Name: "Main.out", Id: <Guid> }],
+	"Status": "Running"
+    },
+    "FinishedActors": [
+        {
+            "Name": "CompileUserCode",
+            "StartTimeStamp": 1499053632371,
+            "EndTimeStamp": 1499053632371,
+            "Inputs": [{ Name: "Main.cpp", Id: <Guid> }],
+            "Outputs": [{ Name: "Main.out", Id: <Guid> }],
+            "Exceptions": [],
+	    "Status": "Succeeded"
+        }
+    ]
+}
+
+Sample #2(已经完成的):
+{
+    "Name" : "StandardJudge",
+    "Status": "Succeeded",
+    "CurrentActor": null,
+    "FinishedActors": [
+        {
+            "Name": "RunUserProgram",
+            "StartTimeStamp": 1499053632371,
+            "EndTimeStamp": 1499053632371,
+            "Inputs": [{ Name: "Main.out", Id: <Guid> }, { Name: "stdin.txt", Id: <Guid> }]
+            "Outputs": [{ Name: "stdout.txt", Id: <Guid> }, { Name: "stderr.txt", Id: <Guid> }, { Name: "runner.json", Id: <Guid> }],
+            "Exceptions": [],
+	    "Status": "Succeeded"
+        },
+        {
+            "Name": "CompileUserCode",
+            "StartTimeStamp": 1499053632371,
+            "EndTimeStamp": 1499053632371,
+            "Inputs": [{ Name: "Main.cpp", Id: <Guid>}]
+            "Outputs": [{ Name: "Main.out", Id: <Guid>}],
+            "Exceptions": [],
+	    "Status": "Succeeded"
+        }
+    ]
+}
+
+- 删除 DELETE /StateMachine/<GUID>
+
+- 上传、修改文件 PUT/PATCH /Blob/<GUID>
+{
+    "Name": "Main.cpp",
+    "Body": "<base64string>",
+    "TimeStamp": 1499053632371
+}
+
+- 下载文件 GET /Blob/<GUID>
+{
+    "Name": "Main.cpp",
+    "Body": "<base64string>",
+    "TimeStamp": 1499053632371
+}
+
+- 删除文件 DELETE /Blob/<GUID>
+
+- 查询活动的Statemachine GET /StateMachine?name=&currentActor=
+
+["<GUID>", "<GUID>"]
+
+- 查询所有Actor GET /Actor
+[<string:ActorName>]
+
+- 查询指定Actor GET /Actor/<ActorName>
+{
+    "Name": "CompileUserCode",
+    "Body": "<C#代码>"
+}
+
+- 删除Actor DELETE /Actor/<ActorName>
+
+- 添加、修改Actor PUT/PATCH  /Actor/ActorName
+{
+    "Name": "CompileUserCode",
+    "Body": "<C#代码>"
+}
+
+检查客户端证书
+https://docs.microsoft.com/en-us/aspnet/web-api/overview/security/working-with-ssl-in-web-api

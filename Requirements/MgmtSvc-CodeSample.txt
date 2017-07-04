@@ -1,0 +1,65 @@
+﻿abstract class StateMachineBase : IDispose
+{
+    Guid Id;
+    Status Status;
+    IList<ActorInfo> FinishedActors;
+    ActorInfo CurrentActor;
+    StateMachineBase(Guid[] blobs = null);
+    Task DeployAndRunActorAsync(string actor, Guid[] inputs);
+    abstract Task RunAsync();
+}
+
+enum Status
+{
+    Running,
+    Failed,
+    Succeeded
+}
+
+struct ActorInfo
+{
+    string Name;
+    int StartTimeStamp;
+    int EndTimeStamp;
+    Guid[] Inputs;
+    Guid[] Outputs;
+    string[] Exceptions;
+    Status Status;
+}
+
+class SampleStateMachine : StateMachineBase
+{
+    override Task RunAsync(string actor, Guid[] blobs)
+    {
+        if (actor == null)
+        {
+            actor = "CompileUserCode";
+        }
+
+        switch(actor)
+        {
+            case "CompileUserCode":
+                await DeployAndRunActorAsync("CompileUserCodeActor", blobs);
+                goto case "RunUserCodeActor";
+            case "RunUserCodeActor":
+                await DeployAndRunActorAsync("RunUserCodeActor", FinishedActors.Last().Outputs);
+	    this.Status = Status.Succeeded;
+        }
+    }
+}
+
+
+---------------------------------------------
+
+
+class CompileUserCodeActor // 固定只引用corefx的异步相关、进程相关lib因此csproj不存储，actor的code存数据库，csproj文件应在Mgmt svc的DeployAndRunActorAsync方法中生成
+{
+    static void Main()
+    {
+        var p = Process.Start("runner");
+        p.StandardInput.WriteLine("gcc Main.c");
+        p.WaitForExit();
+        var returnBlobs = new string[] { "runner.json", "Main.out", "stdout.txt", "stderr.txt" };
+        File.WriteAllText("return.json", JsonConvert.Serialize(returnBlobs)); // 写文件return.json表明要返回的文件列表，mgmt svc去下载并保存
+    }
+}
