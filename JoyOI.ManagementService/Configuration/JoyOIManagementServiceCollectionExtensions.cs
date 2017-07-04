@@ -14,10 +14,6 @@ namespace Microsoft.Extensions.DependencyInjection
             this IServiceCollection services, JoyOIManagementConfiguration configuration)
         {
             // 检查配置
-            if (string.IsNullOrEmpty(configuration.DockerImage))
-            {
-                throw new ArgumentNullException("Please provide DockerImage");
-            }
             if ((configuration.Nodes?.Count ?? 0) <= 0)
             {
                 throw new ArgumentNullException("Please provide atleast 1 docker nodes");

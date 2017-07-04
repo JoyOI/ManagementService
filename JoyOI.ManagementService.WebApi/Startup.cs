@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Configuration;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace JoyOI.ManagementService.WebApi
 {
@@ -30,6 +31,9 @@ namespace JoyOI.ManagementService.WebApi
         {
             services.AddMvc();
 
+            services.AddSwaggerGen(c =>
+                c.SwaggerDoc("v1", new Info() { Title = "JoyOI Management Service", Version = "V1" }));
+
             JoyOIManagementContext.ConnectionString = Configuration.GetConnectionString("DefaultConnection");
             JoyOIManagementContext.MigrationAssembly = "JoyOI.ManagementService.WebApi";
             services.AddDbContext<JoyOIManagementContext>();
@@ -46,6 +50,9 @@ namespace JoyOI.ManagementService.WebApi
 
             if (env.IsDevelopment())
             {
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "JoyOI Management Service V1"));
                 app.UseDeveloperExceptionPage();
             }
             else
