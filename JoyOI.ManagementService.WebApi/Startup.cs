@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
 using JoyOI.ManagementService.DbContexts;
+using JoyOI.ManagementService.Configuration;
 
 namespace JoyOI.ManagementService.WebApi
 {
@@ -33,6 +33,10 @@ namespace JoyOI.ManagementService.WebApi
             JoyOIManagementContext.ConnectionString = Configuration.GetConnectionString("DefaultConnection");
             JoyOIManagementContext.MigrationAssembly = "JoyOI.ManagementService.WebApi";
             services.AddDbContext<JoyOIManagementContext>();
+
+            var configuration = new JoyOIManagementConfiguration();
+            Configuration.GetSection("JoyOIManagement").Bind(configuration);
+            services.AddJoyOIManagement(configuration);
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
