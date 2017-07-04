@@ -1,4 +1,6 @@
 ﻿using JoyOI.ManagementService.Configuration;
+using JoyOI.ManagementService.Services;
+using JoyOI.ManagementService.Services.Impl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +23,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException("Please provide atleast 1 docker nodes");
             }
             // 注册服务
-            // TODO
+            services.AddTransient<IActorService, ActorService>();
+            services.AddTransient<IBlobService, BlobService>();
+            services.AddTransient<IStateMachineService, StateMachineService>();
+            services.AddTransient<IStateMachineInstanceService, StateMachineInstanceService>();
         }
     }
 }
