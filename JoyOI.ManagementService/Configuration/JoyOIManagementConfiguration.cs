@@ -12,7 +12,6 @@ namespace JoyOI.ManagementService.Configuration
     {
         /// <summary>
         /// Docker镜像名称
-        /// 默认: joyoi
         /// </summary>
         public string DockerImage { get; set; }
         /// <summary>
@@ -22,7 +21,7 @@ namespace JoyOI.ManagementService.Configuration
 
         public JoyOIManagementConfiguration()
         {
-            DockerImage = "joyoi";
+            DockerImage = null;
             Nodes = new Dictionary<string, Node>();
         }
 
@@ -37,14 +36,15 @@ namespace JoyOI.ManagementService.Configuration
             /// </summary>
             public string Address { get; set; }
             /// <summary>
-            /// 证书路径
-            /// 例如: ClientCerts/docker-1
-            /// 要求文件夹下有以下的文件
-            /// ClientCerts/docker-1/ca.pem
-            /// ClientCerts/docker-1/cert.pem
-            /// ClientCerts/docker-1/key.pem
+            /// 客户端证书路径
+            /// 例如: ClientCerts/docker-1.pfx
             /// </summary>
-            public string ClientCertificateDirectory { get; set; }
+            public string ClientCertificatePath { get; set; }
+            /// <summary>
+            /// 客户端证书密码
+            /// 例如: 123456
+            /// </summary>
+            public string ClientCertificatePassword { get; set; }
         }
     }
 }

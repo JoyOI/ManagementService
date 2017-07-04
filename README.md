@@ -45,7 +45,7 @@ Mgmt Svc与Docker Node使用Docker Remote Api通信, Docker Node需要使用自�
 - JoyOI.ManagementService.WebApi
   - TODO
 
-# 节点配置
+# 配置节点
 
 环境 Ubuntu 16.04.2 Server LTS
 
@@ -106,6 +106,9 @@ systemctl status docker
 mkdir -pv ~/.docker
 cp -v {ca,cert,key}.pem ~/.docker
 
+# 生成管理服务用的客户端证书, 生成时会问密码, 记住这个密码
+openssl pkcs12 -export -inkey key.pem -in cert.pem -out key.pfx
+
 # 测试客户端证书, 如果输出正常则表示配置成功
 docker --tlsverify -H="tcp://$(hostname):2376" images
 
@@ -114,13 +117,21 @@ cd ..
 rm -rfv tmp
 
 ############ 构建docker镜像 ############
+# 你可以选择拖取hub上的镜像, 或者自己构建
 
+# 自己构建的步骤
 # 上传 Dockerfile 和 runner 到 /root/docker 下
-cd ~/docker
-docker build -t joyoi .
+# cd ~/docker
+# docker build -t joyoi .
+
+# 拖取hub上的镜像的步骤
+docker pull yuko/joyoi
+
+# 完成后确认本地的镜像列表
+docker images
 ```
 
-# 管理服务配置
+# 配置管理服务
 
 TODO
 

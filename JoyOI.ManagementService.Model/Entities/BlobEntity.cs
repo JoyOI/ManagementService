@@ -12,6 +12,10 @@ namespace JoyOI.ManagementService.Model.Entities
     public class BlobEntity : IEntity<Guid>
     {
         /// <summary>
+        /// 文件分块大小, 10MB
+        /// </summary>
+        public const int BlobChunkSize = 10 * 1024 * 1024;
+        /// <summary>
         /// 文件分块Id
         /// </summary>
         public Guid Id { get; set; }
