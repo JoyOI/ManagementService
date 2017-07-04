@@ -21,11 +21,6 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public string Name { get; set; }
         /// <summary>
-        /// 状态机修订号
-        /// 这里只记录第一次创建时的修订号, 如果后面有变更不应该更新这个字段
-        /// </summary>
-        public long RefRevision { get; set; }
-        /// <summary>
         /// 状态机的当前状态
         /// </summary>
         public StateMachineStatus Status { get; set; }

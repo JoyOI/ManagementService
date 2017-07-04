@@ -23,10 +23,6 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public string Body { get; set; }
         /// <summary>
-        /// 修订号
-        /// </summary>
-        public long Revision { get; set; }
-        /// <summary>
         /// 创建时间
         /// </summary>
         public DateTime CreateTime { get; set; }

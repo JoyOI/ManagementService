@@ -9,10 +9,8 @@ namespace JoyOI.ManagementService.DbContexts
     public class JoyOIManagementContext : DbContext
     {
         public DbSet<ActorEntity> Actors { get; set; }
-        public DbSet<ActorHistoryEntity> ActorHistories { get; set; }
         public DbSet<BlobEntity> Blobs { get; set; }
         public DbSet<StateMachineEntity> StateMachine { get; set; }
-        public DbSet<StateMachineHistoryEntity> StateMachineHistories { get; set; }
         public DbSet<StateMachineInstanceEntity> StateMachineInstances { get; set; }
 
         public JoyOIManagementContext() : base() { }
@@ -37,19 +35,11 @@ namespace JoyOI.ManagementService.DbContexts
 
             var actorEntity = modelBuilder.Entity<ActorEntity>();
             actorEntity.HasAlternateKey(x => x.Name);
-            actorEntity.Property(x => x.Revision).IsConcurrencyToken();
-
-            var actorHistoryEntity = modelBuilder.Entity<ActorHistoryEntity>();
-            actorHistoryEntity.HasAlternateKey(x => new { x.Name, x.Revision });
 
             var blobsEntity = modelBuilder.Entity<BlobEntity>();
 
             var stateMachineEntity = modelBuilder.Entity<StateMachineEntity>();
             stateMachineEntity.HasAlternateKey(x => x.Name);
-            stateMachineEntity.Property(x => x.Revision).IsConcurrencyToken();
-
-            var stateMachineHistoryEntity = modelBuilder.Entity<StateMachineHistoryEntity>();
-            stateMachineHistoryEntity.HasAlternateKey(x => new { x.Name, x.Revision });
 
             var stateMachineInstanceEntity = modelBuilder.Entity<StateMachineInstanceEntity>();
             stateMachineInstanceEntity.HasIndex(x => x.Name);

@@ -15,10 +15,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// </summary>
         public string Name { get; set; }
         /// <summary>
-        /// 任务修订号
-        /// </summary>
-        public string RefRevision { get; set; }
-        /// <summary>
         /// 开始时间
         /// </summary>
         public DateTime StartTime { get; set; }
