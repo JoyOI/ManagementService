@@ -11,8 +11,7 @@ namespace JoyOI.ManagementService.Model.MapperProfiles
     {
         public BlobMapperProfile()
         {
-            CreateMap<BlobInputDto, BlobEntity>();
-            CreateMap<BlobEntity, BlobOutputDto>();
+            // blob需要分割大小, 目前不能通过AutoMapper自动转换
         }
     }
 }

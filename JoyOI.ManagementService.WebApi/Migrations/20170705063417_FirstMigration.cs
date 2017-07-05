@@ -15,13 +15,12 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
                     Body = table.Column<string>(type: "longtext", nullable: true),
                     CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Name = table.Column<string>(type: "varchar(127)", nullable: false),
+                    Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Actors", x => x.Id);
-                    table.UniqueConstraint("AK_Actors_Name", x => x.Name);
                 });
 
             migrationBuilder.CreateTable(
@@ -39,7 +38,6 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Blobs", x => x.Id);
-                    table.UniqueConstraint("AK_Blobs_BlobId_ChunkIndex", x => new { x.BlobId, x.ChunkIndex });
                 });
 
             migrationBuilder.CreateTable(
@@ -49,13 +47,12 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
                     Body = table.Column<string>(type: "longtext", nullable: true),
                     CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Name = table.Column<string>(type: "varchar(127)", nullable: false),
+                    Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_StateMachine", x => x.Id);
-                    table.UniqueConstraint("AK_StateMachine_Name", x => x.Name);
                 });
 
             migrationBuilder.CreateTable(
@@ -78,9 +75,27 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Actors_Name",
+                table: "Actors",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Blobs_BlobId",
                 table: "Blobs",
                 column: "BlobId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Blobs_BlobId_ChunkIndex",
+                table: "Blobs",
+                columns: new[] { "BlobId", "ChunkIndex" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StateMachine_Name",
+                table: "StateMachine",
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_StateMachineInstances_Name",

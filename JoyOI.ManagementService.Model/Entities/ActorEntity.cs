@@ -8,7 +8,10 @@ namespace JoyOI.ManagementService.Model.Entities
     /// <summary>
     /// 任务
     /// </summary>
-    public class ActorEntity : IEntity<Guid>
+    public class ActorEntity :
+        IEntity<Guid>,
+        IEntityWithCreateTime,
+        IEntityWithUpdateTime
     {
         /// <summary>
         /// 任务Id

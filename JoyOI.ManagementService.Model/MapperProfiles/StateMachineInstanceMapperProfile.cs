@@ -11,8 +11,7 @@ namespace JoyOI.ManagementService.Model.MapperProfiles
     {
         public StateMachineInstanceMapperProfile()
         {
-            CreateMap<StateMachineInstanceInputDto, StateMachineEntity>();
-            CreateMap<StateMachineEntity, StateMachineOutputDto>();
+            // 状态机实例需要特殊处理, TODO
         }
     }
 }

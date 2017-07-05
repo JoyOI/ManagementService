@@ -8,7 +8,7 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
     /// <summary>
     /// WebApi返回的结果都应该使用这个类包装
     /// </summary>
-    public class JoyOIApiResponse<TData>
+    public class ApiResponse<TData>
     {
         public int code { get; set; }
         public string msg { get; set; }
@@ -18,14 +18,14 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
     /// <summary>
     /// 构建JoyOIApiResponse的静态函数
     /// </summary>
-    public static class JoyOIApiResponse
+    public static class ApiResponse
     {
         /// <summary>
         /// 返回200(成功)
         /// </summary>
-        public static JoyOIApiResponse<TData> OK<TData>(TData data)
+        public static ApiResponse<TData> OK<TData>(TData data)
         {
-            return new JoyOIApiResponse<TData>()
+            return new ApiResponse<TData>()
             {
                 code = 200,
                 msg = null,
@@ -36,9 +36,9 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回404(找不到)
         /// </summary>
-        public static JoyOIApiResponse<TData> NotFound<TData>(string msg)
+        public static ApiResponse<TData> NotFound<TData>(string msg)
         {
-            return new JoyOIApiResponse<TData>()
+            return new ApiResponse<TData>()
             {
                 code = 404,
                 msg = msg,
@@ -49,9 +49,13 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回500(内部错误)
         /// </summary>
-        public static JoyOIApiResponse<object> InternalServerError(Exception ex)
+        public static ApiResponse<object> InternalServerError(Exception ex)
         {
-            return new JoyOIApiResponse<object>()
+            while (ex.InnerException != null)
+            {
+                ex = ex.InnerException;
+            }
+            return new ApiResponse<object>()
             {
                 code = 500,
                 msg = $"{ex.GetType().Name}: {ex.Message}",

@@ -9,7 +9,10 @@ namespace JoyOI.ManagementService.Model.Entities
     /// 文件
     /// 文件会分块储存, 最多10MB一块
     /// </summary>
-    public class BlobEntity : IEntity<Guid>
+    public class BlobEntity :
+        IEntity<Guid>,
+        IEntityWithCreateTime,
+        IEntityWithUpdateTime
     {
         /// <summary>
         /// 文件分块大小, 10MB

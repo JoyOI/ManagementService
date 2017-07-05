@@ -77,7 +77,7 @@ namespace JoyOI.ManagementService.WebApi
                     context.Response.StatusCode = 200;
                     using (var writer = new StreamWriter(context.Response.Body))
                     {
-                        var json = JsonConvert.SerializeObject(JoyOIApiResponse.InternalServerError(ex));
+                        var json = JsonConvert.SerializeObject(ApiResponse.InternalServerError(ex));
                         writer.Write(json);
                     }
                 }

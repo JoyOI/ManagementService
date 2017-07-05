@@ -38,6 +38,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // AutoMapper
             Mapper.Initialize(c =>
             {
+                c.AddProfile<BaseMapperProfile>();
                 c.AddProfile<ActorMapperProfile>();
                 c.AddProfile<BlobMapperProfile>();
                 c.AddProfile<StateMachineMapperProfile>();

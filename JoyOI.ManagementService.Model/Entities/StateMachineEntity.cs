@@ -8,7 +8,10 @@ namespace JoyOI.ManagementService.Model.Entities
     /// <summary>
     /// 状态机
     /// </summary>
-    public class StateMachineEntity : IEntity<Guid>
+    public class StateMachineEntity :
+        IEntity<Guid>,
+        IEntityWithCreateTime,
+        IEntityWithUpdateTime
     {
         /// <summary>
         /// 状态机Id

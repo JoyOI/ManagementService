@@ -12,7 +12,7 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    [Migration("20170705033257_FirstMigration")]
+    [Migration("20170705063417_FirstMigration")]
     partial class FirstMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,14 +31,14 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<DateTime>("CreateTime");
 
-                    b.Property<string>("Name")
-                        .IsRequired();
+                    b.Property<string>("Name");
 
                     b.Property<DateTime>("UpdateTime");
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Actors");
                 });
@@ -62,9 +62,10 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("BlobId", "ChunkIndex");
-
                     b.HasIndex("BlobId");
+
+                    b.HasIndex("BlobId", "ChunkIndex")
+                        .IsUnique();
 
                     b.ToTable("Blobs");
                 });
@@ -78,14 +79,14 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<DateTime>("CreateTime");
 
-                    b.Property<string>("Name")
-                        .IsRequired();
+                    b.Property<string>("Name");
 
                     b.Property<DateTime>("UpdateTime");
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("StateMachine");
                 });

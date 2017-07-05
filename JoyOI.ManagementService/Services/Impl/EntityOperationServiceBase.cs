@@ -81,6 +81,10 @@ namespace JoyOI.ManagementService.Services.Impl
             if (entity != null)
             {
                 Mapper.Map<TInputDto, TEntity>(dto, entity);
+                if (entity is IEntityWithUpdateTime updateTimeEntity)
+                {
+                    updateTimeEntity.UpdateTime = DateTime.UtcNow;
+                }
                 _dbSet.Update(entity); // 设置所有字段为updated, 以防万一检测不出
                 await _dbContext.SaveChangesAsync();
                 return true;
@@ -93,6 +97,14 @@ namespace JoyOI.ManagementService.Services.Impl
             var entity = new TEntity();
             entity.Id = PrimaryKeyUtils.Generate<TPrimaryKey>();
             Mapper.Map<TInputDto, TEntity>(dto, entity);
+            if (entity is IEntityWithCreateTime createTimeEntity)
+            {
+                createTimeEntity.CreateTime = DateTime.UtcNow;
+            }
+            if (entity is IEntityWithUpdateTime updateTimeEntity)
+            {
+                updateTimeEntity.UpdateTime = DateTime.UtcNow;
+            }
             await _dbSet.AddAsync(entity);
             await _dbContext.SaveChangesAsync();
             return entity.Id;

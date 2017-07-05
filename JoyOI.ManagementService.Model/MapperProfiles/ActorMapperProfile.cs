@@ -11,7 +11,16 @@ namespace JoyOI.ManagementService.Model.MapperProfiles
     {
         public ActorMapperProfile()
         {
-            CreateMap<ActorInputDto, ActorEntity>();
+            CreateMap<ActorInputDto, ActorEntity>()
+                .ForMember(model => model.Name, model => model.Ignore())
+                .ForMember(model => model.Body, model => model.Ignore())
+                .AfterMap((src, dst) =>
+                {
+                    if (src.Name != null)
+                        dst.Name = src.Name;
+                    if (src.Body != null)
+                        dst.Body = src.Body;
+                });
             CreateMap<ActorEntity, ActorOutputDto>();
         }
     }

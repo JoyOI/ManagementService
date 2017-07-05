@@ -7,5 +7,8 @@ namespace JoyOI.ManagementService.Model.Dtos
 {
     public class StateMachineOutputDto : IOutputDto
     {
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public string Body { get; set; }
     }
 }

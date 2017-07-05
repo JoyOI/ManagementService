@@ -30,14 +30,14 @@ namespace JoyOI.ManagementService.DbContexts
             base.OnModelCreating(modelBuilder);
 
             var actorEntity = modelBuilder.Entity<ActorEntity>();
-            actorEntity.HasAlternateKey(x => x.Name);
+            actorEntity.HasIndex(x => x.Name).IsUnique();
 
             var blobsEntity = modelBuilder.Entity<BlobEntity>();
             blobsEntity.HasIndex(x => x.BlobId);
-            blobsEntity.HasAlternateKey(x => new { x.BlobId, x.ChunkIndex });
+            blobsEntity.HasIndex(x => new { x.BlobId, x.ChunkIndex }).IsUnique();
 
             var stateMachineEntity = modelBuilder.Entity<StateMachineEntity>();
-            stateMachineEntity.HasAlternateKey(x => x.Name);
+            stateMachineEntity.HasIndex(x => x.Name).IsUnique();
 
             var stateMachineInstanceEntity = modelBuilder.Entity<StateMachineInstanceEntity>();
             stateMachineInstanceEntity.HasIndex(x => x.Name);

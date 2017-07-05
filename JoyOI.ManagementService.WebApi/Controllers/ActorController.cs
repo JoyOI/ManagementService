@@ -4,6 +4,7 @@ using JoyOI.ManagementService.WebApi.WebApiModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -19,15 +20,34 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             _actorService = actorService;
         }
 
-        /// <summary>
-        /// api/v1/Actor
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet]
-        public async Task<JoyOIApiResponse<IList<ActorOutputDto>>> Get()
+        [HttpGet("All")]
+        public async Task<ApiResponse<IList<ActorOutputDto>>> Get()
         {
             var dtos = await _actorService.Get();
-            return JoyOIApiResponse.OK(dtos);
+            return ApiResponse.OK(dtos);
+        }
+
+        [HttpGet]
+        public async Task<ApiResponse<ActorOutputDto>> Get([FromQuery]Guid id)
+        {
+            var dto = await _actorService.Get(id);
+            return ApiResponse.OK(dto);
+        }
+
+        [HttpPut]
+        public async Task<ApiResponse<PutResult<Guid>>> Put([FromBody]ActorInputDto dto)
+        {
+            var key = await _actorService.Put(dto);
+            var result = new PutResult<Guid>(key);
+            return ApiResponse.OK(result);
+        }
+
+        [HttpPatch]
+        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] Guid id, [FromBody]ActorInputDto dto)
+        {
+            var patched = await _actorService.Patch(id, dto);
+            var result = new PatchResult(patched);
+            return ApiResponse.OK(result);
         }
     }
 }

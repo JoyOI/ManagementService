@@ -7,5 +7,10 @@ namespace JoyOI.ManagementService.Model.Dtos
 {
     public class BlobOutputDto : IOutputDto
     {
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        // base64
+        public string Body { get; set; }
+        public long TimeStamp { get; set; }
     }
 }
