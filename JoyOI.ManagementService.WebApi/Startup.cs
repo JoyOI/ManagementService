@@ -54,10 +54,10 @@ namespace JoyOI.ManagementService.WebApi
             // 添加swagger和错误页面
             if (env.IsDevelopment())
             {
+                app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "JoyOI Management Service V1"));
-                app.UseDeveloperExceptionPage();
             }
             else
             {
