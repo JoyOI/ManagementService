@@ -6,15 +6,19 @@ using System.Text;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using AutoMapper;
+using System.Linq;
+using JoyOI.ManagementService.Utils;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
     /// <summary>
-    /// 实体操作服务的通用基类, 可以满足大部分但不是全部情况
+    /// 实体操作服务的通用基类
+    /// 如果逻辑特殊可以重写部分函数或不使用此基类
     /// </summary>
     internal abstract class EntityOperationServiceBase<TEntity, TPrimaryKey, TInputDto, TOutputDto> :
         IEntityOperationService<TEntity, TPrimaryKey, TInputDto, TOutputDto>
-        where TEntity : class, IEntity<TPrimaryKey>
+        where TEntity : class, IEntity<TPrimaryKey>, new()
         where TInputDto : IInputDto
         where TOutputDto : IOutputDto
     {
@@ -27,34 +31,71 @@ namespace JoyOI.ManagementService.Services.Impl
             _dbSet = dbContext.Set<TEntity>();
         }
 
-        public Task<bool> Delete(TPrimaryKey id)
+        public virtual async Task<bool> Delete(TPrimaryKey id)
         {
-            throw new NotImplementedException();
+            var entity = await _dbSet.FirstOrDefaultAsync(x => x.Id.Equals(id));
+            if (entity != null)
+            {
+                _dbSet.Remove(entity);
+                await _dbContext.SaveChangesAsync();
+                return true;
+            }
+            return false;
         }
 
-        public Task<IList<TOutputDto>> Get()
+        public virtual Task<IList<TOutputDto>> Get()
         {
-            throw new NotImplementedException();
+            return Get(null);
         }
 
-        public Task<IList<TOutputDto>> Get(Expression<Func<TEntity, bool>> expression)
+        public virtual async Task<IList<TOutputDto>> Get(Expression<Func<TEntity, bool>> expression)
         {
-            throw new NotImplementedException();
+            var queryable = _dbSet.AsNoTracking();
+            if (expression != null)
+            {
+                queryable = queryable.Where(expression);
+            }
+            var entities = await queryable.ToListAsync();
+            var dtos = new List<TOutputDto>(entities.Count);
+            foreach (var entity in entities)
+            {
+                dtos.Add(Mapper.Map<TEntity, TOutputDto>(entity));
+            }
+            return dtos;
         }
 
-        public Task<TOutputDto> Get(TPrimaryKey id)
+        public virtual async Task<TOutputDto> Get(TPrimaryKey id)
         {
-            throw new NotImplementedException();
+            var entity = await _dbSet.AsNoTracking().FirstOrDefaultAsync(x => x.Id.Equals(id));
+            if (entity != null)
+            {
+                var dto = Mapper.Map<TEntity, TOutputDto>(entity);
+                return dto;
+            }
+            return default(TOutputDto);
         }
 
-        public Task<bool> Patch(TPrimaryKey id, TInputDto dto)
+        public virtual async Task<bool> Patch(TPrimaryKey id, TInputDto dto)
         {
-            throw new NotImplementedException();
+            var entity = await _dbSet.FirstOrDefaultAsync(x => x.Id.Equals(id));
+            if (entity != null)
+            {
+                Mapper.Map<TInputDto, TEntity>(dto, entity);
+                _dbSet.Update(entity); // 设置所有字段为updated, 以防万一检测不出
+                await _dbContext.SaveChangesAsync();
+                return true;
+            }
+            return false;
         }
 
-        public Task<TPrimaryKey> Put(TInputDto dto)
+        public virtual async Task<TPrimaryKey> Put(TInputDto dto)
         {
-            throw new NotImplementedException();
+            var entity = new TEntity();
+            entity.Id = PrimaryKeyUtils.Generate<TPrimaryKey>();
+            Mapper.Map<TInputDto, TEntity>(dto, entity);
+            await _dbSet.AddAsync(entity);
+            await _dbContext.SaveChangesAsync();
+            return entity.Id;
         }
     }
 }

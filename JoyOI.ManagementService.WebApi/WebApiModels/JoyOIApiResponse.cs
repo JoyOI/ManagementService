@@ -8,18 +8,24 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
     /// <summary>
     /// WebApi返回的结果都应该使用这个类包装
     /// </summary>
-    public class JoyOIApiResponse
+    public class JoyOIApiResponse<TData>
     {
         public int code { get; set; }
         public string msg { get; set; }
-        public object data { get; set; }
+        public TData data { get; set; }
+    }
 
+    /// <summary>
+    /// 构建JoyOIApiResponse的静态函数
+    /// </summary>
+    public static class JoyOIApiResponse
+    {
         /// <summary>
-        /// 返回成功的结果
+        /// 返回200(成功)
         /// </summary>
-        public static JoyOIApiResponse Success(object data)
+        public static JoyOIApiResponse<TData> OK<TData>(TData data)
         {
-            return new JoyOIApiResponse()
+            return new JoyOIApiResponse<TData>()
             {
                 code = 200,
                 msg = null,
@@ -28,11 +34,24 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         }
 
         /// <summary>
-        /// 返回错误的结果
+        /// 返回404(找不到)
         /// </summary>
-        public static JoyOIApiResponse Exception(Exception ex)
+        public static JoyOIApiResponse<TData> NotFound<TData>(string msg)
         {
-            return new JoyOIApiResponse()
+            return new JoyOIApiResponse<TData>()
+            {
+                code = 404,
+                msg = msg,
+                data = default(TData)
+            };
+        }
+
+        /// <summary>
+        /// 返回500(内部错误)
+        /// </summary>
+        public static JoyOIApiResponse<object> InternalServerError(Exception ex)
+        {
+            return new JoyOIApiResponse<object>()
             {
                 code = 500,
                 msg = $"{ex.GetType().Name}: {ex.Message}",

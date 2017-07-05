@@ -12,7 +12,7 @@ namespace JoyOI.ManagementService.Services
     /// 提供实体操作的服务接口
     /// </summary>
     public interface IEntityOperationService<TEntity, TPrimaryKey, TInputDto, TOutputDto>
-        where TEntity : class, IEntity<TPrimaryKey>
+        where TEntity : class, IEntity<TPrimaryKey>, new()
         where TInputDto : IInputDto
         where TOutputDto : IOutputDto
     {

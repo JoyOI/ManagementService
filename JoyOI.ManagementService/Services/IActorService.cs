@@ -7,7 +7,7 @@ using System.Text;
 namespace JoyOI.ManagementService.Services
 {
     /// <summary>
-    /// 管理任务的服务
+    /// 管理任务的服务接口
     /// </summary>
     public interface IActorService :
         IEntityOperationService<ActorEntity, Guid, ActorInputDto, ActorOutputDto>

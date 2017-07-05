@@ -7,7 +7,7 @@ using System.Text;
 namespace JoyOI.ManagementService.Services
 {
     /// <summary>
-    /// 管理文件的服务
+    /// 管理文件的服务接口
     /// </summary>
     public interface IBlobService :
         IEntityOperationService<BlobEntity, Guid, BlobInputDto, BlobOutputDto>

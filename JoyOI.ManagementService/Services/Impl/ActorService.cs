@@ -3,15 +3,18 @@ using JoyOI.ManagementService.Model.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
+using JoyOI.ManagementService.DbContexts;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
+    /// <summary>
+    /// 管理任务的服务
+    /// </summary>
     internal class ActorService :
         EntityOperationServiceBase<ActorEntity, Guid, ActorInputDto, ActorOutputDto>,
         IActorService
     {
-        public ActorService(DbContext dbContext) : base(dbContext)
+        public ActorService(JoyOIManagementContext dbContext) : base(dbContext)
         {
         }
     }
