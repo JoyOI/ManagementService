@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using JoyOI.ManagementService.WebApi.WebApiModels;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,9 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public async Task<IEnumerable<string>> Get()
+        public async Task<JoyOIApiResponse> Get()
         {
-            await Task.Delay(1);
-            return new[] { "a", "b", "c" };
+            throw new NotImplementedException();
         }
     }
 }

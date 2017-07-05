@@ -16,6 +16,8 @@ namespace JoyOI.ManagementService.WebApi.DbContexts
     /// https://github.com/aspnet/EntityFramework/pull/8326
     /// https://github.com/aspnet/EntityFramework/issues/8164
     /// https://github.com/aspnet/EntityFramework/issues/7050
+    /// https://github.com/aspnet/EntityFramework/issues/8888
+    /// https://docs.microsoft.com/en-us/ef/core/get-started/aspnetcore/new-db
     /// </summary>
     public class MigrationJoyOIManagementContext : JoyOIManagementContext
     {

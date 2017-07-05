@@ -1,10 +1,16 @@
-﻿using System;
+﻿using JoyOI.ManagementService.Model.Dtos;
+using JoyOI.ManagementService.Model.Entities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace JoyOI.ManagementService.Services
 {
-    public interface IStateMachineService
+    /// <summary>
+    /// 管理状态机的服务
+    /// </summary>
+    public interface IStateMachineService :
+        IEntityOperationService<StateMachineEntity, Guid, StateMachineInputDto, StateMachineOutputDto>
     {
     }
 }

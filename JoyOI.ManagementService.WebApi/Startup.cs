@@ -10,6 +10,9 @@ using Microsoft.Extensions.Logging;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Configuration;
 using Swashbuckle.AspNetCore.Swagger;
+using System.IO;
+using Newtonsoft.Json;
+using JoyOI.ManagementService.WebApi.WebApiModels;
 
 namespace JoyOI.ManagementService.WebApi
 {
@@ -48,6 +51,7 @@ namespace JoyOI.ManagementService.WebApi
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            // 添加swagger和错误页面
             if (env.IsDevelopment())
             {
                 app.UseSwagger();
@@ -59,6 +63,26 @@ namespace JoyOI.ManagementService.WebApi
             {
                 app.UseStatusCodePages();
             }
+
+            // 全局处理mvc的错误, 发生错误时返回统一格式的json
+            app.Use(async (context, next) =>
+            {
+                try
+                {
+                    await next();
+                }
+                catch (Exception ex)
+                {
+                    context.Response.ContentType = "application/json; charset=utf-8";
+                    context.Response.StatusCode = 200;
+                    using (var writer = new StreamWriter(context.Response.Body))
+                    {
+                        var json = JsonConvert.SerializeObject(JoyOIApiResponse.Exception(ex));
+                        writer.Write(json);
+                    }
+                }
+            });
+
             app.UseMvc();
         }
     }

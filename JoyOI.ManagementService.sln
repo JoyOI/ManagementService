@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26430.14
+VisualStudioVersion = 15.0.26621.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService", "JoyOI.ManagementService\JoyOI.ManagementService.csproj", "{44D4F985-F50C-4909-AE49-C51B4485FC67}"
 EndProject
@@ -53,5 +53,8 @@ Global
 		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
 		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
 		{BCE8051F-387D-487A-AAB6-AB35C260AE21} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AFAF2E18-CD2A-4C7E-8D88-EEFCAEEFF910}
 	EndGlobalSection
 EndGlobal
