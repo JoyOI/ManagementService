@@ -40,6 +40,10 @@ namespace JoyOI.ManagementService.DbContexts
             stateMachineEntity.HasIndex(x => x.Name).IsUnique();
 
             var stateMachineInstanceEntity = modelBuilder.Entity<StateMachineInstanceEntity>();
+            stateMachineInstanceEntity.Property(x => x._FinishedActors).HasColumnName("FinishedActors");
+            stateMachineInstanceEntity.Property(x => x._CurrentActor).HasColumnName("CurrentActor");
+            stateMachineInstanceEntity.Ignore(x => x.FinishedActors);
+            stateMachineInstanceEntity.Ignore(x => x.CurrentActor);
             stateMachineInstanceEntity.HasIndex(x => x.Name);
             stateMachineInstanceEntity.HasIndex(x => new { x.Name, x.Status });
         }

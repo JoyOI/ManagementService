@@ -9,12 +9,19 @@
     <PackageReference Include="Docker.DotNet" Version="2.124.3" />
     <PackageReference Include="Docker.DotNet.X509" Version="2.124.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.0-preview2-final" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="2.0.0-preview2-final" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0-preview-20170628-02" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="Polly" Version="5.2.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.0.0-preview2-10043" />
     <PackageReference Include="xunit" Version="2.3.0-beta3-build3705" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0-beta3-build3705" />
 	  <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JoyOI.ManagementService.Model\JoyOI.ManagementService.Model.csproj" />
+    <ProjectReference Include="..\JoyOI.ManagementService\JoyOI.ManagementService.csproj" />
   </ItemGroup>
 
 </Project>

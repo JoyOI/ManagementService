@@ -1,6 +1,7 @@
 ﻿using JoyOI.ManagementService.Model.Entities.Interfaces;
 using JoyOI.ManagementService.Model.Enums;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -27,11 +28,21 @@ namespace JoyOI.ManagementService.Model.Entities
         /// <summary>
         /// 已执行的任务列表
         /// </summary>
-        public JsonObject<ActorInfo[]> FinishedActors { get; set; }
+        public string _FinishedActors { get; set; }
+        public ActorInfo[] FinishedActors
+        {
+            get => JsonConvert.DeserializeObject<ActorInfo[]>(_FinishedActors);
+            set => _FinishedActors = JsonConvert.SerializeObject(value);
+        }
         /// <summary>
         /// 当前执行的任务
         /// </summary>
-        public JsonObject<ActorInfo> CurrentActor { get; set; }
+        public string _CurrentActor { get; set; }
+        public ActorInfo CurrentActor
+        {
+            get => JsonConvert.DeserializeObject<ActorInfo>(_CurrentActor);
+            set => _FinishedActors = JsonConvert.SerializeObject(value);
+        }
         /// <summary>
         /// 当前执行的Docker节点名称 (不是地址而是名称)
         /// </summary>

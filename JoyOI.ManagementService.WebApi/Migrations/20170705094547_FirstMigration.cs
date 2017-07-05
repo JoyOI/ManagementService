@@ -61,14 +61,14 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
-                    CurrentActor = table.Column<JsonObject<ActorInfo>>(type: "json", nullable: true),
                     CurrentContainer = table.Column<string>(type: "longtext", nullable: true),
                     CurrentNode = table.Column<string>(type: "longtext", nullable: true),
                     EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    FinishedActors = table.Column<JsonObject<ActorInfo[]>>(type: "json", nullable: true),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     StartTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CurrentActor = table.Column<string>(type: "longtext", nullable: true),
+                    FinishedActors = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {

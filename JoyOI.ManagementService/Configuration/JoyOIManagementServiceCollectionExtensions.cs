@@ -15,11 +15,35 @@ namespace Microsoft.Extensions.DependencyInjection
     /// </summary>
     public static class JoyOIManagementServiceCollectionExtensions
     {
+        private static bool StaticFunctionsInitialized = false;
+        private static object StaticFunctionsInitializeLock = new object();
+
+        /// <summary>
+        /// 初始化静态功能
+        /// </summary>
+        internal static void InitializeStaticFunctions()
+        {
+            if (StaticFunctionsInitialized)
+            {
+                return;
+            }
+            lock (StaticFunctionsInitializeLock)
+            {
+                Mapper.Initialize(c =>
+                {
+                    c.AddProfile<BaseMapperProfile>();
+                    c.AddProfile<ActorMapperProfile>();
+                    c.AddProfile<BlobMapperProfile>();
+                    c.AddProfile<StateMachineMapperProfile>();
+                    c.AddProfile<StateMachineInstanceMapperProfile>();
+                });
+                StaticFunctionsInitialized = true;
+            }
+        }
+
         /// <summary>
         /// 初始化管理服务
         /// </summary>
-        /// <param name="services"></param>
-        /// <param name="configuration"></param>
         public static void AddJoyOIManagement(
             this IServiceCollection services, JoyOIManagementConfiguration configuration)
         {
@@ -35,15 +59,8 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddTransient<IStateMachineService, StateMachineService>();
             services.AddTransient<IStateMachineInstanceService, StateMachineInstanceService>();
 
-            // AutoMapper
-            Mapper.Initialize(c =>
-            {
-                c.AddProfile<BaseMapperProfile>();
-                c.AddProfile<ActorMapperProfile>();
-                c.AddProfile<BlobMapperProfile>();
-                c.AddProfile<StateMachineMapperProfile>();
-                c.AddProfile<StateMachineInstanceMapperProfile>();
-            });
+            // 静态功能
+            InitializeStaticFunctions();
         }
     }
 }

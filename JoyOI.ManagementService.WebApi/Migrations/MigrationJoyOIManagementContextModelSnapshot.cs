@@ -97,21 +97,23 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd();
 
-                    b.Property<JsonObject<ActorInfo>>("CurrentActor");
-
                     b.Property<string>("CurrentContainer");
 
                     b.Property<string>("CurrentNode");
 
                     b.Property<DateTime>("EndTime");
 
-                    b.Property<JsonObject<ActorInfo[]>>("FinishedActors");
-
                     b.Property<string>("Name");
 
                     b.Property<DateTime>("StartTime");
 
                     b.Property<int>("Status");
+
+                    b.Property<string>("_CurrentActor")
+                        .HasColumnName("CurrentActor");
+
+                    b.Property<string>("_FinishedActors")
+                        .HasColumnName("FinishedActors");
 
                     b.HasKey("Id");
 
