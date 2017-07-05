@@ -22,8 +22,6 @@ namespace JoyOI.ManagementService.DbContexts
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // 需要创建迁移文件必须重载此函数
-            // 否则无法解决No database provider has been configured for this DbContext错误
             optionsBuilder.UseMySql(ConnectionString, b => b.MigrationsAssembly(MigrationAssembly));
         }
 

@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
@@ -12,12 +12,11 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "Actors",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(nullable: false)
-                        .Annotation("MySql:ValueGeneratedOnAdd", true),
-                    Body = table.Column<string>(nullable: true),
-                    CreateTime = table.Column<DateTime>(nullable: false),
-                    Name = table.Column<string>(nullable: false),
-                    UpdateTime = table.Column<DateTime>(nullable: false)
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Body = table.Column<string>(type: "longtext", nullable: true),
+                    CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Name = table.Column<string>(type: "varchar(127)", nullable: false),
+                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -29,14 +28,13 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "Blobs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(nullable: false)
-                        .Annotation("MySql:ValueGeneratedOnAdd", true),
-                    BlobId = table.Column<Guid>(nullable: false),
-                    Body = table.Column<byte[]>(nullable: true),
-                    ChunkIndex = table.Column<int>(nullable: false),
-                    CreateTime = table.Column<DateTime>(nullable: false),
-                    Name = table.Column<string>(nullable: true),
-                    UpdateTime = table.Column<DateTime>(nullable: false)
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false),
+                    BlobId = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Body = table.Column<byte[]>(type: "longblob", nullable: true),
+                    ChunkIndex = table.Column<int>(type: "int", nullable: false),
+                    CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Name = table.Column<string>(type: "longtext", nullable: true),
+                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -48,12 +46,11 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "StateMachine",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(nullable: false)
-                        .Annotation("MySql:ValueGeneratedOnAdd", true),
-                    Body = table.Column<string>(nullable: true),
-                    CreateTime = table.Column<DateTime>(nullable: false),
-                    Name = table.Column<string>(nullable: false),
-                    UpdateTime = table.Column<DateTime>(nullable: false)
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Body = table.Column<string>(type: "longtext", nullable: true),
+                    CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Name = table.Column<string>(type: "varchar(127)", nullable: false),
+                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -65,16 +62,15 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "StateMachineInstances",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(nullable: false)
-                        .Annotation("MySql:ValueGeneratedOnAdd", true),
-                    CurrentActor = table.Column<JsonObject<ActorInfo>>(nullable: true),
-                    CurrentContainer = table.Column<string>(nullable: true),
-                    CurrentNode = table.Column<string>(nullable: true),
-                    EndTime = table.Column<DateTime>(nullable: false),
-                    FinishedActors = table.Column<JsonObject<ActorInfo[]>>(nullable: true),
-                    Name = table.Column<string>(nullable: true),
-                    StartTime = table.Column<DateTime>(nullable: false),
-                    Status = table.Column<int>(nullable: false)
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false),
+                    CurrentActor = table.Column<JsonObject<ActorInfo>>(type: "json", nullable: true),
+                    CurrentContainer = table.Column<string>(type: "longtext", nullable: true),
+                    CurrentNode = table.Column<string>(type: "longtext", nullable: true),
+                    EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    FinishedActors = table.Column<JsonObject<ActorInfo[]>>(type: "json", nullable: true),
+                    Name = table.Column<string>(type: "varchar(127)", nullable: true),
+                    StartTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
