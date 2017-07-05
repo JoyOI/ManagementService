@@ -12,7 +12,7 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    [Migration("20170705063417_FirstMigration")]
+    [Migration("20170705081417_FirstMigration")]
     partial class FirstMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -57,6 +57,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<DateTime>("CreateTime");
 
                     b.Property<string>("Name");
+
+                    b.Property<DateTime>("TimeStamp");
 
                     b.Property<DateTime>("UpdateTime");
 

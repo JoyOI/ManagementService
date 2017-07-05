@@ -20,8 +20,8 @@ namespace JoyOI.ManagementService.Model.MapperProfiles
             CreateMap<long, DateTime>().ConvertUsing(t => Epoch.AddSeconds(t));
 
             // 字符串 <=> Base64字符串
-            CreateMap<string, byte[]>().ConvertUsing(s => Convert.FromBase64String(s));
-            CreateMap<byte[], string>().ConvertUsing(b => Convert.ToBase64String(b));
+            CreateMap<string, byte[]>().ConvertUsing(s => string.IsNullOrEmpty(s) ? new byte[0] : Convert.FromBase64String(s));
+            CreateMap<byte[], string>().ConvertUsing(b => (b == null || b.Length == 0) ? "" : Convert.ToBase64String(b));
         }
     }
 }

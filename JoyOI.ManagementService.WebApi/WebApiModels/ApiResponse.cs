@@ -36,13 +36,13 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回404(找不到)
         /// </summary>
-        public static ApiResponse<TData> NotFound<TData>(string msg)
+        public static ApiResponse<TData> NotFound<TData>(string msg, TData data)
         {
             return new ApiResponse<TData>()
             {
                 code = 404,
                 msg = msg,
-                data = default(TData)
+                data = data
             };
         }
 

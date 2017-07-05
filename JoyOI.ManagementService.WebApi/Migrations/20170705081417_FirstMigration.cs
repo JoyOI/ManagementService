@@ -33,6 +33,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     ChunkIndex = table.Column<int>(type: "int", nullable: false),
                     CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Name = table.Column<string>(type: "longtext", nullable: true),
+                    TimeStamp = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>

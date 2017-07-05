@@ -17,7 +17,8 @@ namespace JoyOI.ManagementService.Model.Entities
         /// <summary>
         /// 文件分块大小, 10MB
         /// </summary>
-        public const int BlobChunkSize = 10 * 1024 * 1024;
+        // public const int BlobChunkSize = 10 * 1024 * 1024;
+        public const int BlobChunkSize = 20;
         /// <summary>
         /// 文件分块Id
         /// </summary>
@@ -42,6 +43,11 @@ namespace JoyOI.ManagementService.Model.Entities
         /// 最大不超过10MB
         /// </summary>
         public byte[] Body { get; set; }
+        /// <summary>
+        /// 文件时间戳
+        /// 由外部传入
+        /// </summary>
+        public DateTime TimeStamp { get; set; }
         /// <summary>
         /// 创建时间
         /// </summary>

@@ -30,6 +30,8 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         public async Task<ApiResponse<StateMachineOutputDto>> Get([FromQuery]Guid id)
         {
             var dto = await _stateMachineService.Get(id);
+            if (dto == null)
+                return ApiResponse.NotFound("state machine not found", dto);
             return ApiResponse.OK(dto);
         }
 
@@ -46,6 +48,18 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var patched = await _stateMachineService.Patch(id, dto);
             var result = new PatchResult(patched);
+            if (dto == null)
+                return ApiResponse.NotFound("state machine not found", result);
+            return ApiResponse.OK(result);
+        }
+
+        [HttpDelete]
+        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
+        {
+            var deleted = await _stateMachineService.Delete(id);
+            var result = new DeleteResult(deleted);
+            if (!deleted)
+                return ApiResponse.NotFound("state machine not found", result);
             return ApiResponse.OK(result);
         }
     }

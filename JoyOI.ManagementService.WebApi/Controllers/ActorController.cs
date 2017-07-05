@@ -31,6 +31,8 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         public async Task<ApiResponse<ActorOutputDto>> Get([FromQuery]Guid id)
         {
             var dto = await _actorService.Get(id);
+            if (dto == null)
+                return ApiResponse.NotFound("actor not found", dto);
             return ApiResponse.OK(dto);
         }
 
@@ -47,6 +49,18 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var patched = await _actorService.Patch(id, dto);
             var result = new PatchResult(patched);
+            if (dto == null)
+                return ApiResponse.NotFound("actor not found", result);
+            return ApiResponse.OK(result);
+        }
+
+        [HttpDelete]
+        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
+        {
+            var deleted = await _actorService.Delete(id);
+            var result = new DeleteResult(deleted);
+            if (!deleted)
+                return ApiResponse.NotFound("actor not found", result);
             return ApiResponse.OK(result);
         }
     }

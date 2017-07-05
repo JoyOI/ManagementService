@@ -33,7 +33,10 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public virtual async Task<bool> Delete(TPrimaryKey id)
         {
-            var entity = await _dbSet.FirstOrDefaultAsync(x => x.Id.Equals(id));
+            var entity = await _dbSet
+                .Where(x => x.Id.Equals(id))
+                .Select(x => new TEntity() { Id = x.Id })
+                .FirstOrDefaultAsync();
             if (entity != null)
             {
                 _dbSet.Remove(entity);

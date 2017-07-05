@@ -57,6 +57,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<string>("Name");
 
+                    b.Property<DateTime>("TimeStamp");
+
                     b.Property<DateTime>("UpdateTime");
 
                     b.HasKey("Id");
