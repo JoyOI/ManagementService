@@ -21,11 +21,13 @@ namespace JoyOI.ManagementService.Services.Impl
     {
         private DbContext _dbContext;
         private DbSet<BlobEntity> _dbSet;
+        private bool _isInMemory;
 
         public BlobService(JoyOIManagementContext dbContext)
         {
             _dbContext = dbContext;
             _dbSet = _dbContext.Set<BlobEntity>();
+            _isInMemory = _dbContext.Database.ProviderName.EndsWith(".InMemory");
         }
 
         public BlobOutputDto MergeChunks(IList<BlobEntity> entities)
@@ -93,15 +95,17 @@ namespace JoyOI.ManagementService.Services.Impl
             IList<BlobEntity> entities = null;
             using (var transaction = await _dbContext.Database.BeginTransactionAsync())
             {
-                entities = await _dbSet
-                    .Where(expression)
-                    .Select(x => new BlobEntity()
+                var query = _dbSet.Where(expression);
+                if (!_isInMemory)
+                {
+                    query = query.Select(x => new BlobEntity()
                     {
                         Id = x.Id,
                         BlobId = x.BlobId,
                         ChunkIndex = x.ChunkIndex
-                    })
-                    .ToListAsync();
+                    });
+                }
+                entities = await query.ToListAsync();
                 if (entities.Count > 0)
                 {
                     _dbSet.RemoveRange(entities);
@@ -188,9 +192,10 @@ namespace JoyOI.ManagementService.Services.Impl
                 BlobEntity existEntity;
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
-                    var entities = await _dbSet
-                        .Where(expression)
-                        .Select(x => new BlobEntity()
+                    var query = _dbSet.Where(expression);
+                    if (!_isInMemory)
+                    {
+                        query = query.Select(x => new BlobEntity()
                         {
                             Id = x.Id,
                             BlobId = x.BlobId,
@@ -198,8 +203,9 @@ namespace JoyOI.ManagementService.Services.Impl
                             Name = x.Name,
                             TimeStamp = x.TimeStamp,
                             CreateTime = x.CreateTime
-                        })
-                        .ToListAsync();
+                        });
+                    }
+                    var entities = await query.ToListAsync();
                     if (entities.Count > 0)
                     {
                         _dbSet.RemoveRange(entities);

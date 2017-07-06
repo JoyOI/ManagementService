@@ -24,19 +24,24 @@ namespace JoyOI.ManagementService.Services.Impl
     {
         private DbContext _dbContext;
         private DbSet<TEntity> _dbSet;
+        private bool _isInMemory;
 
         public EntityOperationServiceBase(DbContext dbContext)
         {
             _dbContext = dbContext;
             _dbSet = dbContext.Set<TEntity>();
+            _isInMemory = _dbContext.Database.ProviderName.EndsWith(".InMemory");
         }
 
         public async Task<long> Delete(Expression<Func<TEntity, bool>> expression)
         {
-            var entity = await _dbSet
-                .Where(expression)
-                .Select(x => new TEntity() { Id = x.Id })
-                .FirstOrDefaultAsync();
+            var query = _dbSet.Where(expression);
+            if (!_isInMemory)
+            {
+                // InMemoryDatabase doesn't support this approch
+                query = query.Select(x => new TEntity() { Id = x.Id });
+            }
+            var entity = await query.FirstOrDefaultAsync();
             if (entity != null)
             {
                 _dbSet.Remove(entity);

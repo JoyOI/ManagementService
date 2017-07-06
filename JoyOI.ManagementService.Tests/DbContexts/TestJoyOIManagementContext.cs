@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace JoyOI.ManagementService.Tests.DbContexts
 {
@@ -11,7 +10,7 @@ namespace JoyOI.ManagementService.Tests.DbContexts
     {
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseInMemoryDatabase("TestJoyOIManagementDatabase");
+            optionsBuilder.UseInMemoryDatabase(Guid.NewGuid().ToString());
         }
     }
 }
