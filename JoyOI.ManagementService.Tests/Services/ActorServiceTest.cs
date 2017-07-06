@@ -1,8 +1,6 @@
-﻿using JoyOI.ManagementService.DbContexts;
-using JoyOI.ManagementService.Model.Dtos;
+﻿using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
-using JoyOI.ManagementService.Tests.DbContexts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
