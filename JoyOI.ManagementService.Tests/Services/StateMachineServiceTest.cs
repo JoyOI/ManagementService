@@ -1,6 +1,7 @@
 ﻿using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,13 +58,18 @@ namespace JoyOI.ManagementService.Tests.Services
         [Fact]
         public async Task Put()
         {
-            var putId = await _service.Put(
-                new StateMachineInputDto() { Name = "put name", Body = "put body" });
+            var putId = await _service.Put(new StateMachineInputDto()
+            {
+                Name = "put name",
+                Body = "put body",
+                Limitation = new ContainerLimitation() { StorageBaseSize = 3 }
+            });
             var put = await _service.Get("put name");
             Assert.True(put != null);
             Assert.Equal(putId, put.Id);
             Assert.Equal("put name", put.Name);
             Assert.Equal("put body", put.Body);
+            Assert.Equal(3, put.Limitation.StorageBaseSize);
         }
 
         [Fact]
@@ -73,7 +79,11 @@ namespace JoyOI.ManagementService.Tests.Services
                 new StateMachineInputDto() { Name = "first name", Body = "first body" });
             var secondId = await _service.Put(
                 new StateMachineInputDto() { Name = "second name", Body = "second body" });
-            var firstPatch = await _service.Patch("first name", new StateMachineInputDto() { Name = "first name updated" });
+            var firstPatch = await _service.Patch("first name", new StateMachineInputDto()
+            {
+                Name = "first name updated",
+                Limitation = new ContainerLimitation() { StorageBaseSize = 3 }
+            });
             var secondPatch = await _service.Patch("second name", new StateMachineInputDto() { Body = "second body updated" });
             var thirdPatch = await _service.Patch("third name", new StateMachineInputDto() { Name = "no exist" });
             Assert.Equal(1, firstPatch);
@@ -86,10 +96,12 @@ namespace JoyOI.ManagementService.Tests.Services
             Assert.Equal(firstId, first.Id);
             Assert.Equal("first name updated", first.Name);
             Assert.Equal("first body", first.Body);
+            Assert.Equal(3, first.Limitation.StorageBaseSize);
             Assert.True(second != null);
             Assert.Equal(secondId, second.Id);
             Assert.Equal("second name", second.Name);
             Assert.Equal("second body updated", second.Body);
+            Assert.True(second.Limitation.IsAllDefault());
         }
 
         [Fact]

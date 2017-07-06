@@ -12,9 +12,10 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    partial class MigrationJoyOIManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20170706093852_AddLimitation")]
+    partial class AddLimitation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

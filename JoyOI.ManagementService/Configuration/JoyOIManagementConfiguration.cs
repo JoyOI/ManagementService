@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,6 +16,10 @@ namespace JoyOI.ManagementService.Configuration
         /// </summary>
         public string Name { get; set; }
         /// <summary>
+        /// 默认的限制参数
+        /// </summary>
+        public ContainerLimitation Limitation { get; set; }
+        /// <summary>
         /// { 节点名称: 节点配置 }
         /// </summary>
         public IDictionary<string, Node> Nodes { get; set; }
@@ -22,6 +27,7 @@ namespace JoyOI.ManagementService.Configuration
         public JoyOIManagementConfiguration()
         {
             Name = "Default";
+            Limitation = new ContainerLimitation();
             Nodes = new Dictionary<string, Node>();
         }
 

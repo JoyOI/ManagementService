@@ -34,9 +34,11 @@ namespace JoyOI.ManagementService.Model.Entities
         /// 已执行的任务列表
         /// </summary>
         public string _FinishedActors { get; set; }
-        public ActorInfo[] FinishedActors
+        public IList<ActorInfo> FinishedActors
         {
-            get => JsonConvert.DeserializeObject<ActorInfo[]>(_FinishedActors);
+            get => string.IsNullOrEmpty(_FinishedActors) ?
+                new List<ActorInfo>() :
+                JsonConvert.DeserializeObject<IList<ActorInfo>>(_FinishedActors);
             set => _FinishedActors = JsonConvert.SerializeObject(value);
         }
         /// <summary>
@@ -45,7 +47,9 @@ namespace JoyOI.ManagementService.Model.Entities
         public string _CurrentActor { get; set; }
         public ActorInfo CurrentActor
         {
-            get => JsonConvert.DeserializeObject<ActorInfo>(_CurrentActor);
+            get => string.IsNullOrEmpty(_CurrentActor) ?
+                null :
+                JsonConvert.DeserializeObject<ActorInfo>(_CurrentActor);
             set => _FinishedActors = JsonConvert.SerializeObject(value);
         }
         /// <summary>

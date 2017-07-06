@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace JoyOI.ManagementService.Model.ChildModels
+namespace Microsoft.EntityFrameworkCore.Migrations
 {
     /// <summary>
     /// 容器的限制参数
@@ -12,7 +12,7 @@ namespace JoyOI.ManagementService.Model.ChildModels
     /// https://stackoverflow.com/questions/24391660/limit-disk-size-and-bandwidth-of-a-docker-container
     /// https://github.com/snitm/docker/blob/master/daemon/graphdriver/devmapper/README.md
     /// </summary>
-    public class ContainerLimition
+    public class ContainerLimitation
     {
         /// <summary>
         /// 限制CPU时使用的间隔时间
@@ -40,5 +40,18 @@ namespace JoyOI.ManagementService.Model.ChildModels
         /// 单位是GB, 默认是10GB
         /// </summary>
         public int? StorageBaseSize { get; set; }
+
+        /// <summary>
+        /// 判断是否所有值都是默认值
+        /// </summary>
+        /// <returns></returns>
+        public bool IsAllDefault()
+        {
+            return CPUPeriod == null &&
+                CPUQuota == null &&
+                Memory == null &&
+                MemorySwap == null &&
+                StorageBaseSize == null;
+        }
     }
 }

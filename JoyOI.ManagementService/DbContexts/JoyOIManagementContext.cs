@@ -38,6 +38,8 @@ namespace JoyOI.ManagementService.DbContexts
             blobsEntity.HasIndex(x => x.BodyHash); // 考虑到并发上传, 不设唯一键
 
             var stateMachineEntity = modelBuilder.Entity<StateMachineEntity>();
+            stateMachineEntity.Property(x => x._Limitation).HasColumnName("Limitation");
+            stateMachineEntity.Ignore(x => x.Limitation);
             stateMachineEntity.HasIndex(x => x.Name).IsUnique();
 
             var stateMachineInstanceEntity = modelBuilder.Entity<StateMachineInstanceEntity>();
