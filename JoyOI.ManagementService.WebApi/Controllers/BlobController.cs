@@ -42,25 +42,5 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var result = new PutResult<Guid>(key);
             return ApiResponse.OK(result);
         }
-
-        [HttpPatch]
-        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] Guid id, [FromBody]BlobInputDto dto)
-        {
-            var patched = await _blobService.Patch(id, dto);
-            var result = new PatchResult(patched);
-            if (patched <= 0)
-                return ApiResponse.NotFound("blob not found", result);
-            return ApiResponse.OK(result);
-        }
-
-        [HttpDelete]
-        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
-        {
-            var deleted = await _blobService.Delete(id);
-            var result = new DeleteResult(deleted);
-            if (deleted <= 0)
-                return ApiResponse.NotFound("blob not found", result);
-            return ApiResponse.OK(result);
-        }
     }
 }
