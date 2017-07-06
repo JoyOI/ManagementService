@@ -5,7 +5,8 @@ using System.Text;
 
 namespace JoyOI.ManagementService.Model.Dtos
 {
-    public class StateMachineInstanceInputDto : IInputDto
+    public class StateMachineInstancePatchDto : IInputDto
     {
+
     }
 }
