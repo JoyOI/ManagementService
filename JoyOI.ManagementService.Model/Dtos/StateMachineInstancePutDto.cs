@@ -10,5 +10,6 @@ namespace JoyOI.ManagementService.Model.Dtos
     {
         public string Name { get; set; }
         public IList<BlobInfo> Inputs { get; set; }
+        public ContainerLimitation Limitation { get; set; }
     }
 }
