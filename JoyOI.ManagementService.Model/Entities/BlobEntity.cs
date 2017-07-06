@@ -11,8 +11,7 @@ namespace JoyOI.ManagementService.Model.Entities
     /// </summary>
     public class BlobEntity :
         IEntity<Guid>,
-        IEntityWithCreateTime,
-        IEntityWithUpdateTime
+        IEntityWithCreateTime
     {
         /// <summary>
         /// 文件分块大小, 10MB
@@ -35,11 +34,6 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public int ChunkIndex { get; set; }
         /// <summary>
-        /// 文件名
-        /// 各个分块的文件名应该一致
-        /// </summary>
-        public string Name { get; set; }
-        /// <summary>
         /// 文件内容
         /// 最大不超过10MB
         /// </summary>
@@ -50,12 +44,17 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public DateTime TimeStamp { get; set; }
         /// <summary>
+        /// 文件内容的校验值 (SHA256)
+        /// </summary>
+        public string BodyHash { get; set; }
+        /// <summary>
+        /// 备注
+        /// 第一次上传时可以设置备注, 后续如果重复使用了这个blob则备注不会更新
+        /// </summary>
+        public string Remark { get; set; }
+        /// <summary>
         /// 创建时间
         /// </summary>
         public DateTime CreateTime { get; set; }
-        /// <summary>
-        /// 更新时间
-        /// </summary>
-        public DateTime UpdateTime { get; set; }
     }
 }

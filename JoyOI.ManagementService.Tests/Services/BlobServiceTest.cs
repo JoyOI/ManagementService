@@ -25,8 +25,8 @@ namespace JoyOI.ManagementService.Tests.Services
         private BlobInputDto GetSmallBlob()
         {
             var dto = new BlobInputDto();
-            dto.Name = "small blob";
             dto.TimeStamp = Mapper.Map<DateTime, long>(DateTime.UtcNow);
+            dto.Remark = "small blob";
             var body = new byte[BlobEntity.BlobChunkSize];
             RandomUtils.GetRandomInstance().NextBytes(body);
             dto.Body = Mapper.Map<byte[], string>(body);
@@ -36,8 +36,8 @@ namespace JoyOI.ManagementService.Tests.Services
         private BlobInputDto GetLargeBlob()
         {
             var dto = new BlobInputDto();
-            dto.Name = "large blob";
             dto.TimeStamp = Mapper.Map<DateTime, long>(DateTime.UtcNow);
+            dto.Remark = "large blob";
             var body = new byte[BlobEntity.BlobChunkSize * 2 + 100];
             RandomUtils.GetRandomInstance().NextBytes(body);
             dto.Body = Mapper.Map<byte[], string>(body);
@@ -54,13 +54,13 @@ namespace JoyOI.ManagementService.Tests.Services
             var all = await _service.GetAll(null);
             Assert.Equal(2, all.Count);
             Assert.True(all.Any(x =>
-                x.Name == smallBlob.Name &&
                 x.Body == smallBlob.Body &&
-                x.TimeStamp == smallBlob.TimeStamp));
+                x.TimeStamp == smallBlob.TimeStamp &&
+                x.Remark == smallBlob.Remark));
             Assert.True(all.Any(x =>
-                x.Name == largeBlob.Name &&
                 x.Body == largeBlob.Body &&
-                x.TimeStamp == largeBlob.TimeStamp));
+                x.TimeStamp == largeBlob.TimeStamp &&
+                x.Remark == largeBlob.Remark));
         }
 
         [Fact]
@@ -71,9 +71,9 @@ namespace JoyOI.ManagementService.Tests.Services
 
             var smallBlobGet = await _service.Get(smallId);
             Assert.True(smallBlobGet != null);
-            Assert.Equal(smallBlob.Name, smallBlobGet.Name);
             Assert.Equal(smallBlob.Body, smallBlobGet.Body);
             Assert.Equal(smallBlob.TimeStamp, smallBlobGet.TimeStamp);
+            Assert.Equal(smallBlob.Remark, smallBlobGet.Remark);
 
             var notExistBlob = await _service.Get(Guid.NewGuid());
             Assert.True(notExistBlob == null);
@@ -87,9 +87,9 @@ namespace JoyOI.ManagementService.Tests.Services
 
             var largeBlobGet = await _service.Get(largeId);
             Assert.True(largeBlobGet != null);
-            Assert.Equal(largeBlob.Name, largeBlobGet.Name);
             Assert.Equal(largeBlob.Body, largeBlobGet.Body);
             Assert.Equal(largeBlob.TimeStamp, largeBlobGet.TimeStamp);
+            Assert.Equal(largeBlob.Remark, largeBlobGet.Remark);
         }
 
         [Fact]
@@ -102,9 +102,9 @@ namespace JoyOI.ManagementService.Tests.Services
 
             var smallBlobGet = await _service.Get(smallId);
             Assert.True(smallBlobGet != null);
-            Assert.Equal(smallBlob.Name, smallBlobGet.Name);
             Assert.Equal(smallBlob.Body, smallBlobGet.Body);
             Assert.Equal(smallBlob.TimeStamp, smallBlobGet.TimeStamp);
+            Assert.Equal(smallBlob.Remark, smallBlobGet.Remark);
         }
 
         [Fact]
@@ -117,42 +117,18 @@ namespace JoyOI.ManagementService.Tests.Services
 
             var largeBlobGet = await _service.Get(largeId);
             Assert.True(largeBlobGet != null);
-            Assert.Equal(largeBlob.Name, largeBlobGet.Name);
             Assert.Equal(largeBlob.Body, largeBlobGet.Body);
             Assert.Equal(largeBlob.TimeStamp, largeBlobGet.TimeStamp);
+            Assert.Equal(largeBlob.Remark, largeBlobGet.Remark);
         }
 
         [Fact]
-        public async Task Patch_Name()
+        public async Task Put_DuplicateBlob()
         {
             var largeBlob = GetLargeBlob();
             var largeId = await _service.Put(largeBlob);
-
-            var largePatch = _service.Patch(largeId, new BlobInputDto() { Name = "new large name" });
-            var largeBlobGet = await _service.Get(largeId);
-            Assert.True(largeBlobGet != null);
-            Assert.Equal("new large name", largeBlobGet.Name);
-            Assert.Equal(largeBlob.Body, largeBlobGet.Body);
-            Assert.Equal(largeBlob.TimeStamp, largeBlobGet.TimeStamp);
-        }
-
-        [Fact]
-        public async Task Patch_Body()
-        {
-            var largeBlob = GetLargeBlob();
-            var newLargeBlob = GetLargeBlob();
-            var largeId = await _service.Put(largeBlob);
-
-            var largePatch = _service.Patch(largeId, new BlobInputDto()
-            {
-                Body = newLargeBlob.Body,
-                TimeStamp = newLargeBlob.TimeStamp
-            });
-            var largeBlobGet = await _service.Get(largeId);
-            Assert.True(largeBlobGet != null);
-            Assert.Equal(largeBlob.Name, largeBlobGet.Name);
-            Assert.Equal(newLargeBlob.Body, largeBlobGet.Body);
-            Assert.Equal(newLargeBlob.TimeStamp, largeBlobGet.TimeStamp);
+            var largeIdDup = await _service.Put(largeBlob);
+            Assert.Equal(largeId, largeIdDup);
         }
 
         [Fact]

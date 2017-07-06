@@ -16,6 +16,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// <summary>
     /// 管理文件的服务
     /// 文件需要分库储存, 不使用通用的基类
+    /// 注意: 相同内容的文件会合并, 删除和修改文件时必须确认文件未被使用
     /// </summary>
     internal class BlobService : IBlobService
     {
@@ -38,8 +39,8 @@ namespace JoyOI.ManagementService.Services.Impl
             }
             var dto = new BlobOutputDto();
             dto.Id = entities[0].BlobId;
-            dto.Name = entities[0].Name;
             dto.TimeStamp = Mapper.Map<DateTime, long>(entities[0].TimeStamp);
+            dto.Remark = entities[0].Remark;
             if (entities.Count == 1)
             {
                 // 不需要合并
@@ -64,6 +65,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             var bodyBytes = Mapper.Map<string, byte[]>(dto.Body);
             var bodyBytesStart = 0;
+            var bodyHash = HashUtils.GetSHA256Hash(bodyBytes);
             var chunkIndex = 0;
             do
             {
@@ -71,7 +73,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 var entity = new BlobEntity();
                 entity.BlobId = blobId;
                 entity.ChunkIndex = chunkIndex++;
-                entity.Name = dto.Name;
+                entity.Remark = dto.Remark;
                 if (bodyBytesStart == 0 && entityBodySize == bodyBytes.Length)
                 {
                     // 不需要分块
@@ -84,8 +86,8 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
                 bodyBytesStart += entityBodySize;
                 entity.TimeStamp = Mapper.Map<long, DateTime>(dto.TimeStamp);
+                entity.BodyHash = bodyHash;
                 entity.CreateTime = DateTime.UtcNow;
-                entity.UpdateTime = DateTime.UtcNow;
                 yield return entity;
             } while (bodyBytesStart < bodyBytes.Length);
         }
@@ -159,88 +161,9 @@ namespace JoyOI.ManagementService.Services.Impl
             return dtos;
         }
 
-        public async Task<long> Patch(Expression<Func<BlobEntity, bool>> expression, BlobInputDto dto)
+        public Task<long> Patch(Expression<Func<BlobEntity, bool>> expression, BlobInputDto dto)
         {
-            if (dto.Body == null)
-            {
-                // 不更新内容
-                using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
-                {
-                    var entities = await _dbSet.Where(expression).ToListAsync();
-                    if (entities.Count > 0)
-                    {
-                        foreach (var entity in entities)
-                        {
-                            if (dto.Name != null)
-                                entity.Name = dto.Name;
-                            if (dto.TimeStamp > 0)
-                                entity.TimeStamp = Mapper.Map<long, DateTime>(dto.TimeStamp);
-                        }
-                        await _dbContext.SaveChangesAsync();
-                        transaction.Commit();
-                        return 1;
-                    }
-                    else
-                    {
-                        return 0;
-                    }
-                }
-            }
-            else
-            {
-                // 更新内容, 需要先删除再创建
-                BlobEntity existEntity;
-                using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
-                {
-                    var query = _dbSet.Where(expression);
-                    if (!_isInMemory)
-                    {
-                        query = query.Select(x => new BlobEntity()
-                        {
-                            Id = x.Id,
-                            BlobId = x.BlobId,
-                            ChunkIndex = x.ChunkIndex,
-                            Name = x.Name,
-                            TimeStamp = x.TimeStamp,
-                            CreateTime = x.CreateTime
-                        });
-                    }
-                    var entities = await query.ToListAsync();
-                    if (entities.Count > 0)
-                    {
-                        _dbSet.RemoveRange(entities);
-                        await _dbContext.SaveChangesAsync();
-                        transaction.Commit();
-                    }
-                    existEntity = entities.FirstOrDefault();
-                }
-                if (existEntity != null)
-                {
-                    var chunks = new List<BlobEntity>(SplitChunks(existEntity.BlobId, dto));
-                    foreach (var chunk in chunks)
-                    {
-                        // 名称无更新时使用原值
-                        if (dto.Name == null)
-                            chunk.Name = existEntity.Name;
-                        // 时间戳无更新时使用原值
-                        if (dto.TimeStamp <= 0)
-                            chunk.TimeStamp = existEntity.TimeStamp;
-                        // 创建时间使用原值
-                        chunk.CreateTime = existEntity.CreateTime;
-                    }
-                    using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
-                    {
-                        await _dbSet.AddRangeAsync(chunks);
-                        await _dbContext.SaveChangesAsync();
-                        transaction.Commit();
-                    }
-                    return 1;
-                }
-                else
-                {
-                    return 0;
-                }
-            }
+            throw new NotSupportedException("modify an exist blob without changing it's blob id is dangerous");
         }
 
         public Task<long> Patch(Guid key, BlobInputDto dto)
@@ -254,6 +177,17 @@ namespace JoyOI.ManagementService.Services.Impl
             var chunks = new List<BlobEntity>(SplitChunks(blobId, dto));
             using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
             {
+                // 如果有相同内容的blob时, 返回原blob的id
+                var existBlobId = await _dbSet
+                    .Where(x => x.BodyHash == chunks[0].BodyHash)
+                    .Select(x => x.BlobId)
+                    .FirstOrDefaultAsync();
+                if (existBlobId != Guid.Empty)
+                {
+                    return existBlobId;
+                }
+                // 添加新的blob
+                // 注意并发添加时可能会添加相同内容的blob
                 await _dbSet.AddRangeAsync(chunks);
                 await _dbContext.SaveChangesAsync();
                 transaction.Commit();

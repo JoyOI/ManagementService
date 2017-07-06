@@ -35,6 +35,7 @@ namespace JoyOI.ManagementService.DbContexts
             var blobsEntity = modelBuilder.Entity<BlobEntity>();
             blobsEntity.HasIndex(x => x.BlobId);
             blobsEntity.HasIndex(x => new { x.BlobId, x.ChunkIndex }).IsUnique();
+            blobsEntity.HasIndex(x => x.BodyHash); // 考虑到并发上传, 不设唯一键
 
             var stateMachineEntity = modelBuilder.Entity<StateMachineEntity>();
             stateMachineEntity.HasIndex(x => x.Name).IsUnique();
