@@ -30,11 +30,11 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
                     BlobId = table.Column<Guid>(type: "char(36)", nullable: false),
                     Body = table.Column<byte[]>(type: "longblob", nullable: true),
+                    BodyHash = table.Column<string>(type: "varchar(127)", nullable: true),
                     ChunkIndex = table.Column<int>(type: "int", nullable: false),
                     CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Name = table.Column<string>(type: "longtext", nullable: true),
-                    TimeStamp = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    Remark = table.Column<string>(type: "longtext", nullable: true),
+                    TimeStamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -64,7 +64,9 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     CurrentContainer = table.Column<string>(type: "longtext", nullable: true),
                     CurrentNode = table.Column<string>(type: "longtext", nullable: true),
                     EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    FromManagementService = table.Column<string>(type: "longtext", nullable: true),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
+                    ReRunTimes = table.Column<int>(type: "int", nullable: false),
                     StartTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     CurrentActor = table.Column<string>(type: "longtext", nullable: true),
@@ -85,6 +87,11 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "IX_Blobs_BlobId",
                 table: "Blobs",
                 column: "BlobId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Blobs_BodyHash",
+                table: "Blobs",
+                column: "BodyHash");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Blobs_BlobId_ChunkIndex",

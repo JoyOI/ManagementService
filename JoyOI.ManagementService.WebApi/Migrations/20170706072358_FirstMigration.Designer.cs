@@ -12,7 +12,7 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    [Migration("20170705094547_FirstMigration")]
+    [Migration("20170706072358_FirstMigration")]
     partial class FirstMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -52,19 +52,21 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<byte[]>("Body");
 
+                    b.Property<string>("BodyHash");
+
                     b.Property<int>("ChunkIndex");
 
                     b.Property<DateTime>("CreateTime");
 
-                    b.Property<string>("Name");
+                    b.Property<string>("Remark");
 
                     b.Property<DateTime>("TimeStamp");
-
-                    b.Property<DateTime>("UpdateTime");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BlobId");
+
+                    b.HasIndex("BodyHash");
 
                     b.HasIndex("BlobId", "ChunkIndex")
                         .IsUnique();
@@ -104,7 +106,11 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<DateTime>("EndTime");
 
+                    b.Property<string>("FromManagementService");
+
                     b.Property<string>("Name");
+
+                    b.Property<int>("ReRunTimes");
 
                     b.Property<DateTime>("StartTime");
 

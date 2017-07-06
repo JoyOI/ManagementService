@@ -51,19 +51,21 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<byte[]>("Body");
 
+                    b.Property<string>("BodyHash");
+
                     b.Property<int>("ChunkIndex");
 
                     b.Property<DateTime>("CreateTime");
 
-                    b.Property<string>("Name");
+                    b.Property<string>("Remark");
 
                     b.Property<DateTime>("TimeStamp");
-
-                    b.Property<DateTime>("UpdateTime");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BlobId");
+
+                    b.HasIndex("BodyHash");
 
                     b.HasIndex("BlobId", "ChunkIndex")
                         .IsUnique();
@@ -103,7 +105,11 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<DateTime>("EndTime");
 
+                    b.Property<string>("FromManagementService");
+
                     b.Property<string>("Name");
+
+                    b.Property<int>("ReRunTimes");
 
                     b.Property<DateTime>("StartTime");
 
