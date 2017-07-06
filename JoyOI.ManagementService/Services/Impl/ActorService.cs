@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using JoyOI.ManagementService.DbContexts;
+using System.Threading.Tasks;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -16,6 +17,21 @@ namespace JoyOI.ManagementService.Services.Impl
     {
         public ActorService(JoyOIManagementContext dbContext) : base(dbContext)
         {
+        }
+
+        public Task<long> Delete(string key)
+        {
+            return Delete(x => x.Name == key);
+        }
+
+        public Task<ActorOutputDto> Get(string key)
+        {
+            return Get(x => x.Name == key);
+        }
+
+        public Task<long> Patch(string key, ActorInputDto dto)
+        {
+            return Patch(x => x.Name == key, dto);
         }
     }
 }

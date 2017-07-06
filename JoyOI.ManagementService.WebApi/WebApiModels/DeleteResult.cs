@@ -7,14 +7,14 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
 {
     public class DeleteResult
     {
-        public bool Deleted { get; set; }
+        public long Deleted { get; set; }
 
         public DeleteResult()
         {
 
         }
 
-        public DeleteResult(bool deleted)
+        public DeleteResult(long deleted)
         {
             Deleted = deleted;
         }

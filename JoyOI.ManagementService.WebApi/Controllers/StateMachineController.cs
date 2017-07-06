@@ -22,14 +22,14 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         [HttpGet("All")]
         public async Task<ApiResponse<IList<StateMachineOutputDto>>> Get()
         {
-            var dtos = await _stateMachineService.Get();
+            var dtos = await _stateMachineService.GetAll(null);
             return ApiResponse.OK(dtos);
         }
 
         [HttpGet]
-        public async Task<ApiResponse<StateMachineOutputDto>> Get([FromQuery]Guid id)
+        public async Task<ApiResponse<StateMachineOutputDto>> Get([FromQuery]string name)
         {
-            var dto = await _stateMachineService.Get(id);
+            var dto = await _stateMachineService.Get(name);
             if (dto == null)
                 return ApiResponse.NotFound("state machine not found", dto);
             return ApiResponse.OK(dto);
@@ -44,21 +44,21 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         }
 
         [HttpPatch]
-        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] Guid id, [FromBody]StateMachineInputDto dto)
+        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] string name, [FromBody]StateMachineInputDto dto)
         {
-            var patched = await _stateMachineService.Patch(id, dto);
+            var patched = await _stateMachineService.Patch(name, dto);
             var result = new PatchResult(patched);
-            if (dto == null)
+            if (patched <= 0)
                 return ApiResponse.NotFound("state machine not found", result);
             return ApiResponse.OK(result);
         }
 
         [HttpDelete]
-        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
+        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] string name)
         {
-            var deleted = await _stateMachineService.Delete(id);
+            var deleted = await _stateMachineService.Delete(name);
             var result = new DeleteResult(deleted);
-            if (!deleted)
+            if (deleted <= 0)
                 return ApiResponse.NotFound("state machine not found", result);
             return ApiResponse.OK(result);
         }

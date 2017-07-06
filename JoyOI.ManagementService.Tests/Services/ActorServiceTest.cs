@@ -29,7 +29,7 @@ namespace JoyOI.ManagementService.Tests.Services
                 new ActorInputDto() { Name = "first name", Body = "first body" });
             var secondId = await _service.Put(
                 new ActorInputDto() { Name = "second name", Body = "second body" });
-            var all = await _service.Get();
+            var all = await _service.GetAll(null);
             Assert.Equal(2, all.Count);
             Assert.True(all.Any(x => x.Id == firstId && x.Name == "first name" && x.Body == "first body"));
             Assert.True(all.Any(x => x.Id == secondId && x.Name == "second name" && x.Body == "second body"));

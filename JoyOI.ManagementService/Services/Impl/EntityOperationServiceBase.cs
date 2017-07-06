@@ -31,27 +31,37 @@ namespace JoyOI.ManagementService.Services.Impl
             _dbSet = dbContext.Set<TEntity>();
         }
 
-        public virtual async Task<bool> Delete(TPrimaryKey id)
+        public async Task<long> Delete(Expression<Func<TEntity, bool>> expression)
         {
             var entity = await _dbSet
-                .Where(x => x.Id.Equals(id))
+                .Where(expression)
                 .Select(x => new TEntity() { Id = x.Id })
                 .FirstOrDefaultAsync();
             if (entity != null)
             {
                 _dbSet.Remove(entity);
-                await _dbContext.SaveChangesAsync();
-                return true;
+                return await _dbContext.SaveChangesAsync();
             }
-            return false;
+            return 0;
         }
 
-        public virtual Task<IList<TOutputDto>> Get()
+        public async Task<TOutputDto> Get(Expression<Func<TEntity, bool>> expression)
         {
-            return Get(null);
+            var queryable = _dbSet.AsNoTracking();
+            if (expression != null)
+            {
+                queryable = queryable.Where(expression);
+            }
+            var entity = await queryable.FirstOrDefaultAsync();
+            if (entity != null)
+            {
+                var dto = Mapper.Map<TEntity, TOutputDto>(entity);
+                return dto;
+            }
+            return default(TOutputDto);
         }
 
-        public virtual async Task<IList<TOutputDto>> Get(Expression<Func<TEntity, bool>> expression)
+        public async Task<IList<TOutputDto>> GetAll(Expression<Func<TEntity, bool>> expression)
         {
             var queryable = _dbSet.AsNoTracking();
             if (expression != null)
@@ -67,20 +77,9 @@ namespace JoyOI.ManagementService.Services.Impl
             return dtos;
         }
 
-        public virtual async Task<TOutputDto> Get(TPrimaryKey id)
+        public async Task<long> Patch(Expression<Func<TEntity, bool>> expression, TInputDto dto)
         {
-            var entity = await _dbSet.AsNoTracking().FirstOrDefaultAsync(x => x.Id.Equals(id));
-            if (entity != null)
-            {
-                var dto = Mapper.Map<TEntity, TOutputDto>(entity);
-                return dto;
-            }
-            return default(TOutputDto);
-        }
-
-        public virtual async Task<bool> Patch(TPrimaryKey id, TInputDto dto)
-        {
-            var entity = await _dbSet.FirstOrDefaultAsync(x => x.Id.Equals(id));
+            var entity = await _dbSet.FirstOrDefaultAsync(expression);
             if (entity != null)
             {
                 Mapper.Map<TInputDto, TEntity>(dto, entity);
@@ -89,13 +88,12 @@ namespace JoyOI.ManagementService.Services.Impl
                     updateTimeEntity.UpdateTime = DateTime.UtcNow;
                 }
                 _dbSet.Update(entity); // 设置所有字段为updated, 以防万一检测不出
-                await _dbContext.SaveChangesAsync();
-                return true;
+                return await _dbContext.SaveChangesAsync();
             }
-            return false;
+            return 0;
         }
 
-        public virtual async Task<TPrimaryKey> Put(TInputDto dto)
+        public async Task<TPrimaryKey> Put(TInputDto dto)
         {
             var entity = new TEntity();
             entity.Id = PrimaryKeyUtils.Generate<TPrimaryKey>();

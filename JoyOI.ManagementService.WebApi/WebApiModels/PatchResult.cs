@@ -7,14 +7,14 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
 {
     public class PatchResult
     {
-        public bool Patched { get; set; }
+        public long Patched { get; set; }
 
         public PatchResult()
         {
 
         }
 
-        public PatchResult(bool patched)
+        public PatchResult(long patched)
         {
             Patched = patched;
         }

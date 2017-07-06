@@ -22,7 +22,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         [HttpGet("All")]
         public async Task<ApiResponse<IList<BlobOutputDto>>> Get()
         {
-            var dtos = await _blobService.Get();
+            var dtos = await _blobService.GetAll(null);
             return ApiResponse.OK(dtos);
         }
 
@@ -48,7 +48,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var patched = await _blobService.Patch(id, dto);
             var result = new PatchResult(patched);
-            if (dto == null)
+            if (patched <= 0)
                 return ApiResponse.NotFound("blob not found", result);
             return ApiResponse.OK(result);
         }
@@ -58,7 +58,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var deleted = await _blobService.Delete(id);
             var result = new DeleteResult(deleted);
-            if (!deleted)
+            if (deleted <= 0)
                 return ApiResponse.NotFound("blob not found", result);
             return ApiResponse.OK(result);
         }

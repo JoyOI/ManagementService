@@ -23,14 +23,14 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         [HttpGet("All")]
         public async Task<ApiResponse<IList<ActorOutputDto>>> Get()
         {
-            var dtos = await _actorService.Get();
+            var dtos = await _actorService.GetAll(null);
             return ApiResponse.OK(dtos);
         }
 
         [HttpGet]
-        public async Task<ApiResponse<ActorOutputDto>> Get([FromQuery]Guid id)
+        public async Task<ApiResponse<ActorOutputDto>> Get([FromQuery]string name)
         {
-            var dto = await _actorService.Get(id);
+            var dto = await _actorService.Get(name);
             if (dto == null)
                 return ApiResponse.NotFound("actor not found", dto);
             return ApiResponse.OK(dto);
@@ -45,21 +45,21 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         }
 
         [HttpPatch]
-        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] Guid id, [FromBody]ActorInputDto dto)
+        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] string name, [FromBody]ActorInputDto dto)
         {
-            var patched = await _actorService.Patch(id, dto);
+            var patched = await _actorService.Patch(name, dto);
             var result = new PatchResult(patched);
-            if (dto == null)
+            if (patched <= 0)
                 return ApiResponse.NotFound("actor not found", result);
             return ApiResponse.OK(result);
         }
 
         [HttpDelete]
-        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
+        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] string name)
         {
-            var deleted = await _actorService.Delete(id);
+            var deleted = await _actorService.Delete(name);
             var result = new DeleteResult(deleted);
-            if (!deleted)
+            if (deleted <= 0)
                 return ApiResponse.NotFound("actor not found", result);
             return ApiResponse.OK(result);
         }

@@ -10,7 +10,8 @@ namespace JoyOI.ManagementService.Services
     /// 管理文件的服务接口
     /// </summary>
     public interface IBlobService :
-        IEntityOperationService<BlobEntity, Guid, BlobInputDto, BlobOutputDto>
+        IEntityOperationService<BlobEntity, Guid, BlobInputDto, BlobOutputDto>,
+        IEntityOperationByKeyService<BlobEntity, Guid, BlobInputDto, BlobOutputDto>
     {
     }
 }

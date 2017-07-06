@@ -88,13 +88,15 @@ namespace JoyOI.ManagementService.Services.Impl
             } while (bodyBytesStart < bodyBytes.Length);
         }
 
-        public async Task<bool> Delete(Guid id)
+        public async Task<long> Delete(Expression<Func<BlobEntity, bool>> expression)
         {
+            IList<BlobEntity> entities = null;
             using (var transaction = await _dbContext.Database.BeginTransactionAsync())
             {
-                var entities = await _dbSet
-                    .Where(x => x.BlobId == id)
-                    .Select(x => new BlobEntity() {
+                entities = await _dbSet
+                    .Where(expression)
+                    .Select(x => new BlobEntity()
+                    {
                         Id = x.Id,
                         BlobId = x.BlobId,
                         ChunkIndex = x.ChunkIndex
@@ -105,18 +107,35 @@ namespace JoyOI.ManagementService.Services.Impl
                     _dbSet.RemoveRange(entities);
                     await _dbContext.SaveChangesAsync();
                     transaction.Commit();
-                    return true;
                 }
-                return false;
             }
+            return entities?.Select(x => x.BlobId).Distinct().LongCount() ?? 0;
         }
 
-        public Task<IList<BlobOutputDto>> Get()
+        public Task<long> Delete(Guid key)
         {
-            return Get(null);
+            return Delete(x => x.BlobId == key);
         }
 
-        public async Task<IList<BlobOutputDto>> Get(Expression<Func<BlobEntity, bool>> expression)
+        public async Task<BlobOutputDto> Get(Expression<Func<BlobEntity, bool>> expression)
+        {
+            IList<BlobEntity> entities;
+            using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+            {
+                entities = _dbSet.AsNoTracking()
+                    .Where(expression)
+                    .OrderBy(x => x.ChunkIndex)
+                    .ToList();
+            }
+            return MergeChunks(entities);
+        }
+
+        public Task<BlobOutputDto> Get(Guid key)
+        {
+            return Get(x => x.BlobId == key);
+        }
+
+        public async Task<IList<BlobOutputDto>> GetAll(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities;
             using (var transaction = await _dbContext.Database.BeginTransactionAsync())
@@ -131,31 +150,19 @@ namespace JoyOI.ManagementService.Services.Impl
             var dtos = new List<BlobOutputDto>(32);
             foreach (var group in entities.GroupBy(e => e.BlobId))
             {
-                dtos.Add(MergeChunks(group.ToList()));
+                dtos.Add(MergeChunks(group.OrderBy(x => x.ChunkIndex).ToList()));
             }
             return dtos;
         }
 
-        public async Task<BlobOutputDto> Get(Guid id)
-        {
-            IList<BlobEntity> entities;
-            using (var transaction = await _dbContext.Database.BeginTransactionAsync())
-            {
-                entities = _dbSet.AsNoTracking()
-                    .Where(x => x.BlobId == id)
-                    .ToList();
-            }
-            return MergeChunks(entities);
-        }
-
-        public async Task<bool> Patch(Guid id, BlobInputDto dto)
+        public async Task<long> Patch(Expression<Func<BlobEntity, bool>> expression, BlobInputDto dto)
         {
             if (dto.Body == null)
             {
                 // 不更新内容
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
-                    var entities = await _dbSet.Where(x => x.BlobId == id).ToListAsync();
+                    var entities = await _dbSet.Where(expression).ToListAsync();
                     if (entities.Count > 0)
                     {
                         foreach (var entity in entities)
@@ -167,11 +174,11 @@ namespace JoyOI.ManagementService.Services.Impl
                         }
                         await _dbContext.SaveChangesAsync();
                         transaction.Commit();
-                        return true;
+                        return 1;
                     }
                     else
                     {
-                        return false;
+                        return 0;
                     }
                 }
             }
@@ -182,7 +189,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
                     var entities = await _dbSet
-                        .Where(x => x.BlobId == id)
+                        .Where(expression)
                         .Select(x => new BlobEntity()
                         {
                             Id = x.Id,
@@ -203,7 +210,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
                 if (existEntity != null)
                 {
-                    var chunks = new List<BlobEntity>(SplitChunks(id, dto));
+                    var chunks = new List<BlobEntity>(SplitChunks(existEntity.BlobId, dto));
                     foreach (var chunk in chunks)
                     {
                         // 名称无更新时使用原值
@@ -221,13 +228,18 @@ namespace JoyOI.ManagementService.Services.Impl
                         await _dbContext.SaveChangesAsync();
                         transaction.Commit();
                     }
-                    return true;
+                    return 1;
                 }
                 else
                 {
-                    return false;
+                    return 0;
                 }
             }
+        }
+
+        public Task<long> Patch(Guid key, BlobInputDto dto)
+        {
+            return Patch(x => x.BlobId == key, dto);
         }
 
         public async Task<Guid> Put(BlobInputDto dto)
