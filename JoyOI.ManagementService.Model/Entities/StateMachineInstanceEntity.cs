@@ -14,6 +14,11 @@ namespace JoyOI.ManagementService.Model.Entities
     public class StateMachineInstanceEntity : IEntity<Guid>
     {
         /// <summary>
+        /// 最多重新运行的次数
+        /// </summary>
+        public const int MaxReRunTimes = 3;
+
+        /// <summary>
         /// 状态机实例Id
         /// </summary>
         public Guid Id { get; set; }
@@ -51,6 +56,15 @@ namespace JoyOI.ManagementService.Model.Entities
         /// 当前执行的Docker容器Id (例如b9a51f0805de)
         /// </summary>
         public string CurrentContainer { get; set; }
+        /// <summary>
+        /// 创建此实例的管理服务,各个管理服务只对自己创建的实例负责
+        /// </summary>
+        public string FromManagementService { get; set; }
+        /// <summary>
+        /// 重新运行的次数
+        /// 超过MaxReRunTimes则会标记为Failed
+        /// </summary>
+        public int ReRunTimes { get; set; }
         /// <summary>
         /// 第一个任务的开始时间
         /// </summary>

@@ -158,6 +158,7 @@ docker images
 		}
 	},
 	"JoyOIManagement": {
+		"Name": "Default",
 		"Nodes": {
 			"docker-1": {
 				"Image": "joyoi",
@@ -176,6 +177,8 @@ docker images
 }
 
 ```
+
+"Name"是管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
 
 "Image"是docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi".
 

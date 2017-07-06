@@ -59,7 +59,7 @@ namespace JoyOI.ManagementService.Tests.Services
         {
             var putId = await _service.Put(
                 new ActorInputDto() { Name = "put name", Body = "put body" });
-            // TODO: InMemoryDatabase doesn't support unique index
+            // InMemoryDatabase doesn't support unique index
             /* await Assert.ThrowsAnyAsync<Exception>(async () =>
             {
                 await _service.Put(

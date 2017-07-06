@@ -11,12 +11,17 @@ namespace JoyOI.ManagementService.Configuration
     public class JoyOIManagementConfiguration
     {
         /// <summary>
+        /// 管理服务的名称
+        /// </summary>
+        public string Name { get; set; }
+        /// <summary>
         /// { 节点名称: 节点配置 }
         /// </summary>
         public IDictionary<string, Node> Nodes { get; set; }
 
         public JoyOIManagementConfiguration()
         {
+            Name = "Default";
             Nodes = new Dictionary<string, Node>();
         }
 

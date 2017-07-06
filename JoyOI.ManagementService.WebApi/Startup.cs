@@ -65,6 +65,17 @@ namespace JoyOI.ManagementService.WebApi
             }
 
             // 全局处理mvc的错误, 发生错误时返回统一格式的json
+            CatchExceptionAndReplyJson(app);
+
+            // 使用WebApi
+            app.UseMvc();
+
+            // 启动管理服务
+            app.ApplicationServices.StartJoyOIManagement();
+        }
+
+        private static void CatchExceptionAndReplyJson(IApplicationBuilder app)
+        {
             app.Use(async (context, next) =>
             {
                 try
@@ -73,6 +84,7 @@ namespace JoyOI.ManagementService.WebApi
                 }
                 catch (Exception ex)
                 {
+                    // TODO: 判断是否唯一键冲突
                     context.Response.ContentType = "application/json; charset=utf-8";
                     context.Response.StatusCode = 200;
                     using (var writer = new StreamWriter(context.Response.Body))
@@ -82,8 +94,6 @@ namespace JoyOI.ManagementService.WebApi
                     }
                 }
             });
-
-            app.UseMvc();
         }
     }
 }

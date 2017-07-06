@@ -19,6 +19,7 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public const int BlobChunkSize = 10 * 1024 * 1024;
         // public const int BlobChunkSize = 20;
+
         /// <summary>
         /// 文件分块Id
         /// </summary>

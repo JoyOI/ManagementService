@@ -107,3 +107,6 @@ Sample #2(已经完成的):
 
 检查客户端证书
 https://docs.microsoft.com/en-us/aspnet/web-api/overview/security/working-with-ssl-in-web-api
+
+所有节点都一样，如果可以的话，能否在StateMachineClass里设置
+默认1核 256MB内存 2GB硬盘
