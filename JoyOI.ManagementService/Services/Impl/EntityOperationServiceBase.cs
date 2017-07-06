@@ -30,7 +30,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             _dbContext = dbContext;
             _dbSet = dbContext.Set<TEntity>();
-            _isInMemory = _dbContext.Database.ProviderName.EndsWith(".InMemory");
+            _isInMemory = DbContextUtils.IsMemoryDb(dbContext);
         }
 
         public async Task<long> Delete(Expression<Func<TEntity, bool>> expression)
@@ -38,7 +38,7 @@ namespace JoyOI.ManagementService.Services.Impl
             var query = _dbSet.Where(expression);
             if (!_isInMemory)
             {
-                // InMemoryDatabase doesn't support this approch
+                // InMemoryDatabase doesn't support this approach
                 query = query.Select(x => new TEntity() { Id = x.Id });
             }
             var entity = await query.FirstOrDefaultAsync();

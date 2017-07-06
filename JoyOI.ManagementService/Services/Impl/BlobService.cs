@@ -27,7 +27,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             _dbContext = dbContext;
             _dbSet = _dbContext.Set<BlobEntity>();
-            _isInMemory = _dbContext.Database.ProviderName.EndsWith(".InMemory");
+            _isInMemory = DbContextUtils.IsMemoryDb(dbContext);
         }
 
         public BlobOutputDto MergeChunks(IList<BlobEntity> entities)
@@ -39,7 +39,7 @@ namespace JoyOI.ManagementService.Services.Impl
             var dto = new BlobOutputDto();
             dto.Id = entities[0].BlobId;
             dto.Name = entities[0].Name;
-            dto.TimeStamp = Mapper.Map<DateTime, long>(entities[0].UpdateTime);
+            dto.TimeStamp = Mapper.Map<DateTime, long>(entities[0].TimeStamp);
             if (entities.Count == 1)
             {
                 // 不需要合并
@@ -93,7 +93,7 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<long> Delete(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities = null;
-            using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
             {
                 var query = _dbSet.Where(expression);
                 if (!_isInMemory)
@@ -124,7 +124,7 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<BlobOutputDto> Get(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities;
-            using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
             {
                 entities = _dbSet.AsNoTracking()
                     .Where(expression)
@@ -142,7 +142,7 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<IList<BlobOutputDto>> GetAll(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities;
-            using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
             {
                 var queryable = _dbSet.AsNoTracking();
                 if (expression != null)
@@ -164,7 +164,7 @@ namespace JoyOI.ManagementService.Services.Impl
             if (dto.Body == null)
             {
                 // 不更新内容
-                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
                 {
                     var entities = await _dbSet.Where(expression).ToListAsync();
                     if (entities.Count > 0)
@@ -190,7 +190,7 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 // 更新内容, 需要先删除再创建
                 BlobEntity existEntity;
-                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
                 {
                     var query = _dbSet.Where(expression);
                     if (!_isInMemory)
@@ -228,7 +228,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         // 创建时间使用原值
                         chunk.CreateTime = existEntity.CreateTime;
                     }
-                    using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                    using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
                     {
                         await _dbSet.AddRangeAsync(chunks);
                         await _dbContext.SaveChangesAsync();
@@ -252,7 +252,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             var blobId = PrimaryKeyUtils.Generate<Guid>();
             var chunks = new List<BlobEntity>(SplitChunks(blobId, dto));
-            using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
             {
                 await _dbSet.AddRangeAsync(chunks);
                 await _dbContext.SaveChangesAsync();

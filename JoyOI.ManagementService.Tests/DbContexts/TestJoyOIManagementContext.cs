@@ -11,6 +11,9 @@ namespace JoyOI.ManagementService.Tests.DbContexts
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseInMemoryDatabase(Guid.NewGuid().ToString());
+            // Warning as error exception for warning
+            // Transactions are not supported by the in-memory store
+            optionsBuilder.ConfigureWarnings(x => x.Default(WarningBehavior.Ignore));
         }
     }
 }
