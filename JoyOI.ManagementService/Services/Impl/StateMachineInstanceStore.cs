@@ -1,9 +1,18 @@
 ﻿using JoyOI.ManagementService.Configuration;
 using JoyOI.ManagementService.DbContexts;
+using JoyOI.ManagementService.Model.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using JoyOI.ManagementService.Core;
+using System.Collections.Concurrent;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
+using Microsoft.CodeAnalysis.Scripting;
+using System.Reflection;
+using System.Linq;
+using System.Linq.Expressions;
+using JoyOI.ManagementService.Utils;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -12,7 +21,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 
     /// 外部启动状态机的流程:
     /// - (可选) 上传一个或多个blob
-    /// - 调用CreateInstance(name, blobs)
+    /// - 调用StateMachineInstanceService.Put
     ///   - 获取name对应的状态机代码
     ///   - 使用roslyn编译状态机代码
     ///   - 添加状态机实例到数据库
@@ -54,16 +63,20 @@ namespace JoyOI.ManagementService.Services.Impl
     /// - 修改状态机实例
     /// - 调用RunAsync(CurrentActor.Name, CurrentActor.Inputs), 之后同上
     /// </summary>
-    public class StateMachineInstanceStore : IStateMachineInstanceStore
+    internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
         private JoyOIManagementConfiguration _configuration;
+        private IDockerNodeStore _dockerNodeStore;
+        private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
         private Func<JoyOIManagementContext> _contextFactory;
         private bool _initilaized;
         private object _initializeLock;
 
-        public StateMachineInstanceStore(JoyOIManagementConfiguration configuration)
+        public StateMachineInstanceStore(JoyOIManagementConfiguration configuration, IDockerNodeStore dockerNodeStore)
         {
             _configuration = configuration;
+            _dockerNodeStore = dockerNodeStore;
+            _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
             _contextFactory = null;
             _initilaized = false;
             _initializeLock = new object();
@@ -83,12 +96,73 @@ namespace JoyOI.ManagementService.Services.Impl
             }
         }
 
-        /// <summary>
-        /// 继续执行之前未执行完毕的实例
-        /// </summary>
         private void ContinueExecutingInstances()
         {
+            // 继续执行之前未执行完毕的实例
+        }
 
+        public async Task<StateMachineBase> CreateInstance(string name, string code)
+        {
+            // 从缓存中获取
+            if (_factoryCache.TryGetValue(name, out var factory))
+            {
+                if (factory.Item1 == code)
+                {
+                    return factory.Item2();
+                }
+            }
+            // 调用roslyn编译
+            // https://github.com/dotnet/roslyn/wiki/Scripting-API-Samples#delegate
+            var result = await CSharpScript.Create(code,
+                ScriptOptions.Default.WithReferences(new Assembly[]
+                {
+                    typeof(int).Assembly,
+                    typeof(System.Linq.Enumerable).Assembly,
+                    typeof(System.Threading.Tasks.Task).Assembly,
+                    typeof(StateMachineInstanceStore).Assembly
+                })).RunAsync();
+            var assemblyName = result.Script.GetCompilation().AssemblyName;
+            var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.FullName.StartsWith(assemblyName));
+            if (assembly == null)
+            {
+                throw new InvalidOperationException("get compiled assembly failed");
+            }
+            var stateMachineType = assembly.GetTypes()
+                .FirstOrDefault(x => typeof(StateMachineBase).IsAssignableFrom(x));
+            if (stateMachineType == null)
+            {
+                throw new InvalidOperationException(
+                    "no state machine type defined, please create a class inherit StateMachineBase");
+            }
+            factory.Item1 = code;
+            factory.Item2 = Expression.Lambda<Func<StateMachineBase>>(
+                Expression.New(stateMachineType.GetConstructors()[0])).Compile();
+            // 保存到缓存
+            _factoryCache[name] = factory;
+            return factory.Item2();
+        }
+
+        public async Task RunInstance(StateMachineBase instance)
+        {
+
+        }
+
+        public async Task TODO()
+        {
+            // 操作docker客户端
+            var node = await _dockerNodeStore.AcquireNode();
+            try
+            {
+                using (var client = node.CreateDockerClient())
+                {
+
+                }
+            }
+            finally
+            {
+                _dockerNodeStore.ReleaseNode(node);
+            }
         }
     }
 }

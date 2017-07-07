@@ -9,7 +9,7 @@ namespace JoyOI.ManagementService.Playground
     {
         static void Main(string[] args)
         {
-            var p = Process.Start("runner");
+            var p = Process.Start(new ProcessStartInfo("runner") { RedirectStandardInput = true });
             p.StandardInput.WriteLine("5000");
             p.StandardInput.WriteLine("gcc Main.c -o Main.out");
             p.WaitForExit();
