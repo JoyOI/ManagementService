@@ -208,7 +208,7 @@ namespace JoyOI.ManagementService.Services.Impl
             }
         }
 
-        public async Task TODO()
+        public async Task RunActor(StateMachineBase instance)
         {
             // 操作docker客户端
             var node = await _dockerNodeStore.AcquireNode();

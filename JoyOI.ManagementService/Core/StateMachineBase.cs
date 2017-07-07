@@ -24,9 +24,26 @@ namespace JoyOI.ManagementService.Core
         {
         }
 
-        protected Task DeployAndRunActorAsync(string actor, BlobInfo[] inputs)
+        protected async Task DeployAndRunActorAsync(string actor, BlobInfo[] inputs)
         {
-            throw new NotImplementedException();
+            // 更新FinishedActors
+            if (CurrentActor.Name != null)
+            {
+                FinishedActors.Add(CurrentActor);
+            }
+            // 创建新的CurrentActor
+            CurrentActor = new ActorInfo()
+            {
+                Name = actor,
+                StartTime = DateTime.UtcNow,
+                EndTime = null,
+                Inputs = inputs,
+                Outputs = new BlobInfo[0],
+                Exceptions = new string[0],
+                Status = ActorStatus.Running
+            };
+            // 传到docker上执行
+            await Store.RunActor(this);
         }
 
         public abstract Task RunAsync(string actor, BlobInfo[] blobs);
