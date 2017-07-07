@@ -154,11 +154,21 @@ docker images
 	"Logging": {
 		"IncludeScopes": false,
 		"LogLevel": {
-			"Default": "Warning"
+			"Default": "Debug",
+			"System": "Information",
+			"Microsoft": "Information"
 		}
 	},
 	"JoyOIManagement": {
 		"Name": "Default",
+		"MaxRunningJobsPerNode": 16,
+		"Limitation": {
+			"CPUPeriod": 1000000,
+			"CPUQuota": 1000000,
+			"Memory": 268435456,
+			"MemorySwap": 268435456,
+			"StorageBaseSize": 2
+		},
 		"Nodes": {
 			"docker-1": {
 				"Image": "joyoi",
@@ -175,24 +185,29 @@ docker images
 		}
 	}
 }
-
 ```
 
-"Name"是管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
+配置说明:
 
-"Image"是docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi".
-
-"Address"是节点的地址.
-
-"ClientCertificatePath"是客户端证书的路径.
-
-"ClientCertificatePassword"是客户端证书的密码.
+- "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
+- "MaxRunningJobsPerNode": 单个节点可以同时运行的任务数量
+- "Limitation": 运行任务时对容器的限制
+  - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000
+  - "CPUQuota": 限制CPU在间隔时间内可以使用的时间, 单位是微秒, 设置为跟CPUPeriod一致时表示只能用一个核心
+  - "Memory": 可以使用的内存, 单位是字节, 默认无限制
+  - "MemorySwap": 可以使用的交换内存, 单位是字节, 默认是Memory的两倍, 设为0时等于默认值(Memory的两倍)
+  - "StorageBaseSize": 储存大小的限制, 单位是GB, 默认是10GB
+- "Nodes"是docker节点列表
+  - "Image": docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi"
+  - "Address": 节点的地址
+  - "ClientCertificatePath": 客户端证书的路径
+  - "ClientCertificatePassword": 客户端证书的密码
 
 **存放客户端证书**
 
 下载所有docker节点生成的key.pfx, 放到上面配置的"ClientCertificatePath"属性对应的目录下.
 
-### Webapi的客户端验证
+**Webapi的客户端验证**
 
 TODO
 

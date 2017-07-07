@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JoyOI.ManagementService.StateMachines
+namespace JoyOI.ManagementService.Core
 {
     /// <summary>
     /// 状态机实例的基础类
@@ -21,11 +21,11 @@ namespace JoyOI.ManagementService.StateMachines
         {
         }
 
-        protected async Task DeployAndRunActorAsync(string actor, BlobInfo[] inputs)
+        protected Task DeployAndRunActorAsync(string actor, BlobInfo[] inputs)
         {
             throw new NotImplementedException();
         }
 
-        public abstract Task RunAsync(string actorName, BlobInfo[] blobs);
+        public abstract Task RunAsync(string actor, BlobInfo[] blobs);
     }
 }

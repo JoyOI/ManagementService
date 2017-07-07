@@ -16,6 +16,10 @@ namespace JoyOI.ManagementService.Configuration
         /// </summary>
         public string Name { get; set; }
         /// <summary>
+        /// 单个节点可以同时运行的任务数量
+        /// </summary>
+        public int MaxRunningJobsPerNode { get; set; }
+        /// <summary>
         /// 默认的限制参数
         /// </summary>
         public ContainerLimitation Limitation { get; set; }

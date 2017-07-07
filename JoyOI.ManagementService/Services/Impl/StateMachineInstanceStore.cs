@@ -90,10 +90,5 @@ namespace JoyOI.ManagementService.Services.Impl
         {
 
         }
-
-        public async Task Put()
-        {
-
-        }
     }
 }

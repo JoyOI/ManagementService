@@ -17,6 +17,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Projects", "Projects", "{37
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B7FDCE83-DE67-4656-9573-95692B5CEB76}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playgrounds", "Playgrounds", "{B92651AF-5FA4-4F39-A45A-DE5FB9BEDFBF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JoyOI.ManagementService.Playground", "JoyOI.ManagementService.Playground\JoyOI.ManagementService.Playground.csproj", "{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +47,10 @@ Global
 		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCE8051F-387D-487A-AAB6-AB35C260AE21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +61,7 @@ Global
 		{752DFEDB-052F-4AB4-85BD-16D4CDB94A30} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
 		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
 		{BCE8051F-387D-487A-AAB6-AB35C260AE21} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
+		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D} = {B92651AF-5FA4-4F39-A45A-DE5FB9BEDFBF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AFAF2E18-CD2A-4C7E-8D88-EEFCAEEFF910}
