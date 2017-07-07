@@ -9,12 +9,17 @@ using System.Linq;
 
 namespace JoyOI.ManagementService.Playground
 {
+    // Special Judge State Machine
     public class StateMachine : StateMachineBase
     {
         public static Regex InputFileRegex = new Regex("input_[0-9]{0,}.txt");
+        public static Regex OutputFileRegex = new Regex("output_[0-9]{0,}.txt");
 
         public override async Task RunAsync(string state = "Start")
         {
+            // Prepare
+            var limitations = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(ReadAllText(Blobs.Single(x => x.Name == "limitation.json")));
+
             switch (state)
             {
                 case "Start":
@@ -124,7 +129,15 @@ namespace JoyOI.ManagementService.Playground
                     {
                         var text4 = ReadAllText(x.Outputs.Single(y => y.Name == "runner.json"));
                         var json4 = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(text4);
-                        if (json4.ExitCode != 0)
+                        if (json4.PeakMemory > limitations.Memory)
+                        {
+                            tasks4.Add(HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            {
+                                Result = "Memory Limit Exceeded",
+                                InputFile = x.Inputs.Single(y => InputFileRegex.IsMatch(y.Name))
+                            }));
+                        }
+                        else if (json4.ExitCode != 0)
                         {
                             tasks4.Add(HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
                             {
@@ -155,7 +168,8 @@ namespace JoyOI.ManagementService.Playground
                         {
                             Result = json5.ExitCode == 0 ? "Accepted" : (json5.ExitCode == 1 ? "Wrong Answer" : (json5.ExitCode == 2 ? "Presentation Error" : "Validator Error")),
                             TimeUsed = json5.UserTime,
-                            MemoryUsed = json5.PeakMemory
+                            MemoryUsed = json5.PeakMemory,
+                            InputFile = x.Inputs.Single(y => OutputFileRegex.IsMatch(y.Name)).Name.Replace("output_", "input_")
                         }));
                     }
                     await Task.WhenAll(tasks5);
