@@ -1,6 +1,5 @@
 ﻿using JoyOI.ManagementService.Model.Dtos.Interfaces;
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace JoyOI.ManagementService.Model.Dtos
@@ -11,34 +10,30 @@ namespace JoyOI.ManagementService.Model.Dtos
         public string Message { get; set; }
         public StateMachineInstanceOutputDto Instance { get; set; }
 
+        public StateMachineInstancePutResultDto()
+        {
+        }
+
+        public StateMachineInstancePutResultDto(int code, string message, StateMachineInstanceOutputDto instance)
+        {
+            Code = code;
+            Message = message;
+            Instance = instance;
+        }
+
         public static StateMachineInstancePutResultDto Success(StateMachineInstanceOutputDto instance)
         {
-            return new StateMachineInstancePutResultDto()
-            {
-                Code = 200,
-                Message = null,
-                Instance = instance
-            };
+            return new StateMachineInstancePutResultDto(200, null, instance);
         }
 
         public static StateMachineInstancePutResultDto NotFound(string msg)
         {
-            return new StateMachineInstancePutResultDto()
-            {
-                Code = 404,
-                Message = msg,
-                Instance = null
-            };
+            return new StateMachineInstancePutResultDto(404, msg, null);
         }
 
         public static StateMachineInstancePutResultDto Failed(string msg)
         {
-            return new StateMachineInstancePutResultDto()
-            {
-                Code = 500,
-                Message = msg,
-                Instance = null
-            };
+            return new StateMachineInstancePutResultDto(500, msg, null);
         }
     }
 }

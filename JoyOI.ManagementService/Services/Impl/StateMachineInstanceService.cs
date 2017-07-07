@@ -8,6 +8,7 @@ using JoyOI.ManagementService.Model.Enums;
 using JoyOI.ManagementService.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +38,27 @@ namespace JoyOI.ManagementService.Services.Impl
             _stateMachineInstanceStore = stateMachineInstanceStore;
         }
 
+        public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string currentActor)
+        {
+            var query =  _dbSet.AsNoTracking();
+            if (!string.IsNullOrEmpty(name))
+            {
+                query = query.Where(x => x.Name == name);
+            }
+            if (!string.IsNullOrEmpty(currentActor))
+            {
+                var key = JsonConvert.SerializeObject(currentActor);
+                query = query.Where(x => x._CurrentActor != null && x._CurrentActor.Contains(key));
+            }
+            var entities = await query.ToListAsync();
+            var dtos = new List<StateMachineInstanceOutputDto>(entities.Count);
+            foreach (var entity in entities)
+            {
+                dtos.Add(Mapper.Map<StateMachineInstanceEntity, StateMachineInstanceOutputDto>(entity));
+            }
+            return dtos;
+        }
+
         public async Task<StateMachineInstanceOutputDto> Get(Guid id)
         {
             var entity = await _dbSet.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
@@ -51,20 +73,17 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<StateMachineInstancePutResultDto> Put(StateMachineInstancePutDto dto)
         {
             // 获取name对应的状态机代码
-            var stateMachine = await _dbContext.Set<StateMachineEntity>()
+            var stateMachineEntity = await _dbContext.Set<StateMachineEntity>()
                 .FirstOrDefaultAsync(x => x.Name == dto.Name);
-            if (stateMachine == null)
+            if (stateMachineEntity == null)
             {
                 return StateMachineInstancePutResultDto.NotFound("state machine not found");
             }
-            // 使用roslyn编译状态机代码
-            var stateMachineInstance = await _stateMachineInstanceStore
-                .CreateInstance(stateMachine.Name, stateMachine.Body);
-            // 添加状态机实例到数据库
+            // 创建状态机实例
             var stateMachineInstanceEntity = new StateMachineInstanceEntity()
             {
                 Id = PrimaryKeyUtils.Generate<Guid>(),
-                Name = stateMachine.Name,
+                Name = stateMachineEntity.Name,
                 Status = StateMachineStatus.Running,
                 FinishedActors = new ActorInfo[0],
                 CurrentActor = new ActorInfo()
@@ -77,6 +96,10 @@ namespace JoyOI.ManagementService.Services.Impl
                     Exceptions = new string[0],
                     Status = ActorStatus.Running
                 },
+                Limitation = ContainerLimitation.Default
+                    .WithDefaults(dto.Limitation)
+                    .WithDefaults(stateMachineEntity.Limitation)
+                    .WithDefaults(_configuration.Limitation),
                 CurrentNode = null,
                 CurrentContainer = null,
                 FromManagementService = _configuration.Name,
@@ -84,13 +107,11 @@ namespace JoyOI.ManagementService.Services.Impl
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.MaxValue
             };
-            _dbSet.Add(stateMachineInstanceEntity);
+            var stateMachineInstance = await _stateMachineInstanceStore.CreateInstance(
+                stateMachineEntity, stateMachineInstanceEntity);
+            // 添加状态机实例到数据库
+            await _dbSet.AddAsync(stateMachineInstanceEntity);
             await _dbContext.SaveChangesAsync();
-            // 更新状态机实例的数据
-            stateMachineInstance.Id = stateMachineInstanceEntity.Id;
-            stateMachineInstance.Status = stateMachineInstanceEntity.Status;
-            stateMachineInstance.FinishedActors = stateMachineInstanceEntity.FinishedActors;
-            stateMachineInstance.CurrentActor = stateMachineInstanceEntity.CurrentActor;
             // 调用RunAsync(null, blobs), 从这里开始会在后台运行
 #pragma warning disable CS4014
             _stateMachineInstanceStore.RunInstance(stateMachineInstance);
@@ -99,7 +120,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 Mapper.Map<StateMachineInstanceEntity, StateMachineInstanceOutputDto>(stateMachineInstanceEntity));
         }
 
-        public Task Patch(StateMachineInstancePatchDto dto)
+        public Task<StateMachineInstancePatchResultDto> Patch(Guid id, StateMachineInstancePatchDto dto)
         {
             throw new NotImplementedException();
         }

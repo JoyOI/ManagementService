@@ -49,7 +49,7 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回500(内部错误)
         /// </summary>
-        public static ApiResponse<object> InternalServerError(Exception ex)
+        public static ApiResponse<object> InternalServerError(Exception ex, bool isDevelopment)
         {
             while (ex.InnerException != null)
             {
@@ -58,8 +58,21 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
             return new ApiResponse<object>()
             {
                 code = 500,
-                msg = $"{ex.GetType().Name}: {ex.Message}",
+                msg = isDevelopment ? ex.ToString() : $"{ex.GetType().Name}: {ex.Message}",
                 data = null
+            };
+        }
+
+        /// <summary>
+        /// 返回自定义
+        /// </summary>
+        public static ApiResponse<T> Custom<T>(int code, string msg, T data = default(T))
+        {
+            return new ApiResponse<T>()
+            {
+                code = code,
+                msg = msg,
+                data = data
             };
         }
     }

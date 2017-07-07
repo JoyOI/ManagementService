@@ -53,5 +53,25 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 MemorySwap == null &&
                 StorageBaseSize == null;
         }
+
+        /// <summary>
+        /// 创建一个新的限制参数, 把当前限制参数中未设置的值替换到默认值
+        /// </summary>
+        public ContainerLimitation WithDefaults(ContainerLimitation limitation)
+        {
+            return new ContainerLimitation()
+            {
+                CPUPeriod = CPUPeriod ?? limitation?.CPUPeriod,
+                CPUQuota = CPUQuota ?? limitation?.CPUQuota,
+                Memory = Memory ?? limitation?.Memory,
+                MemorySwap = MemorySwap ?? limitation?.MemorySwap,
+                StorageBaseSize = StorageBaseSize ?? limitation?.StorageBaseSize
+            };
+        }
+
+        /// <summary>
+        /// 默认的限制参数
+        /// </summary>
+        public static ContainerLimitation Default = new ContainerLimitation();
     }
 }

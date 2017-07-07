@@ -1,18 +1,21 @@
 ﻿using JoyOI.ManagementService.Configuration;
 using JoyOI.ManagementService.DbContexts;
-using JoyOI.ManagementService.Model.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using JoyOI.ManagementService.Core;
 using System.Collections.Concurrent;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Reflection;
 using System.Linq;
 using System.Linq.Expressions;
-using JoyOI.ManagementService.Utils;
+using JoyOI.ManagementService.Model.Enums;
+using JoyOI.ManagementService.Model.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.CodeAnalysis;
+using System.IO;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -101,51 +104,108 @@ namespace JoyOI.ManagementService.Services.Impl
             // 继续执行之前未执行完毕的实例
         }
 
-        public async Task<StateMachineBase> CreateInstance(string name, string code)
+        public Task<StateMachineBase> CreateInstance(
+            StateMachineEntity stateMachineEntity,
+            StateMachineInstanceEntity stateMachineInstanceEntity)
         {
             // 从缓存中获取
-            if (_factoryCache.TryGetValue(name, out var factory))
+            if (!_factoryCache.TryGetValue(stateMachineEntity.Name, out var factory) ||
+                factory.Item1 != stateMachineEntity.Body)
             {
-                if (factory.Item1 == code)
+                // 不存在或内容有变化时调用roslyn重新编译
+                // https://github.com/dotnet/roslyn/wiki/Scripting-API-Samples#delegate
+                var assemblyName = $"__{stateMachineEntity.Name}_{DateTime.UtcNow.Ticks}";
+                var optimizationLevel = OptimizationLevel.Debug;
+                var compilationOptions = new CSharpCompilationOptions(
+                    OutputKind.DynamicallyLinkedLibrary,
+                    optimizationLevel: optimizationLevel);
+                var references = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => !a.IsDynamic && !a.FullName.StartsWith("__"))
+                    .Select(a => MetadataReference.CreateFromFile(a.Location));
+                var syntaxTree = CSharpSyntaxTree.ParseText(stateMachineEntity.Body);
+                var compilation = CSharpCompilation.Create(assemblyName)
+                    .WithOptions(compilationOptions)
+                    .AddReferences(references)
+                    .AddSyntaxTrees(syntaxTree);
+                var assemblyPath = string.Join(Path.GetTempPath(), assemblyName + ".dll");
+                var emitResult = compilation.Emit(assemblyPath);
+                if (!emitResult.Success)
                 {
-                    return factory.Item2();
+                    throw new InvalidOperationException(string.Join("\r\n",
+                        emitResult.Diagnostics.Where(d => d.WarningLevel == 0)));
                 }
-            }
-            // 调用roslyn编译
-            // https://github.com/dotnet/roslyn/wiki/Scripting-API-Samples#delegate
-            var result = await CSharpScript.Create(code,
-                ScriptOptions.Default.WithReferences(new Assembly[]
+                var assemblyBytes = File.ReadAllBytes(assemblyPath);
+                File.Delete(assemblyPath);
+                var assembly = Assembly.Load(assemblyBytes);
+                var stateMachineType = assembly.GetTypes()
+                    .FirstOrDefault(x => typeof(StateMachineBase).IsAssignableFrom(x));
+                if (stateMachineType == null)
                 {
-                    typeof(int).Assembly,
-                    typeof(System.Linq.Enumerable).Assembly,
-                    typeof(System.Threading.Tasks.Task).Assembly,
-                    typeof(StateMachineInstanceStore).Assembly
-                })).RunAsync();
-            var assemblyName = result.Script.GetCompilation().AssemblyName;
-            var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.FullName.StartsWith(assemblyName));
-            if (assembly == null)
-            {
-                throw new InvalidOperationException("get compiled assembly failed");
+                    throw new InvalidOperationException(
+                        "no state machine type defined, please create a class inherit StateMachineBase");
+                }
+                factory.Item1 = stateMachineEntity.Body;
+                factory.Item2 = Expression.Lambda<Func<StateMachineBase>>(
+                    Expression.New(stateMachineType.GetConstructors()[0])).Compile();
+                // 保存到缓存
+                _factoryCache[stateMachineEntity.Name] = factory;
             }
-            var stateMachineType = assembly.GetTypes()
-                .FirstOrDefault(x => typeof(StateMachineBase).IsAssignableFrom(x));
-            if (stateMachineType == null)
-            {
-                throw new InvalidOperationException(
-                    "no state machine type defined, please create a class inherit StateMachineBase");
-            }
-            factory.Item1 = code;
-            factory.Item2 = Expression.Lambda<Func<StateMachineBase>>(
-                Expression.New(stateMachineType.GetConstructors()[0])).Compile();
-            // 保存到缓存
-            _factoryCache[name] = factory;
-            return factory.Item2();
+            // 创建状态机实例
+            var instance = factory.Item2();
+            instance.Id = stateMachineInstanceEntity.Id;
+            instance.Status = stateMachineInstanceEntity.Status;
+            instance.FinishedActors = stateMachineInstanceEntity.FinishedActors;
+            instance.CurrentActor = stateMachineInstanceEntity.CurrentActor;
+            instance.Store = this;
+            instance.Limitation = stateMachineInstanceEntity.Limitation;
+            return Task.FromResult(instance);
         }
 
         public async Task RunInstance(StateMachineBase instance)
         {
-
+            try
+            {
+                // 运行第一个actor
+                var actor = instance.CurrentActor;
+                if (actor != null)
+                {
+                    instance.Store = this;
+                    await instance.RunAsync(actor.Name, actor.Inputs);
+                }
+                // 更新实例的状态到完成
+                instance.Status = StateMachineStatus.Succeeded;
+                instance.FinishedActors.Add(instance.CurrentActor);
+                instance.CurrentActor = null;
+                using (var context = _contextFactory())
+                {
+                    var set = context.Set<StateMachineInstanceEntity>();
+                    var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
+                    instanceEntity.Status = instance.Status;
+                    instanceEntity.FinishedActors = instance.FinishedActors;
+                    instanceEntity.CurrentActor = instance.CurrentActor;
+                    instanceEntity.EndTime = instance.FinishedActors.Last().EndTime;
+                    await context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                // 更新实例的状态到失败
+                using (var context = _contextFactory())
+                {
+                    var set = context.Set<StateMachineInstanceEntity>();
+                    var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
+                    instanceEntity.Status = StateMachineStatus.Failed;
+                    var actor = instanceEntity.CurrentActor;
+                    actor.Exceptions = new[] { ex.ToString() };
+                    instanceEntity.CurrentActor = actor;
+                    await context.SaveChangesAsync();
+                }
+            }
+            finally
+            {
+                // 释放资源 (默认无处理, 继承类中可能会重写此函数)
+                instance.Dispose();
+            }
         }
 
         public async Task TODO()

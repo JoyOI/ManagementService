@@ -1,5 +1,6 @@
 ﻿using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
+using JoyOI.ManagementService.Model.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -20,7 +21,9 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 编译状态机代码并返回实例
         /// </summary>
-        Task<StateMachineBase> CreateInstance(string name, string code);
+        Task<StateMachineBase> CreateInstance(
+            StateMachineEntity stateMachineEntity,
+            StateMachineInstanceEntity stateMachineInstanceEntity);
 
         /// <summary>
         /// 运行状态机实例

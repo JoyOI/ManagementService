@@ -65,7 +65,7 @@ namespace JoyOI.ManagementService.WebApi
             }
 
             // 全局处理mvc的错误, 发生错误时返回统一格式的json
-            CatchExceptionAndReplyJson(app);
+            CatchExceptionAndReplyJson(app, env.IsDevelopment());
 
             // 使用WebApi
             app.UseMvc();
@@ -74,7 +74,7 @@ namespace JoyOI.ManagementService.WebApi
             app.ApplicationServices.StartJoyOIManagement();
         }
 
-        private static void CatchExceptionAndReplyJson(IApplicationBuilder app)
+        private static void CatchExceptionAndReplyJson(IApplicationBuilder app, bool isDevelopment)
         {
             app.Use(async (context, next) =>
             {
@@ -89,7 +89,7 @@ namespace JoyOI.ManagementService.WebApi
                     context.Response.StatusCode = 200;
                     using (var writer = new StreamWriter(context.Response.Body))
                     {
-                        var json = JsonConvert.SerializeObject(ApiResponse.InternalServerError(ex));
+                        var json = JsonConvert.SerializeObject(ApiResponse.InternalServerError(ex, isDevelopment));
                         writer.Write(json);
                     }
                 }

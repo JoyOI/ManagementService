@@ -11,7 +11,8 @@ namespace JoyOI.ManagementService.Model.MapperProfiles
     {
         public StateMachineInstanceMapperProfile()
         {
-            // 状态机实例需要特殊处理, TODO
+            // 只转换输出的, 输入的需要特殊处理
+            CreateMap<StateMachineInstanceEntity, StateMachineInstanceOutputDto>();
         }
     }
 }

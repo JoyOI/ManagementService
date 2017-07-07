@@ -50,7 +50,20 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_CurrentActor) ?
                 null :
                 JsonConvert.DeserializeObject<ActorInfo>(_CurrentActor);
-            set => _FinishedActors = JsonConvert.SerializeObject(value);
+            set => _CurrentActor = JsonConvert.SerializeObject(value);
+        }
+        /// <summary>
+        /// 使用的限制参数
+        /// 优先度:
+        /// StateMachineInstanceEntity > StateMachineEntity > JoyOIManagementConfiguration
+        /// </summary>
+        public string _Limitation { get; set; }
+        public ContainerLimitation Limitation
+        {
+            get => string.IsNullOrEmpty(_CurrentActor) ?
+                null :
+                JsonConvert.DeserializeObject<ContainerLimitation>(_Limitation);
+            set => _Limitation = JsonConvert.SerializeObject(value);
         }
         /// <summary>
         /// 当前执行的Docker节点名称 (不是地址而是名称)
