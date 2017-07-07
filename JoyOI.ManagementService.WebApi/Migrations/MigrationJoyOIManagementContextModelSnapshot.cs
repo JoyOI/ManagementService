@@ -106,7 +106,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<string>("CurrentNode");
 
-                    b.Property<DateTime>("EndTime");
+                    b.Property<DateTime?>("EndTime");
 
                     b.Property<string>("FromManagementService");
 

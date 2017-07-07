@@ -89,6 +89,6 @@ namespace JoyOI.ManagementService.Model.Entities
         /// <summary>
         /// 最后一个任务的结束时间
         /// </summary>
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
     }
 }

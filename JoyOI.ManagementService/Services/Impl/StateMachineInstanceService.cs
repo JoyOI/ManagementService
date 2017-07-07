@@ -90,7 +90,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 {
                     Name = null,
                     StartTime = DateTime.UtcNow,
-                    EndTime = DateTime.MaxValue,
+                    EndTime = null,
                     Inputs = dto.Inputs?.ToArray() ?? new BlobInfo[0],
                     Outputs = new BlobInfo[0],
                     Exceptions = new string[0],
@@ -105,7 +105,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 FromManagementService = _configuration.Name,
                 ReRunTimes = 0,
                 StartTime = DateTime.UtcNow,
-                EndTime = DateTime.MaxValue
+                EndTime = null
             };
             var stateMachineInstance = await _stateMachineInstanceStore.CreateInstance(
                 stateMachineEntity, stateMachineInstanceEntity);

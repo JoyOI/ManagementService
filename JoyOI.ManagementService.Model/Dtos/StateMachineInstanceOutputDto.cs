@@ -20,6 +20,6 @@ namespace JoyOI.ManagementService.Model.Dtos
         public string FromManagementService { get; set; }
         public int ReRunTimes { get; set; }
         public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
     }
 }

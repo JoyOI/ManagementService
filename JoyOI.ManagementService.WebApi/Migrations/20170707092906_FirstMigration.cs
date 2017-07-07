@@ -49,7 +49,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     Body = table.Column<string>(type: "longtext", nullable: true),
                     CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
-                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Limitation = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -63,14 +64,15 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
                     CurrentContainer = table.Column<string>(type: "longtext", nullable: true),
                     CurrentNode = table.Column<string>(type: "longtext", nullable: true),
-                    EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     FromManagementService = table.Column<string>(type: "longtext", nullable: true),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     ReRunTimes = table.Column<int>(type: "int", nullable: false),
                     StartTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     CurrentActor = table.Column<string>(type: "longtext", nullable: true),
-                    FinishedActors = table.Column<string>(type: "longtext", nullable: true)
+                    FinishedActors = table.Column<string>(type: "longtext", nullable: true),
+                    Limitation = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {
