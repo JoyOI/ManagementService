@@ -94,25 +94,13 @@ namespace JoyOI.ManagementService.Core
 
         protected async Task<ActorInfo> DeployAndRunActorAsync(string actor, IEnumerable<BlobInfo> inputs)
         {
-            var _id = Guid.NewGuid();
-            var _inputs = new List<BlobInfo>();
-            foreach (var x in inputs)
-            {
-                var y = x;
-                y.ActorId = _id;
-                y.State = State;
-                Blobs.Add(y);
-                _inputs.Add(y);
-            }
-
             // 创建新的CurrentActor
             var _actor = new ActorInfo()
             {
-                Id = _id,
                 Name = actor,
                 StartTime = DateTime.UtcNow,
                 EndTime = null,
-                Inputs = _inputs,
+                Inputs = inputs,
                 Outputs = new BlobInfo[0],
                 Exceptions = new string[0],
                 Status = ActorStatus.Running,

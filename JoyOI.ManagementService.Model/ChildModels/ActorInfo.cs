@@ -11,11 +11,6 @@ namespace Microsoft.EntityFrameworkCore.Migrations
     public struct ActorInfo
     {
         /// <summary>
-        /// 任务ID
-        /// </summary>
-        public Guid Id { get; set; }
-
-        /// <summary>
         /// 任务名称
         /// </summary>
         public string Name { get; set; }
