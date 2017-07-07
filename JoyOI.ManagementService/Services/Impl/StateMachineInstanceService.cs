@@ -38,17 +38,16 @@ namespace JoyOI.ManagementService.Services.Impl
             _stateMachineInstanceStore = stateMachineInstanceStore;
         }
 
-        public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string currentActor)
+        public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string currentState)
         {
             var query =  _dbSet.AsNoTracking();
             if (!string.IsNullOrEmpty(name))
             {
                 query = query.Where(x => x.Name == name);
             }
-            if (!string.IsNullOrEmpty(currentActor))
+            if (!string.IsNullOrEmpty(currentState))
             {
-                var key = JsonConvert.SerializeObject(currentActor);
-                query = query.Where(x => x._CurrentActor != null && x._CurrentActor.Contains(key));
+                query = query.Where(x => x.State != null && x.State == currentState);
             }
             var entities = await query.ToListAsync();
             var dtos = new List<StateMachineInstanceOutputDto>(entities.Count);
@@ -85,23 +84,11 @@ namespace JoyOI.ManagementService.Services.Impl
                 Id = PrimaryKeyUtils.Generate<Guid>(),
                 Name = stateMachineEntity.Name,
                 Status = StateMachineStatus.Running,
-                FinishedActors = new ActorInfo[0],
-                CurrentActor = new ActorInfo()
-                {
-                    Name = null,
-                    StartTime = DateTime.UtcNow,
-                    EndTime = null,
-                    Inputs = dto.Inputs?.ToArray() ?? new BlobInfo[0],
-                    Outputs = new BlobInfo[0],
-                    Exceptions = new string[0],
-                    Status = ActorStatus.Running
-                },
+                Actors = new ActorInfo[0],
                 Limitation = ContainerLimitation.Default
                     .WithDefaults(dto.Limitation)
                     .WithDefaults(stateMachineEntity.Limitation)
                     .WithDefaults(_configuration.Limitation),
-                CurrentNode = null,
-                CurrentContainer = null,
                 FromManagementService = _configuration.Name,
                 ReRunTimes = 0,
                 StartTime = DateTime.UtcNow,

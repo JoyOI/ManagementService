@@ -33,62 +33,65 @@ namespace JoyOI.ManagementService.Model.Entities
         /// <summary>
         /// 已执行的任务列表
         /// </summary>
-        public string _FinishedActors { get; set; }
-        public IList<ActorInfo> FinishedActors
+        public string _Actors { get; set; }
+        
+        public IList<ActorInfo> Actors
         {
-            get => string.IsNullOrEmpty(_FinishedActors) ?
+            get => string.IsNullOrEmpty(_Actors) ?
                 new List<ActorInfo>() :
-                JsonConvert.DeserializeObject<IList<ActorInfo>>(_FinishedActors);
-            set => _FinishedActors = JsonConvert.SerializeObject(value);
+                JsonConvert.DeserializeObject<IList<ActorInfo>>(_Actors);
+            set => _Actors = JsonConvert.SerializeObject(value);
         }
-        /// <summary>
-        /// 当前执行的任务
-        /// </summary>
-        public string _CurrentActor { get; set; }
-        public ActorInfo CurrentActor
-        {
-            get => string.IsNullOrEmpty(_CurrentActor) ?
-                null :
-                JsonConvert.DeserializeObject<ActorInfo>(_CurrentActor);
-            set => _CurrentActor = JsonConvert.SerializeObject(value);
-        }
-        /// <summary>
+
         /// 使用的限制参数
         /// 优先度:
         /// StateMachineInstanceEntity > StateMachineEntity > JoyOIManagementConfiguration
         /// </summary>
         public string _Limitation { get; set; }
+
         public ContainerLimitation Limitation
         {
-            get => string.IsNullOrEmpty(_CurrentActor) ?
-                null :
-                JsonConvert.DeserializeObject<ContainerLimitation>(_Limitation);
+            get => null;
+            //get => string.IsNullOrEmpty(_CurrentActor) ?
+            //    null :
+            //    JsonConvert.DeserializeObject<ContainerLimitation>(_Limitation);
             set => _Limitation = JsonConvert.SerializeObject(value);
         }
-        /// <summary>
-        /// 当前执行的Docker节点名称 (不是地址而是名称)
-        /// </summary>
-        public string CurrentNode { get; set; }
-        /// <summary>
-        /// 当前执行的Docker容器Id (例如b9a51f0805de)
-        /// </summary>
-        public string CurrentContainer { get; set; }
+
         /// <summary>
         /// 创建此实例的管理服务,各个管理服务只对自己创建的实例负责
         /// </summary>
         public string FromManagementService { get; set; }
+
         /// <summary>
         /// 重新运行的次数
         /// 超过MaxReRunTimes则会标记为Failed
         /// </summary>
         public int ReRunTimes { get; set; }
+
         /// <summary>
         /// 第一个任务的开始时间
         /// </summary>
         public DateTime StartTime { get; set; }
+
         /// <summary>
         /// 最后一个任务的结束时间
         /// </summary>
         public DateTime? EndTime { get; set; }
+
+        /// <summary>
+        /// 当前状态机状态
+        /// </summary>
+        public string State { get; set; }
+
+        public string _Blobs { get; set; }
+
+        public IEnumerable<BlobInfo> Blobs
+        {
+            get
+            {
+                return JsonConvert.DeserializeObject<IEnumerable<BlobInfo>>(_Blobs ?? "[]");
+            }
+        }
     }
 }

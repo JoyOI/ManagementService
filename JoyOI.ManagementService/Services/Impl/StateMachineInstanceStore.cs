@@ -70,7 +70,7 @@ namespace JoyOI.ManagementService.Services.Impl
     {
         private JoyOIManagementConfiguration _configuration;
         private IDockerNodeStore _dockerNodeStore;
-        private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
+        private ConcurrentDictionary<string, (string, Func<IEnumerable<BlobInfo>, StateMachineBase>)> _factoryCache;
         private Func<JoyOIManagementContext> _contextFactory;
         private bool _initilaized;
         private object _initializeLock;
@@ -79,7 +79,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             _configuration = configuration;
             _dockerNodeStore = dockerNodeStore;
-            _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
+            _factoryCache = new ConcurrentDictionary<string, (string, Func<IEnumerable<BlobInfo>, StateMachineBase>)>();
             _contextFactory = null;
             _initilaized = false;
             _initializeLock = new object();
@@ -144,18 +144,19 @@ namespace JoyOI.ManagementService.Services.Impl
                     throw new InvalidOperationException(
                         "no state machine type defined, please create a class inherit StateMachineBase");
                 }
+                // 这个是构造函数参数
+                var parameter = Expression.Parameter(typeof(IEnumerable<BlobInfo>));
                 factory.Item1 = stateMachineEntity.Body;
-                factory.Item2 = Expression.Lambda<Func<StateMachineBase>>(
-                    Expression.New(stateMachineType.GetConstructors()[0])).Compile();
+                factory.Item2 = Expression.Lambda<Func<IEnumerable<BlobInfo>, StateMachineBase>>(
+                    Expression.New(stateMachineType.GetConstructors()[0]),parameter).Compile();
                 // 保存到缓存
                 _factoryCache[stateMachineEntity.Name] = factory;
             }
             // 创建状态机实例
-            var instance = factory.Item2();
+            var instance = factory.Item2(stateMachineInstanceEntity.Blobs);
             instance.Id = stateMachineInstanceEntity.Id;
             instance.Status = stateMachineInstanceEntity.Status;
-            instance.FinishedActors = stateMachineInstanceEntity.FinishedActors;
-            instance.CurrentActor = stateMachineInstanceEntity.CurrentActor;
+            instance.Actors = stateMachineInstanceEntity.Actors;
             instance.Store = this;
             instance.Limitation = stateMachineInstanceEntity.Limitation;
             return Task.FromResult(instance);
@@ -165,25 +166,18 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             try
             {
-                // 运行第一个actor
-                var actor = instance.CurrentActor;
-                if (actor != null)
-                {
-                    instance.Store = this;
-                    await instance.RunAsync(actor.Name, actor.Inputs);
-                }
+                // 从头运行StateMachine
+                instance.Store = this;
+                await instance.RunAsync("Start");
                 // 更新实例的状态到完成
                 instance.Status = StateMachineStatus.Succeeded;
-                instance.FinishedActors.Add(instance.CurrentActor);
-                instance.CurrentActor = null;
                 using (var context = _contextFactory())
                 {
                     var set = context.Set<StateMachineInstanceEntity>();
                     var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                     instanceEntity.Status = instance.Status;
-                    instanceEntity.FinishedActors = instance.FinishedActors;
-                    instanceEntity.CurrentActor = instance.CurrentActor;
-                    instanceEntity.EndTime = instance.FinishedActors.Last().EndTime;
+                    instanceEntity.Actors = instance.Actors;
+                    instanceEntity.EndTime = instance.Actors.Last().EndTime;
                     await context.SaveChangesAsync();
                 }
             }
@@ -195,9 +189,9 @@ namespace JoyOI.ManagementService.Services.Impl
                     var set = context.Set<StateMachineInstanceEntity>();
                     var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                     instanceEntity.Status = StateMachineStatus.Failed;
-                    var actor = instanceEntity.CurrentActor;
-                    actor.Exceptions = new[] { ex.ToString() };
-                    instanceEntity.CurrentActor = actor;
+                    //var actor = instanceEntity.CurrentActor;
+                    //actor.Exceptions = new[] { ex.ToString() };
+                    //instanceEntity.CurrentActor = actor;
                     await context.SaveChangesAsync();
                 }
             }

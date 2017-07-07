@@ -7,7 +7,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
     /// <summary>
     /// 输入或输出的文件信息
     /// </summary>
-    public class BlobInfo
+    public struct BlobInfo
     {
         /// <summary>
         /// 文件Id

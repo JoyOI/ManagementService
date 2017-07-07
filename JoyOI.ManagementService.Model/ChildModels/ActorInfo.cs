@@ -8,7 +8,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
     /// <summary>
     /// 任务的执行信息
     /// </summary>
-    public class ActorInfo
+    public struct ActorInfo
     {
         /// <summary>
         /// 任务名称
@@ -25,11 +25,11 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// <summary>
         /// 输入文件
         /// </summary>
-        public BlobInfo[] Inputs { get; set; }
+        public IEnumerable<BlobInfo> Inputs { get; set; }
         /// <summary>
         /// 输出文件
         /// </summary>
-        public BlobInfo[] Outputs { get; set; }
+        public IEnumerable<BlobInfo> Outputs { get; set; }
         /// <summary>
         /// 发生的错误列表
         /// </summary>
@@ -38,5 +38,9 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// 任务的当前状态
         /// </summary>
         public ActorStatus Status { get; set; }
+        /// <summary>
+        /// 任务所属的状态
+        /// </summary>
+        public string State { get; set; }
     }
 }
