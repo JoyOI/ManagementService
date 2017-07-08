@@ -94,14 +94,59 @@ namespace JoyOI.ManagementService.Services.Impl
             lock (_initializeLock)
             {
                 _contextFactory = contextFactory;
-                ContinueExecutingInstances();
+                ContinueRunningInstances();
                 _initilaized = true;
             }
         }
 
-        private void ContinueExecutingInstances()
+        private void ContinueRunningInstances()
         {
-            // 继续执行之前未执行完毕的实例
+            // 获取运行中的状态机实例
+            IDictionary<string, StateMachineEntity> stateMachineMap;
+            IList<StateMachineInstanceEntity> continueInstances;
+            using (var context = _contextFactory())
+            {
+                var runningInstances = context.Set<StateMachineInstanceEntity>()
+                    .Where(x =>
+                        x.Status == StateMachineStatus.Running &&
+                        x.FromManagementService == _configuration.Name)
+                    .ToList();
+                var stateMachineNames = runningInstances
+                    .Select(c => c.Name).Distinct().ToList();
+                stateMachineMap = context.Set<StateMachineEntity>()
+                    .Where(x => stateMachineNames.Contains(x.Name))
+                    .ToDictionary(x => x.Name);
+                // 判断重新运行次数, 超过最大次数的不予执行
+                continueInstances = new List<StateMachineInstanceEntity>(runningInstances.Count);
+                foreach (var instance in runningInstances)
+                {
+                    if (instance.ReRunTimes >= StateMachineInstanceEntity.MaxReRunTimes)
+                    {
+                        instance.Status = StateMachineStatus.Failed;
+                        instance.Exception = "re-run times exhausted";
+                    }
+                    else if (!stateMachineMap.ContainsKey(instance.Name))
+                    {
+                        instance.Status = StateMachineStatus.Failed;
+                        instance.Exception = "state machine not found";
+                    }
+                    else
+                    {
+                        ++instance.ReRunTimes;
+                        continueInstances.Add(instance);
+                    }
+                }
+                context.SaveChanges();
+            }
+            // 继续执行这些状态机实例
+            foreach (var instance in continueInstances)
+            {
+                var stateMachine = stateMachineMap[instance.Name];
+                var instanceObj = CreateInstance(stateMachine, instance).Result;
+#pragma warning disable CS4014
+                RunInstance(instanceObj); // 在后台运行
+#pragma warning restore CS4014
+            }
         }
 
         public Task<StateMachineBase> CreateInstance(
@@ -236,7 +281,7 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos)
         {
-            var result = blobInfos.Select(blob => (blob, (byte[])null)).ToList();
+            var result = blobInfos.Select(x => ValueTuple.Create(x, (byte[])null)).ToList();
             var blobIds = result.Select(x => x.Item1.Id).ToList();
             using (var context = _contextFactory())
             {
