@@ -38,17 +38,16 @@ namespace JoyOI.ManagementService.Services.Impl
             _stateMachineInstanceStore = stateMachineInstanceStore;
         }
 
-        public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string currentActor)
+        public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string stage)
         {
             var query =  _dbSet.AsNoTracking();
             if (!string.IsNullOrEmpty(name))
             {
                 query = query.Where(x => x.Name == name);
             }
-            if (!string.IsNullOrEmpty(currentActor))
+            if (!string.IsNullOrEmpty(stage))
             {
-                var key = JsonConvert.SerializeObject(currentActor);
-                query = query.Where(x => x._CurrentActor != null && x._CurrentActor.Contains(key));
+                query = query.Where(x => x.Stage == stage);
             }
             var entities = await query.ToListAsync();
             var dtos = new List<StateMachineInstanceOutputDto>(entities.Count);
@@ -85,23 +84,13 @@ namespace JoyOI.ManagementService.Services.Impl
                 Id = PrimaryKeyUtils.Generate<Guid>(),
                 Name = stateMachineEntity.Name,
                 Status = StateMachineStatus.Running,
-                FinishedActors = new ActorInfo[0],
-                CurrentActor = new ActorInfo()
-                {
-                    Name = null,
-                    StartTime = DateTime.UtcNow,
-                    EndTime = null,
-                    Inputs = dto.Inputs?.ToArray() ?? new BlobInfo[0],
-                    Outputs = new BlobInfo[0],
-                    Exceptions = new string[0],
-                    Status = ActorStatus.Running
-                },
+                Stage = StateMachineBase.InitialStage,
+                StartedActors = new List<ActorInfo>(),
+                InitialBlobs = dto.InitialBlobs ?? new BlobInfo[0],
                 Limitation = ContainerLimitation.Default
                     .WithDefaults(dto.Limitation)
                     .WithDefaults(stateMachineEntity.Limitation)
                     .WithDefaults(_configuration.Limitation),
-                CurrentNode = null,
-                CurrentContainer = null,
                 FromManagementService = _configuration.Name,
                 ReRunTimes = 0,
                 StartTime = DateTime.UtcNow,
@@ -112,7 +101,7 @@ namespace JoyOI.ManagementService.Services.Impl
             // 添加状态机实例到数据库
             await _dbSet.AddAsync(stateMachineInstanceEntity);
             await _dbContext.SaveChangesAsync();
-            // 调用RunAsync(null, blobs), 从这里开始会在后台运行
+            // 运行状态机, 从这里开始会在后台运行
 #pragma warning disable CS4014
             _stateMachineInstanceStore.RunInstance(stateMachineInstance);
 #pragma warning restore CS4014

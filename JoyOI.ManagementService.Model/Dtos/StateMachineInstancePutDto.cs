@@ -9,7 +9,7 @@ namespace JoyOI.ManagementService.Model.Dtos
     public class StateMachineInstancePutDto : IInputDto
     {
         public string Name { get; set; }
-        public IList<BlobInfo> Inputs { get; set; }
+        public IList<BlobInfo> InitialBlobs { get; set; }
         public ContainerLimitation Limitation { get; set; }
     }
 }

@@ -22,49 +22,48 @@ namespace JoyOI.ManagementService.Services.Impl
     /// <summary>
     /// 管理状态机实例的仓库, 应该为单例
     /// 
-    /// 外部启动状态机的流程:
+    /// 外部创建状态机实例:
     /// - (可选) 上传一个或多个blob
     /// - 调用StateMachineInstanceService.Put
-    ///   - 获取name对应的状态机代码
-    ///   - 使用roslyn编译状态机代码
+    ///   - 调用StateMachineInstanceStore.CreateInstance创建状态机实例
     ///   - 添加状态机实例到数据库
-    ///     - 初始的CurrentActor是{ Name = null, Inputs = blobs }, 这个actor不会加到finished中
-    ///     - 注意要设置FromManagementService
-    ///   - 调用RunAsync(null, blobs)
-    /// - 状态机实例调用DeployAndRunActorAsync(name, blobs)
-    ///   - 更新状态机
-    ///     - 把CurrentActor添加到FinishedActor
-    ///     - 更新CurrentActor
-    ///     - 重置CurrentNode和CurrentContainer
-    ///   - 选择一个容器 (应该考虑到负载均衡)
-    ///   - 调用docker的api创建容器
-    ///     - 更新CurrentNode和CurrentContainer
-    ///   - 上传blobs到容器
-    ///   - 执行actor中的代码
-    ///   - 下载result.json
-    ///   - 根据result.json下载各个文件并插入blob
-    ///   - 更新状态机
-    ///     - 更新CurrentActor的状态到Succeeded
-    ///     - 更新CurrentActor的Outputs
-    ///     - 重置CurrentNode和CurrentContainer
-    ///   - 状态机是否执行完毕?
-    ///     - 执行完毕后更新状态机
-    ///       - 把CurrentActor添加到FinishedActor
-    ///       - 重置CurrentActor
-    ///       - 更新状态机实例的状态为Succeeded
-    ///     - 继续调用DeployAndRunActorAsync(name, blobs)
+    ///   - 调用StateMachineInstanceStore.RunInstance运行状态机实例, 会在后台运行
     /// 
-    /// 启动已中断的状态机的流程:
+    /// 运行状态机实例:
+    /// - 如果当前Stage不是初始阶段
+    ///   - 查找属于该Stage的StartedActors
+    ///     - 调用docker的api删除CurrentNode中的CurrentContainer
+    ///     - 删除这些actors并更新到数据库
+    /// - 从当前Stage开始运行
+    ///   - 调用StateMachineBase.RunAsync
+    /// - 循环切换状态
+    ///   - 调用StateMachineInstanceStore.SetInstanceStage切换阶段
+    ///     - 修改Stage并写入到数据库
+    ///   - 调用StateMachineInstanceStore.RunActors运行任务
+    ///     - 更新StartedActors
+    ///     - 并列处理
+    ///       - 选择一个容器 (应该考虑到负载均衡)
+    ///       - 生成一个container标识
+    ///       - 更新actor的RunningNode和RunningContainer, 注意线程安全
+    ///       - 调用docker的api创建容器
+    ///       - 上传Inputs到容器
+    ///       - 上传代码到容器
+    ///       - 执行容器
+    ///       - 等待执行完毕
+    ///       - 下载result.json
+    ///       - 根据result.json下载文件并插入到blob
+    ///       - 更新actor的Outputs和Status, 注意线程安全
+    /// - 设置状态机实例的Status和EndTime, 更新到数据库
+    /// 
+    /// 启动已中断的状态机实例:
     /// - 获取数据库中Running的状态机实例
     ///   - 因为有可能配置多个管理服务, 获取时需要传入FromManagementService
     ///   - 如果ReRunTimes >= MaxReRunTimes, 则直接标记为Failed
-    /// - 调用docker的api删除CurrentNode中的CurrentContainer
-    /// - 调用RunAsync(CurrentActor.Name, CurrentActor.Inputs), 之后同上
+    /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
     /// 
     /// 强制修改状态机的流程:
-    /// - 调用docker的api删除CurrentNode中的CurrentContainer
-    /// - 修改状态机实例
-    /// - 调用RunAsync(CurrentActor.Name, CurrentActor.Inputs), 之后同上
+    /// - 修改状态机实例的Stage
+    /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
@@ -154,22 +153,23 @@ namespace JoyOI.ManagementService.Services.Impl
             var instance = factory.Item2();
             instance.Id = stateMachineInstanceEntity.Id;
             instance.Status = stateMachineInstanceEntity.Status;
-            instance.FinishedActors = stateMachineInstanceEntity.FinishedActors;
-            instance.CurrentActor = stateMachineInstanceEntity.CurrentActor;
+            instance.Stage = stateMachineInstanceEntity.Stage;
+            instance.StartedActors = stateMachineInstanceEntity.StartedActors;
+            instance.InitialBlobs = stateMachineInstanceEntity.InitialBlobs;
             instance.Store = this;
             instance.Limitation = stateMachineInstanceEntity.Limitation;
             return Task.FromResult(instance);
         }
 
-        public async Task RunInstance(StateMachineBase instance)
+        public Task RunInstance(StateMachineBase instance)
         {
-            try
+            throw new NotImplementedException();
+            /* try
             {
                 // 运行第一个actor
                 var actor = instance.CurrentActor;
                 if (actor != null)
                 {
-                    instance.Store = this;
                     await instance.RunAsync(actor.Name, actor.Inputs);
                 }
                 // 更新实例的状态到完成
@@ -205,13 +205,19 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 // 释放资源 (默认无处理, 继承类中可能会重写此函数)
                 instance.Dispose();
-            }
+            } */
         }
 
-        public async Task RunActor(StateMachineBase instance)
+        public Task SetInstanceStage(StateMachineBase instance, string stage)
         {
-            // 操作docker客户端
-            var node = await _dockerNodeStore.AcquireNode();
+            throw new NotImplementedException();
+        }
+
+        public Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)
+        {
+            throw new NotImplementedException();
+            // TODO: 需要并发处理
+            /*var node = await _dockerNodeStore.AcquireNode();
             try
             {
                 using (var client = node.CreateDockerClient())
@@ -222,7 +228,7 @@ namespace JoyOI.ManagementService.Services.Impl
             finally
             {
                 _dockerNodeStore.ReleaseNode(node);
-            }
+            }*/
         }
     }
 }

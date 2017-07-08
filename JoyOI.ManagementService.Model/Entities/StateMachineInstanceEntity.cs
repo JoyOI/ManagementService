@@ -31,55 +31,54 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public StateMachineStatus Status { get; set; }
         /// <summary>
-        /// 已执行的任务列表
+        /// 状态机的当前阶段
         /// </summary>
-        public string _FinishedActors { get; set; }
-        public IList<ActorInfo> FinishedActors
+        public string Stage { get; set; }
+        /// <summary>
+        /// 已经开始的任务列表
+        /// </summary>
+        public string _StartedActors { get; set; }
+        public IList<ActorInfo> StartedActors
         {
-            get => string.IsNullOrEmpty(_FinishedActors) ?
+            get => string.IsNullOrEmpty(_StartedActors) ?
                 new List<ActorInfo>() :
-                JsonConvert.DeserializeObject<IList<ActorInfo>>(_FinishedActors);
-            set => _FinishedActors = JsonConvert.SerializeObject(value);
+                JsonConvert.DeserializeObject<IList<ActorInfo>>(_StartedActors);
+            set => _StartedActors = JsonConvert.SerializeObject(value);
         }
         /// <summary>
-        /// 当前执行的任务
+        /// 初始的文件列表
+        /// 创建状态机实例后不应该修改这个字段
+        /// 需要获取前一个阶段创建的文件请使用StartedActors中的Outputs
         /// </summary>
-        public string _CurrentActor { get; set; }
-        public ActorInfo CurrentActor
+        public string _InitialBlobs { get; set; }
+        public IList<BlobInfo> InitialBlobs
         {
-            get => string.IsNullOrEmpty(_CurrentActor) ?
-                null :
-                JsonConvert.DeserializeObject<ActorInfo>(_CurrentActor);
-            set => _CurrentActor = JsonConvert.SerializeObject(value);
+            get => string.IsNullOrEmpty(_InitialBlobs) ?
+                new List<BlobInfo>() :
+                JsonConvert.DeserializeObject<IList<BlobInfo>>(_InitialBlobs);
+            set => _InitialBlobs = JsonConvert.SerializeObject(value);
         }
         /// <summary>
         /// 使用的限制参数
+        /// 用于限制容器的运行环境
         /// 优先度:
         /// StateMachineInstanceEntity > StateMachineEntity > JoyOIManagementConfiguration
         /// </summary>
         public string _Limitation { get; set; }
         public ContainerLimitation Limitation
         {
-            get => string.IsNullOrEmpty(_CurrentActor) ?
+            get => string.IsNullOrEmpty(_Limitation) ?
                 null :
                 JsonConvert.DeserializeObject<ContainerLimitation>(_Limitation);
             set => _Limitation = JsonConvert.SerializeObject(value);
         }
-        /// <summary>
-        /// 当前执行的Docker节点名称 (不是地址而是名称)
-        /// </summary>
-        public string CurrentNode { get; set; }
-        /// <summary>
-        /// 当前执行的Docker容器Id (例如b9a51f0805de)
-        /// </summary>
-        public string CurrentContainer { get; set; }
         /// <summary>
         /// 创建此实例的管理服务,各个管理服务只对自己创建的实例负责
         /// </summary>
         public string FromManagementService { get; set; }
         /// <summary>
         /// 重新运行的次数
-        /// 超过MaxReRunTimes则会标记为Failed
+        /// 超过MaxReRunTimes则会标记Status为Failed
         /// </summary>
         public int ReRunTimes { get; set; }
         /// <summary>
@@ -88,6 +87,7 @@ namespace JoyOI.ManagementService.Model.Entities
         public DateTime StartTime { get; set; }
         /// <summary>
         /// 最后一个任务的结束时间
+        /// 未完成或失败时等于null
         /// </summary>
         public DateTime? EndTime { get; set; }
     }

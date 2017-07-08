@@ -10,20 +10,20 @@ namespace JoyOI.ManagementService.Playground
 {
     public class StateMachine : StateMachineBase
     {
-        public override async Task RunAsync(string actor, BlobInfo[] blobs)
+        public override async Task RunAsync(string stage)
         {
-            if (actor == null)
+            switch (stage)
             {
-                actor = "CompileUserCode";
-            }
-
-            switch (actor)
-            {
+                case "Start":
+                    goto case "CompileUserCode";
                 case "CompileUserCode":
-                    await DeployAndRunActorAsync("CompileUserCodeActor", blobs);
-                    goto case "RunUserCodeActor";
-                case "RunUserCodeActor":
-                    await DeployAndRunActorAsync("RunUserCodeActor", FinishedActors.Last().Outputs);
+                    await SetStage("CompileUserCode");
+                    await DeployAndRunActorAsync(new RunActorParam("CompileUserCodeActor", InitialBlobs));
+                    goto case "RunUserCode";
+                case "RunUserCode":
+                    await SetStage("RunUserCode");
+                    var compileActorInfo = FindSingleActor(actor: "CompileUserCodeActor");
+                    await DeployAndRunActorAsync(new RunActorParam("RunUserCodeActor", compileActorInfo.Outputs));
                     break;
             }
         }

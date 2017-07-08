@@ -1,6 +1,7 @@
 ﻿using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Entities;
+using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -31,13 +32,13 @@ namespace JoyOI.ManagementService.Services
         Task RunInstance(StateMachineBase instance);
 
         /// <summary>
-        /// 运行任务
-        /// 流程
-        /// - 发布当前actor的代码到docker容器
-        /// - 运行actor
-        /// - 更新当前actor的Status和Outputs
-        /// 当前actor和已完成actor会在下次RunActor或者状态机结束后更新
+        /// 设置状态机实例的当前阶段
         /// </summary>
-        Task RunActor(StateMachineBase instance);
+        Task SetInstanceStage(StateMachineBase instance, string stage);
+
+        /// <summary>
+        /// 同时运行多个任务并等待全部返回
+        /// </summary>
+        Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos);
     }
 }
