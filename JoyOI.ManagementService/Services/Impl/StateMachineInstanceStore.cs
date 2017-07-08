@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.CodeAnalysis;
 using System.IO;
+using JoyOI.ManagementService.Utils;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -231,6 +232,28 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 _dockerNodeStore.ReleaseNode(node);
             }*/
+        }
+
+        public async Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos)
+        {
+            var result = blobInfos.Select(blob => (blob, (byte[])null)).ToList();
+            var blobIds = result.Select(x => x.Item1.Id).ToList();
+            using (var context = _contextFactory())
+            {
+                var blobs = await context.Set<BlobEntity>()
+                    .Where(x => blobIds.Contains(x.BlobId))
+                    .GroupBy(x => x.BlobId)
+                    .ToDictionaryAsync(x => x.Key, x => x.OrderBy(b => b.ChunkIndex).ToList());
+                for (var x = 0; x < result.Count; ++x)
+                {
+                    var (blob, contents) = result[x];
+                    if (blobs.TryGetValue(blob.Id, out var blobEntities))
+                    {
+                        result[x] = (blob, BlobUtils.MergeChunksBody(blobEntities));
+                    }
+                }
+            }
+            return result;
         }
     }
 }

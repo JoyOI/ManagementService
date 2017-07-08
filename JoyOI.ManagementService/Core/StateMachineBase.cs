@@ -157,33 +157,36 @@ namespace JoyOI.ManagementService.Core
         /// <summary>
         /// 读取单个文件到字符串
         /// </summary>
-        protected Task<string> ReadAllText(BlobInfo blobInfo)
+        protected async Task<string> ReadAllText(BlobInfo blobInfo)
         {
-            throw new NotImplementedException();
+            var bytes = await ReadAllBytes(blobInfo);
+            return bytes == null ? null : Encoding.UTF8.GetString(bytes);
         }
 
         /// <summary>
         /// 读取单个文件到字节数组
         /// </summary>
-        protected Task<byte[]> ReadAllBytes(BlobInfo blobInfo)
+        protected async Task<byte[]> ReadAllBytes(BlobInfo blobInfo)
         {
-            throw new NotImplementedException();
+            var result = await Store.ReadBlobs(new[] { blobInfo });
+            return result.FirstOrDefault().Item2;
         }
 
         /// <summary>
         /// 批量读取多个文件到字符串列表
         /// </summary>
-        protected Task<IList<string>> BatchReadAllText(IEnumerable<BlobInfo> blobInfos)
+        protected async Task<IEnumerable<(BlobInfo, string)>> BatchReadAllText(IEnumerable<BlobInfo> blobInfos)
         {
-            throw new NotImplementedException();
+            var result = await BatchReadAllBytes(blobInfos);
+            return result.Select(x => (x.Item1, Encoding.UTF8.GetString(x.Item2)));
         }
 
         /// <summary>
         /// 批量读取多个文件到字节数组列表
         /// </summary>
-        protected Task<IList<byte[]>> BatchReadAllBytes(IEnumerable<BlobInfo> blobInfos)
+        protected Task<IEnumerable<(BlobInfo, byte[])>> BatchReadAllBytes(IEnumerable<BlobInfo> blobInfos)
         {
-            throw new NotImplementedException();
+            return Store.ReadBlobs(blobInfos);
         }
 
         /// <summary>
