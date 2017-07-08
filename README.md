@@ -161,13 +161,21 @@ docker images
 	},
 	"JoyOIManagement": {
 		"Name": "Default",
-		"MaxRunningJobsPerNode": 16,
+		"Container": {
+			"DevicePath": "/dev/sda",
+			"MaxRunningJobs": 32,
+			"WorkDir": "/workdir/",
+			"ActorCodePath": "actor/Program.cs",
+			"ActorExecuteCommand": "sh run-actor.sh",
+			"InitialExecuteCommand": "sleep 1000"
+		},
 		"Limitation": {
 			"CPUPeriod": 1000000,
 			"CPUQuota": 1000000,
 			"Memory": 268435456,
 			"MemorySwap": 268435456,
-			"StorageBaseSize": 2
+			"BlkioDeviceReadBps": 8388608,
+			"BlkioDeviceWriteBps": 8388608
 		},
 		"Nodes": {
 			"docker-1": {
@@ -190,18 +198,26 @@ docker images
 配置说明:
 
 - "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
-- "MaxRunningJobsPerNode": 单个节点可以同时运行的任务数量
+- "Container": 容器相关的配置
+  - "DevicePath": 主设备路径
+  - "MaxRunningJobs": 单个节点可以同时运行的任务数量
+  - "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
+  - "ActorCodePath": 任务代码的路径, 相对于工作目录
+  - "ActorExecuteCommand": 执行任务的命令
+  - "InitialExecuteCommand": 初始执行的命令, 因为退出后容器会自动删除, 必须等待足够的时间
 - "Limitation": 运行任务时对容器的限制
   - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000
   - "CPUQuota": 限制CPU在间隔时间内可以使用的时间, 单位是微秒, 设置为跟CPUPeriod一致时表示只能用一个核心
   - "Memory": 可以使用的内存, 单位是字节, 默认无限制
   - "MemorySwap": 可以使用的交换内存, 单位是字节, 默认是Memory的两倍, 设为0时等于默认值(Memory的两倍)
-  - "StorageBaseSize": 储存大小的限制, 单位是GB, 默认是10GB
+  - "BlkioDeviceReadBps": 一秒最多读取的字节数, 单位是字节, 默认无限制
+  - "BlkioDeviceWriteBps": 一秒最多写入的字节数, 单位是字节, 默认无限制
 - "Nodes"是docker节点列表
   - "Image": docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi"
   - "Address": 节点的地址
   - "ClientCertificatePath": 客户端证书的路径
   - "ClientCertificatePassword": 客户端证书的密码
+  - "Container": 阶段单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
 
 **存放客户端证书**
 

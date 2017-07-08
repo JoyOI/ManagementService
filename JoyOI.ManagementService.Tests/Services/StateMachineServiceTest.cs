@@ -62,14 +62,14 @@ namespace JoyOI.ManagementService.Tests.Services
             {
                 Name = "put name",
                 Body = "put body",
-                Limitation = new ContainerLimitation() { StorageBaseSize = 3 }
+                Limitation = new ContainerLimitation() { Memory = 123 }
             });
             var put = await _service.Get("put name");
             Assert.True(put != null);
             Assert.Equal(putId, put.Id);
             Assert.Equal("put name", put.Name);
             Assert.Equal("put body", put.Body);
-            Assert.Equal(3, put.Limitation.StorageBaseSize);
+            Assert.Equal(123, put.Limitation.Memory);
         }
 
         [Fact]
@@ -82,7 +82,7 @@ namespace JoyOI.ManagementService.Tests.Services
             var firstPatch = await _service.Patch("first name", new StateMachineInputDto()
             {
                 Name = "first name updated",
-                Limitation = new ContainerLimitation() { StorageBaseSize = 3 }
+                Limitation = new ContainerLimitation() { BlkioDeviceReadBps = 3 }
             });
             var secondPatch = await _service.Patch("second name", new StateMachineInputDto() { Body = "second body updated" });
             var thirdPatch = await _service.Patch("third name", new StateMachineInputDto() { Name = "no exist" });
@@ -96,7 +96,7 @@ namespace JoyOI.ManagementService.Tests.Services
             Assert.Equal(firstId, first.Id);
             Assert.Equal("first name updated", first.Name);
             Assert.Equal("first body", first.Body);
-            Assert.Equal(3, first.Limitation.StorageBaseSize);
+            Assert.Equal(3, first.Limitation.BlkioDeviceReadBps);
             Assert.True(second != null);
             Assert.Equal(secondId, second.Id);
             Assert.Equal("second name", second.Name);

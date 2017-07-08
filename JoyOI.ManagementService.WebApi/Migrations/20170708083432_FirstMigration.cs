@@ -42,27 +42,12 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StateMachine",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "char(36)", nullable: false),
-                    Body = table.Column<string>(type: "longtext", nullable: true),
-                    CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Name = table.Column<string>(type: "varchar(127)", nullable: true),
-                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Limitation = table.Column<string>(type: "json", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StateMachine", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "StateMachineInstances",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
                     EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Exception = table.Column<string>(type: "longtext", nullable: true),
                     FromManagementService = table.Column<string>(type: "longtext", nullable: true),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     ReRunTimes = table.Column<int>(type: "int", nullable: false),
@@ -76,6 +61,22 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_StateMachineInstances", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StateMachines",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "char(36)", nullable: false),
+                    Body = table.Column<string>(type: "longtext", nullable: true),
+                    CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Name = table.Column<string>(type: "varchar(127)", nullable: true),
+                    UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Limitation = table.Column<string>(type: "json", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StateMachines", x => x.Id);
                 });
 
             migrationBuilder.CreateIndex(
@@ -101,12 +102,6 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_StateMachine_Name",
-                table: "StateMachine",
-                column: "Name",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_StateMachineInstances_Name",
                 table: "StateMachineInstances",
                 column: "Name");
@@ -115,6 +110,12 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "IX_StateMachineInstances_Name_Status",
                 table: "StateMachineInstances",
                 columns: new[] { "Name", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StateMachines_Name",
+                table: "StateMachines",
+                column: "Name",
+                unique: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -126,10 +127,10 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                 name: "Blobs");
 
             migrationBuilder.DropTable(
-                name: "StateMachine");
+                name: "StateMachineInstances");
 
             migrationBuilder.DropTable(
-                name: "StateMachineInstances");
+                name: "StateMachines");
         }
     }
 }

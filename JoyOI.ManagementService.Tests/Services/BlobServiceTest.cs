@@ -97,7 +97,7 @@ namespace JoyOI.ManagementService.Tests.Services
         {
             var smallBlob = GetSmallBlob();
             var smallId = await _service.Put(smallBlob);
-            var smallChunks = _context.Set<BlobEntity>().Count(x => x.BlobId == smallId);
+            var smallChunks = _context.Blobs.Count(x => x.BlobId == smallId);
             Assert.Equal(1, smallChunks);
 
             var smallBlobGet = await _service.Get(smallId);
@@ -112,7 +112,7 @@ namespace JoyOI.ManagementService.Tests.Services
         {
             var largeBlob = GetLargeBlob();
             var largeId = await _service.Put(largeBlob);
-            var largeChunks = _context.Set<BlobEntity>().Count(x => x.BlobId == largeId);
+            var largeChunks = _context.Blobs.Count(x => x.BlobId == largeId);
             Assert.Equal(3, largeChunks);
 
             var largeBlobGet = await _service.Get(largeId);

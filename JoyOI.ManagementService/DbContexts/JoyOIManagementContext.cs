@@ -10,7 +10,7 @@ namespace JoyOI.ManagementService.DbContexts
     {
         public DbSet<ActorEntity> Actors { get; set; }
         public DbSet<BlobEntity> Blobs { get; set; }
-        public DbSet<StateMachineEntity> StateMachine { get; set; }
+        public DbSet<StateMachineEntity> StateMachines { get; set; }
         public DbSet<StateMachineInstanceEntity> StateMachineInstances { get; set; }
 
         public JoyOIManagementContext() : base() { }

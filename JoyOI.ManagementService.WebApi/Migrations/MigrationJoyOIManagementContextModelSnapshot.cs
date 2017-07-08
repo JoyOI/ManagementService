@@ -95,7 +95,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("StateMachine");
+                    b.ToTable("StateMachines");
                 });
 
             modelBuilder.Entity("JoyOI.ManagementService.Model.Entities.StateMachineInstanceEntity", b =>
