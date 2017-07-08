@@ -36,10 +36,15 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// </summary>
         public long? MemorySwap { get; set; }
         /// <summary>
-        /// 储存大小的限制
-        /// 单位是GB, 默认是10GB
+        /// 一秒最多读取的字节数
+        /// 单位是字节, 默认无限制
         /// </summary>
-        public int? StorageBaseSize { get; set; }
+        public int? BlkioDeviceReadBps { get; set; }
+        /// <summary>
+        /// 一秒最多写入的字节数
+        /// 单位是字节, 默认无限制
+        /// </summary>
+        public int? BlkioDeviceWriteBps { get; set; }
 
         /// <summary>
         /// 判断是否所有值都是默认值
@@ -51,7 +56,8 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 CPUQuota == null &&
                 Memory == null &&
                 MemorySwap == null &&
-                StorageBaseSize == null;
+                BlkioDeviceReadBps == null &&
+                BlkioDeviceWriteBps == null;
         }
 
         /// <summary>
@@ -66,7 +72,8 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             inst.CPUQuota = inst.CPUQuota ?? limitation?.CPUQuota;
             inst.Memory = inst.Memory ?? limitation?.Memory;
             inst.MemorySwap = inst.MemorySwap ?? limitation?.MemorySwap;
-            inst.StorageBaseSize = inst.StorageBaseSize ?? limitation?.StorageBaseSize;
+            inst.BlkioDeviceReadBps = inst.BlkioDeviceReadBps ?? limitation?.BlkioDeviceReadBps;
+            inst.BlkioDeviceWriteBps = inst.BlkioDeviceWriteBps ?? limitation?.BlkioDeviceWriteBps;
             return inst;
         }
 

@@ -12,7 +12,7 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    [Migration("20170708025156_FirstMigration")]
+    [Migration("20170708083432_FirstMigration")]
     partial class FirstMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -96,7 +96,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("StateMachine");
+                    b.ToTable("StateMachines");
                 });
 
             modelBuilder.Entity("JoyOI.ManagementService.Model.Entities.StateMachineInstanceEntity", b =>
@@ -105,6 +105,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                         .ValueGeneratedOnAdd();
 
                     b.Property<DateTime?>("EndTime");
+
+                    b.Property<string>("Exception");
 
                     b.Property<string>("FromManagementService");
 

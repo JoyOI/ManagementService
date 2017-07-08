@@ -31,7 +31,14 @@ namespace JoyOI.ManagementService.Configuration
         public JoyOIManagementConfiguration()
         {
             Name = "Default";
-            Container = new ContainerConfiguration();
+            Container = new ContainerConfiguration()
+            {
+                DevicePath = "/dev/sda",
+                MaxRunningJobs = 32,
+                WorkDir = "/workdir/",
+                ActorCodePath = "actor/Program.cs",
+                ActorExecuteCommand = "sh run-actor.sh",
+            };
             Limitation = new ContainerLimitation();
             Nodes = new Dictionary<string, Node>();
         }
@@ -60,6 +67,10 @@ namespace JoyOI.ManagementService.Configuration
             /// 例如: 123456
             /// </summary>
             public string ClientCertificatePassword { get; set; }
+            /// <summary>
+            /// 阶段单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
+            /// </summary>
+            public ContainerConfiguration Container { get; set; }
         }
 
         /// <summary>
@@ -68,11 +79,18 @@ namespace JoyOI.ManagementService.Configuration
         public class ContainerConfiguration
         {
             /// <summary>
+            /// 主设备路径
+            /// 例如: /dev/sda
+            /// </summary>
+            public string DevicePath { get; set; }
+            /// <summary>
             /// 单个节点可以同时运行的任务数量
+            /// 例如: 32
             /// </summary>
             public int MaxRunningJobs { get; set; }
             /// <summary>
             /// 容器中的工作目录路径, 需要以"/"结尾
+            /// 例如 /workdir/
             /// </summary>
             public string WorkDir { get; set; }
             /// <summary>
@@ -88,10 +106,16 @@ namespace JoyOI.ManagementService.Configuration
 
             public ContainerConfiguration()
             {
-                MaxRunningJobs = 32;
-                WorkDir = "/workdir/";
-                ActorCodePath = "actor/Program.cs";
-                ActorExecuteCommand = "sh run-actor.sh";
+            }
+
+            public ContainerConfiguration WithDefaults(ContainerConfiguration configuration)
+            {
+                DevicePath = DevicePath ?? configuration.DevicePath;
+                MaxRunningJobs = MaxRunningJobs > 0 ? MaxRunningJobs : configuration.MaxRunningJobs;
+                WorkDir = WorkDir ?? configuration.WorkDir;
+                ActorCodePath = ActorCodePath ?? configuration.ActorCodePath;
+                ActorExecuteCommand = ActorExecuteCommand ?? configuration.ActorExecuteCommand;
+                return this;
             }
         }
     }

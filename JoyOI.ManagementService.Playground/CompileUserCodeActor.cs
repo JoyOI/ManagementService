@@ -5,9 +5,9 @@ using System.IO;
 
 namespace JoyOI.ManagementService.Playground
 {
-    class Actor
+    class CompileUserCodeActor
     {
-        static void Main(string[] args)
+        static void Main_(string[] args)
         {
             var p = Process.Start(new ProcessStartInfo("runner") { RedirectStandardInput = true });
             p.StandardInput.WriteLine("5000");

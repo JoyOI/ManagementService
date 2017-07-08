@@ -54,6 +54,14 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException("Please provide atleast 1 docker nodes");
             }
 
+            // 整合各个node的容器配置
+            foreach (var node in configuration.Nodes)
+            {
+                node.Value.Container = (node.Value.Container ??
+                    new JoyOIManagementConfiguration.ContainerConfiguration())
+                    .WithDefaults(configuration.Container);
+            }
+
             // 注册配置
             services.AddSingleton(configuration);
 

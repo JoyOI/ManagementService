@@ -47,7 +47,7 @@ namespace JoyOI.ManagementService.Services.Impl
             lock (_nodesLock)
             {
                 var node = _nodes.Min;
-                if (node.RunningJobs < _configuration.Container.MaxRunningJobs)
+                if (node.RunningJobs < node.NodeInfo.Container.MaxRunningJobs)
                 {
                     _nodes.Remove(node);
                     ++node.RunningJobs;
@@ -89,7 +89,5 @@ namespace JoyOI.ManagementService.Services.Impl
                 source.SetResult(node);
             }
         }
-
-
     }
 }

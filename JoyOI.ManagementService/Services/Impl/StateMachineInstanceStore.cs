@@ -381,7 +381,8 @@ namespace JoyOI.ManagementService.Services.Impl
                             NetworkDisabled = true,
                             Image = node.NodeInfo.Image,
                             Name = containerTag,
-                            HostConfig = HostConfigUtils.WithLimitation(new HostConfig(), instance.Limitation)
+                            HostConfig = HostConfigUtils.WithLimitation(
+                                new HostConfig(), instance.Limitation, node.NodeInfo.Container)
                         });
                     var containerId = createContainerResponse.ID;
                     // 上传Inputs和代码到容器
@@ -398,7 +399,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
                     }
                     inputBlobs = inputBlobs.Concat(new[] {
-                        (new BlobInfo(Guid.Empty, _configuration.Container.ActorCodePath),
+                        (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorCodePath),
                         Encoding.UTF8.GetBytes(actorCode))
                     });
                     using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
@@ -406,7 +407,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         var cancellationToken = new CancellationToken();
                         await client.Containers.ExtractArchiveToContainerAsync(
                             containerId,
-                            new ContainerPathStatParameters() { Path = _configuration.Container.WorkDir },
+                            new ContainerPathStatParameters() { Path = node.NodeInfo.Container.WorkDir },
                             tarStream,
                             cancellationToken);
                     }
