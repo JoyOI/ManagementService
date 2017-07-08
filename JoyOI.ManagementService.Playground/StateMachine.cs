@@ -10,9 +10,9 @@ namespace JoyOI.ManagementService.Playground
 {
     public class StateMachine : StateMachineBase
     {
-        public override async Task RunAsync(string stage)
+        public override async Task RunAsync()
         {
-            switch (stage)
+            switch (Stage)
             {
                 case "Start":
                     goto case "CompileUserCode";

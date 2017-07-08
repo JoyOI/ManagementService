@@ -195,8 +195,8 @@ namespace JoyOI.ManagementService.Core
         }
 
         /// <summary>
-        /// 从指定的阶段开始重新运行状态机
+        /// 运行状态机
         /// </summary>
-        public abstract Task RunAsync(string stage);
+        public abstract Task RunAsync();
     }
 }

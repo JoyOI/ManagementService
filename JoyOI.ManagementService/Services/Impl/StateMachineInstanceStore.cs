@@ -161,43 +161,45 @@ namespace JoyOI.ManagementService.Services.Impl
             return Task.FromResult(instance);
         }
 
-        public Task RunInstance(StateMachineBase instance)
+        public async Task RunInstance(StateMachineBase instance)
         {
-            throw new NotImplementedException();
-            /* try
+            try
             {
-                // 运行第一个actor
-                var actor = instance.CurrentActor;
-                if (actor != null)
+                // 如果当前Stage不是初始阶段
+                if (instance.Stage != StateMachineBase.InitialStage)
                 {
-                    await instance.RunAsync(actor.Name, actor.Inputs);
+                    // 查找属于该Stage的StartedActors
+                    // TODO
+                    // 调用docker的api删除CurrentNode中的CurrentContainer
+                    // TODO
+                    // 删除这些actors并更新到数据库
+                    // TODO
                 }
-                // 更新实例的状态到完成
+                // 从当前Stage开始运行
+                await instance.RunAsync();
+                // 设置状态机实例的Status和EndTime, 更新到数据库
                 instance.Status = StateMachineStatus.Succeeded;
-                instance.FinishedActors.Add(instance.CurrentActor);
-                instance.CurrentActor = null;
+                instance.Stage = StateMachineBase.FinalStage;
+                var endTime = DateTime.UtcNow;
                 using (var context = _contextFactory())
                 {
                     var set = context.Set<StateMachineInstanceEntity>();
                     var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                     instanceEntity.Status = instance.Status;
-                    instanceEntity.FinishedActors = instance.FinishedActors;
-                    instanceEntity.CurrentActor = instance.CurrentActor;
-                    instanceEntity.EndTime = instance.FinishedActors.Last().EndTime;
+                    instanceEntity.Stage = instance.Stage;
+                    instanceEntity.EndTime = endTime;
                     await context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
             {
-                // 更新实例的状态到失败
+                // 设置状态机实例的Status到失败
                 using (var context = _contextFactory())
                 {
                     var set = context.Set<StateMachineInstanceEntity>();
                     var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                     instanceEntity.Status = StateMachineStatus.Failed;
-                    var actor = instanceEntity.CurrentActor;
-                    actor.Exceptions = new[] { ex.ToString() };
-                    instanceEntity.CurrentActor = actor;
+                    instanceEntity.Exception = ex.ToString();
                     await context.SaveChangesAsync();
                 }
             }
@@ -205,7 +207,7 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 // 释放资源 (默认无处理, 继承类中可能会重写此函数)
                 instance.Dispose();
-            } */
+            }
         }
 
         public Task SetInstanceStage(StateMachineBase instance, string stage)
