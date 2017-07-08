@@ -17,6 +17,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.CodeAnalysis;
 using System.IO;
 using JoyOI.ManagementService.Utils;
+using Docker.DotNet.Models;
+using System.Threading;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -33,7 +35,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 运行状态机实例:
     /// - 如果当前Stage不是初始阶段
     ///   - 查找属于该Stage的StartedActors
-    ///     - 调用docker的api删除CurrentNode中的CurrentContainer
+    ///     - 调用docker的api删除残留的容器
     ///     - 删除这些actors并更新到数据库
     /// - 从当前Stage开始运行
     ///   - 调用StateMachineBase.RunAsync
@@ -103,7 +105,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             // 获取运行中的状态机实例
             IDictionary<string, StateMachineEntity> stateMachineMap;
-            IList<StateMachineInstanceEntity> continueInstances;
+            var continueInstances = new ConcurrentQueue<StateMachineInstanceEntity>();
             using (var context = _contextFactory())
             {
                 var runningInstances = context.Set<StateMachineInstanceEntity>()
@@ -116,9 +118,10 @@ namespace JoyOI.ManagementService.Services.Impl
                 stateMachineMap = context.Set<StateMachineEntity>()
                     .Where(x => stateMachineNames.Contains(x.Name))
                     .ToDictionary(x => x.Name);
-                // 判断重新运行次数, 超过最大次数的不予执行
-                continueInstances = new List<StateMachineInstanceEntity>(runningInstances.Count);
-                foreach (var instance in runningInstances)
+                // 判断重新运行次数
+                // 超过最大次数的标记状态到失败
+                // 标记失败的需要删除残留的容器, 删除可以并发处理
+                var childTasks = runningInstances.Select(instance => Task.Run(async () =>
                 {
                     if (instance.ReRunTimes >= StateMachineInstanceEntity.MaxReRunTimes)
                     {
@@ -133,9 +136,16 @@ namespace JoyOI.ManagementService.Services.Impl
                     else
                     {
                         ++instance.ReRunTimes;
-                        continueInstances.Add(instance);
+                        continueInstances.Enqueue(instance);
                     }
-                }
+                    if (instance.Status == StateMachineStatus.Failed)
+                    {
+                        var startedActors = instance.StartedActors;
+                        await RemoveRunningContainers(startedActors);
+                        instance.StartedActors = startedActors;
+                    }
+                })).ToArray();
+                Task.WaitAll(childTasks);
                 context.SaveChanges();
             }
             // 继续执行这些状态机实例
@@ -146,6 +156,21 @@ namespace JoyOI.ManagementService.Services.Impl
 #pragma warning disable CS4014
                 RunInstance(instanceObj); // 在后台运行
 #pragma warning restore CS4014
+            }
+        }
+
+        private async Task UpdateInstanceEntity(Guid id, Action<StateMachineInstanceEntity> update)
+        {
+            using (var context = _contextFactory())
+            {
+                var set = context.Set<StateMachineInstanceEntity>();
+                var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == id);
+                if (instanceEntity == null)
+                {
+                    throw new InvalidOperationException($"state machine instance entity {id} not found");
+                }
+                update(instanceEntity);
+                await context.SaveChangesAsync();
             }
         }
 
@@ -215,11 +240,19 @@ namespace JoyOI.ManagementService.Services.Impl
                 if (instance.Stage != StateMachineBase.InitialStage)
                 {
                     // 查找属于该Stage的StartedActors
-                    // TODO
-                    // 调用docker的api删除CurrentNode中的CurrentContainer
-                    // TODO
+                    var startedActors = instance.StartedActors;
+                    var removeActors = startedActors.Where(x => x.Stage == instance.Stage).ToList();
+                    // 调用docker的api删除残留的容器
+                    await RemoveRunningContainers(removeActors);
                     // 删除这些actors并更新到数据库
-                    // TODO
+                    foreach (var removeActor in removeActors)
+                    {
+                        startedActors.Remove(removeActor);
+                    }
+                    await UpdateInstanceEntity(instance.Id, instanceEntity =>
+                    {
+                        instanceEntity.StartedActors = startedActors;
+                    });
                 }
                 // 从当前Stage开始运行
                 await instance.RunAsync();
@@ -227,27 +260,33 @@ namespace JoyOI.ManagementService.Services.Impl
                 instance.Status = StateMachineStatus.Succeeded;
                 instance.Stage = StateMachineBase.FinalStage;
                 var endTime = DateTime.UtcNow;
-                using (var context = _contextFactory())
+                await UpdateInstanceEntity(instance.Id, instanceEntity =>
                 {
-                    var set = context.Set<StateMachineInstanceEntity>();
-                    var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                     instanceEntity.Status = instance.Status;
                     instanceEntity.Stage = instance.Stage;
                     instanceEntity.EndTime = endTime;
-                    await context.SaveChangesAsync();
-                }
+                });
             }
             catch (Exception ex)
             {
-                // 设置状态机实例的Status到失败
-                using (var context = _contextFactory())
+                // 调用docker的api删除残留的容器
+                var startedActors = instance.StartedActors;
+                try
                 {
-                    var set = context.Set<StateMachineInstanceEntity>();
-                    var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
+                    await RemoveRunningContainers(startedActors);
+                }
+                catch (Exception newEx)
+                {
+                    ex = new InvalidOperationException(
+                        "Remove running containers after error failed:" + newEx.ToString(), ex);
+                }
+                // 设置状态机实例的Status到失败
+                await UpdateInstanceEntity(instance.Id, instanceEntity =>
+                {
+                    instanceEntity.StartedActors = startedActors;
                     instanceEntity.Status = StateMachineStatus.Failed;
                     instanceEntity.Exception = ex.ToString();
-                    await context.SaveChangesAsync();
-                }
+                });
             }
             finally
             {
@@ -256,27 +295,138 @@ namespace JoyOI.ManagementService.Services.Impl
             }
         }
 
-        public Task SetInstanceStage(StateMachineBase instance, string stage)
+        public async Task SetInstanceStage(StateMachineBase instance, string stage)
         {
-            throw new NotImplementedException();
+            // 更新实体中的状态
+            using (var context = _contextFactory())
+            {
+                var set = context.Set<StateMachineInstanceEntity>();
+                var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
+                instanceEntity.Stage = stage;
+                await context.SaveChangesAsync();
+            }
+            // 更新实例中的状态
+            instance.Stage = stage;
         }
 
-        public Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)
+        private async Task RemoveRunningContainers(IList<ActorInfo> actorInfos)
         {
-            throw new NotImplementedException();
-            // TODO: 需要并发处理
-            /*var node = await _dockerNodeStore.AcquireNode();
+            var childTasks = actorInfos.GroupBy(x => x.RunningNode)
+                .Select(group => Task.Run(async () =>
+            {
+                // 按节点分组
+                var node = _dockerNodeStore.GetNode(group.Key);
+                if (node == null)
+                {
+                    return;
+                }
+                var containerTags = new HashSet<string>(group.Select(x => x.RunningContainer));
+                using (var client = node.CreateDockerClient())
+                {
+                    // 查找节点下的所有容器
+                    // 节点下的容器数量较少(<100)时可以直接查询全部以减少查询次数
+                    // 如果需要按名称查找可以使用Filters["name"]
+                    var containers = await client.Containers.ListContainersAsync(
+                        new ContainersListParameters() { All = true });
+                    foreach (var container in containers)
+                    {
+                        if (container.Names.Any(name => containerTags.Contains(name)))
+                        {
+                            // 删除容器
+                            await client.Containers.RemoveContainerAsync(
+                                container.ID, new ContainerRemoveParameters() { Force = true });
+                        }
+                    }
+                }
+            })).ToList();
+            await Task.WhenAll(childTasks);
+            // 清空所有RunningNode和RunningContainer
+            foreach (var actorInfo in actorInfos)
+            {
+                actorInfo.RunningNode = null;
+                actorInfo.RunningContainer = null;
+            }
+        }
+
+        private async Task RunActorInternal(StateMachineBase instance, ActorInfo actorInfo)
+        {
+            // 请勿直接调用此函数, 此函数不会更新StartedActors
+            // 选择一个容器
+            var node = await _dockerNodeStore.AcquireNode();
             try
             {
                 using (var client = node.CreateDockerClient())
                 {
+                    // 生成一个container标识
+                    var containerTag = PrimaryKeyUtils.Generate<Guid>().ToString();
+                    // 更新actor的RunningNode和RunningContainer, 注意线程安全
+                    actorInfo.RunningNode = node.Name;
+                    actorInfo.RunningContainer = containerTag;
+                    await instance.DbUpdateLock.WaitAsync();
+                    try
+                    {
+                        using (var context = _contextFactory())
+                        {
+                            var set = context.Set<StateMachineInstanceEntity>();
+                            var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
+                            instanceEntity.StartedActors = instance.StartedActors;
+                            await context.SaveChangesAsync();
+                        }
+                    }
+                    finally
+                    {
+                        instance.DbUpdateLock.Release();
+                    }
+                    // 调用docker的api创建容器
+                    var createContainerResponse = await client.Containers.CreateContainerAsync(
+                        new CreateContainerParameters()
+                        {
+                            NetworkDisabled = true,
+                            Image = node.NodeInfo.Image,
+                            Name = containerTag,
+                            HostConfig = HostConfigUtils.WithLimitation(new HostConfig(), instance.Limitation)
+                        });
+                    var containerId = createContainerResponse.ID;
+                    // 上传Inputs到容器
+                    var inputBlobs = await ReadBlobs(actorInfo.Inputs);
+                    foreach (var (blob, bytes) in inputBlobs)
+                    {
 
+                    }
+                    // 上传代码到容器
+
+                    // 执行容器
+
+                    // 等待执行完毕
+
+                    // 下载result.json
+
+                    // 根据result.json下载文件并插入到blob
+
+                    // 更新actor的Outputs和Status, 注意线程安全
                 }
             }
             finally
             {
                 _dockerNodeStore.ReleaseNode(node);
-            }*/
+            }
+        }
+
+        public async Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)
+        {
+            // 更新StartedActors
+            foreach (var actorInfo in actorInfos)
+            {
+                instance.StartedActors.Add(actorInfo);
+            }
+            // 并列处理
+            var childTasks = new List<Task>();
+            foreach (var actorInfo in actorInfos)
+            {
+                childTasks.Add(RunActorInternal(instance, actorInfo));
+            }
+            // 等待全部完成
+            await Task.WhenAll(childTasks);
         }
 
         public async Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos)

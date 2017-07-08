@@ -59,14 +59,15 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// </summary>
         public ContainerLimitation WithDefaults(ContainerLimitation limitation)
         {
-            return new ContainerLimitation()
-            {
-                CPUPeriod = CPUPeriod ?? limitation?.CPUPeriod,
-                CPUQuota = CPUQuota ?? limitation?.CPUQuota,
-                Memory = Memory ?? limitation?.Memory,
-                MemorySwap = MemorySwap ?? limitation?.MemorySwap,
-                StorageBaseSize = StorageBaseSize ?? limitation?.StorageBaseSize
-            };
+            var inst = this;
+            if (inst == Default)
+                inst = new ContainerLimitation();
+            inst.CPUPeriod = inst.CPUPeriod ?? limitation?.CPUPeriod;
+            inst.CPUQuota = inst.CPUQuota ?? limitation?.CPUQuota;
+            inst.Memory = inst.Memory ?? limitation?.Memory;
+            inst.MemorySwap = inst.MemorySwap ?? limitation?.MemorySwap;
+            inst.StorageBaseSize = inst.StorageBaseSize ?? limitation?.StorageBaseSize;
+            return inst;
         }
 
         /// <summary>

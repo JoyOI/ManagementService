@@ -161,13 +161,14 @@ docker images
 	},
 	"JoyOIManagement": {
 		"Name": "Default",
+		"WorkDir": "/workdir/",
 		"MaxRunningJobsPerNode": 16,
 		"Limitation": {
 			"CPUPeriod": 1000000,
 			"CPUQuota": 1000000,
 			"Memory": 268435456,
 			"MemorySwap": 268435456,
-			"StorageBaseSize": 2
+			"StorageBaseSize": 3
 		},
 		"Nodes": {
 			"docker-1": {
@@ -190,6 +191,7 @@ docker images
 配置说明:
 
 - "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
+- "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
 - "MaxRunningJobsPerNode": 单个节点可以同时运行的任务数量
 - "Limitation": 运行任务时对容器的限制
   - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000

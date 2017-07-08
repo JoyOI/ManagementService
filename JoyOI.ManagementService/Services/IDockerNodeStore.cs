@@ -12,6 +12,11 @@ namespace JoyOI.ManagementService.Services
     internal interface IDockerNodeStore
     {
         /// <summary>
+        /// 获取指定名称的节点, 不存在时返回null
+        /// </summary>
+        DockerNode GetNode(string nodeName);
+
+        /// <summary>
         /// 获取可以用于执行任务的Docker节点
         /// </summary>
         Task<DockerNode> AcquireNode();
