@@ -161,8 +161,12 @@ docker images
 	},
 	"JoyOIManagement": {
 		"Name": "Default",
-		"WorkDir": "/workdir/",
-		"MaxRunningJobsPerNode": 16,
+		"Container": {
+			"MaxRunningJobs": 32,
+			"WorkDir": "/workdir/",
+			"ActorCodePath": "actor/Program.cs",
+			"ActorExecuteCommand": "sh run-actor.sh"
+		},
 		"Limitation": {
 			"CPUPeriod": 1000000,
 			"CPUQuota": 1000000,
@@ -191,8 +195,11 @@ docker images
 配置说明:
 
 - "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
-- "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
-- "MaxRunningJobsPerNode": 单个节点可以同时运行的任务数量
+- "Container": 容器相关的配置
+  - "MaxRunningJobs": 单个节点可以同时运行的任务数量
+  - "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
+  - "ActorCodePath": 任务代码的路径, 相对于工作目录
+  - "ActorExecuteCommand": 执行任务的命令
 - "Limitation": 运行任务时对容器的限制
   - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000
   - "CPUQuota": 限制CPU在间隔时间内可以使用的时间, 单位是微秒, 设置为跟CPUPeriod一致时表示只能用一个核心

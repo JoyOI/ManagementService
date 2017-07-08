@@ -34,7 +34,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             _configuration = configuration;
             _dbContext = dbContext;
-            _dbSet = dbContext.Set<StateMachineInstanceEntity>();
+            _dbSet = dbContext.StateMachineInstances;
             _stateMachineInstanceStore = stateMachineInstanceStore;
         }
 
@@ -72,7 +72,7 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<StateMachineInstancePutResultDto> Put(StateMachineInstancePutDto dto)
         {
             // 获取name对应的状态机代码
-            var stateMachineEntity = await _dbContext.Set<StateMachineEntity>()
+            var stateMachineEntity = await _dbContext.StateMachines
                 .FirstOrDefaultAsync(x => x.Name == dto.Name);
             if (stateMachineEntity == null)
             {

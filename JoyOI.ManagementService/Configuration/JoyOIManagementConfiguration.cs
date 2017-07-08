@@ -16,13 +16,9 @@ namespace JoyOI.ManagementService.Configuration
         /// </summary>
         public string Name { get; set; }
         /// <summary>
-        /// 容器中的工作目录路径, 需要以"/"结尾
+        /// 容器相关的配置
         /// </summary>
-        public string WorkDir { get; set; }
-        /// <summary>
-        /// 单个节点可以同时运行的任务数量
-        /// </summary>
-        public int MaxRunningJobsPerNode { get; set; }
+        public ContainerConfiguration Container { get; set; }
         /// <summary>
         /// 运行任务时对容器的限制
         /// </summary>
@@ -35,6 +31,7 @@ namespace JoyOI.ManagementService.Configuration
         public JoyOIManagementConfiguration()
         {
             Name = "Default";
+            Container = new ContainerConfiguration();
             Limitation = new ContainerLimitation();
             Nodes = new Dictionary<string, Node>();
         }
@@ -63,6 +60,39 @@ namespace JoyOI.ManagementService.Configuration
             /// 例如: 123456
             /// </summary>
             public string ClientCertificatePassword { get; set; }
+        }
+
+        /// <summary>
+        /// 容器相关的配置
+        /// </summary>
+        public class ContainerConfiguration
+        {
+            /// <summary>
+            /// 单个节点可以同时运行的任务数量
+            /// </summary>
+            public int MaxRunningJobs { get; set; }
+            /// <summary>
+            /// 容器中的工作目录路径, 需要以"/"结尾
+            /// </summary>
+            public string WorkDir { get; set; }
+            /// <summary>
+            /// 任务代码的路径, 相对于工作目录
+            /// 例如: actor/Program.cs
+            /// </summary>
+            public string ActorCodePath { get; set; }
+            /// <summary>
+            /// 执行任务的命令
+            /// 例如: sh run-actor.sh
+            /// </summary>
+            public string ActorExecuteCommand { get; set; }
+
+            public ContainerConfiguration()
+            {
+                MaxRunningJobs = 32;
+                WorkDir = "/workdir/";
+                ActorCodePath = "actor/Program.cs";
+                ActorExecuteCommand = "sh run-actor.sh";
+            }
         }
     }
 }

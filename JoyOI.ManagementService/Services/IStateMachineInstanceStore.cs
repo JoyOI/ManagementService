@@ -45,5 +45,10 @@ namespace JoyOI.ManagementService.Services
         /// 读取文件内容, 如果文件不存在内容会等于null
         /// </summary>
         Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos);
+
+        /// <summary>
+        /// 读取任务代码, 为了减轻服务器压力会缓存非常短的时间
+        /// </summary>
+        Task<string> ReadActorCode(string name);
     }
 }

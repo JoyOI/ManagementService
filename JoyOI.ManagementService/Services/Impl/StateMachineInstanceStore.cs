@@ -49,8 +49,7 @@ namespace JoyOI.ManagementService.Services.Impl
     ///       - 生成一个container标识
     ///       - 更新actor的RunningNode和RunningContainer, 注意线程安全
     ///       - 调用docker的api创建容器
-    ///       - 上传Inputs到容器
-    ///       - 上传代码到容器
+    ///       - 上传Inputs和代码到容器
     ///       - 执行容器
     ///       - 等待执行完毕
     ///       - 下载result.json
@@ -73,6 +72,8 @@ namespace JoyOI.ManagementService.Services.Impl
         private JoyOIManagementConfiguration _configuration;
         private IDockerNodeStore _dockerNodeStore;
         private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
+        private ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
+        private TimeSpan _actorCodeCacheTime;
         private Func<JoyOIManagementContext> _contextFactory;
         private bool _initilaized;
         private object _initializeLock;
@@ -82,6 +83,8 @@ namespace JoyOI.ManagementService.Services.Impl
             _configuration = configuration;
             _dockerNodeStore = dockerNodeStore;
             _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
+            _actorCodeCache = new ConcurrentDictionary<string, (string, DateTime)>();
+            _actorCodeCacheTime = TimeSpan.FromSeconds(1);
             _contextFactory = null;
             _initilaized = false;
             _initializeLock = new object();
@@ -108,14 +111,14 @@ namespace JoyOI.ManagementService.Services.Impl
             var continueInstances = new ConcurrentQueue<StateMachineInstanceEntity>();
             using (var context = _contextFactory())
             {
-                var runningInstances = context.Set<StateMachineInstanceEntity>()
+                var runningInstances = context.StateMachineInstances
                     .Where(x =>
                         x.Status == StateMachineStatus.Running &&
                         x.FromManagementService == _configuration.Name)
                     .ToList();
                 var stateMachineNames = runningInstances
                     .Select(c => c.Name).Distinct().ToList();
-                stateMachineMap = context.Set<StateMachineEntity>()
+                stateMachineMap = context.StateMachines
                     .Where(x => stateMachineNames.Contains(x.Name))
                     .ToDictionary(x => x.Name);
                 // 判断重新运行次数
@@ -163,8 +166,8 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             using (var context = _contextFactory())
             {
-                var set = context.Set<StateMachineInstanceEntity>();
-                var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == id);
+                var instanceEntity = await context.StateMachineInstances
+                    .FirstOrDefaultAsync(x => x.Id == id);
                 if (instanceEntity == null)
                 {
                     throw new InvalidOperationException($"state machine instance entity {id} not found");
@@ -298,13 +301,10 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task SetInstanceStage(StateMachineBase instance, string stage)
         {
             // 更新实体中的状态
-            using (var context = _contextFactory())
+            await UpdateInstanceEntity(instance.Id, instanceEntity =>
             {
-                var set = context.Set<StateMachineInstanceEntity>();
-                var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                 instanceEntity.Stage = stage;
-                await context.SaveChangesAsync();
-            }
+            });
             // 更新实例中的状态
             instance.Stage = stage;
         }
@@ -365,13 +365,10 @@ namespace JoyOI.ManagementService.Services.Impl
                     await instance.DbUpdateLock.WaitAsync();
                     try
                     {
-                        using (var context = _contextFactory())
+                        await UpdateInstanceEntity(instance.Id, instanceEntity =>
                         {
-                            var set = context.Set<StateMachineInstanceEntity>();
-                            var instanceEntity = await set.FirstOrDefaultAsync(x => x.Id == instance.Id);
                             instanceEntity.StartedActors = instance.StartedActors;
-                            await context.SaveChangesAsync();
-                        }
+                        });
                     }
                     finally
                     {
@@ -387,15 +384,34 @@ namespace JoyOI.ManagementService.Services.Impl
                             HostConfig = HostConfigUtils.WithLimitation(new HostConfig(), instance.Limitation)
                         });
                     var containerId = createContainerResponse.ID;
-                    // 上传Inputs到容器
+                    // 上传Inputs和代码到容器
                     var inputBlobs = await ReadBlobs(actorInfo.Inputs);
-                    foreach (var (blob, bytes) in inputBlobs)
+                    var actorCode = await ReadActorCode(actorInfo.Name);
+                    var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
+                    if (noExistBlob.Item1 != null)
                     {
-
+                        throw new ArgumentException(
+                            $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
                     }
-                    // 上传代码到容器
-
+                    if (string.IsNullOrEmpty(actorCode))
+                    {
+                        throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
+                    }
+                    inputBlobs = inputBlobs.Concat(new[] {
+                        (new BlobInfo(Guid.Empty, _configuration.Container.ActorCodePath),
+                        Encoding.UTF8.GetBytes(actorCode))
+                    });
+                    using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
+                    {
+                        var cancellationToken = new CancellationToken();
+                        await client.Containers.ExtractArchiveToContainerAsync(
+                            containerId,
+                            new ContainerPathStatParameters() { Path = _configuration.Container.WorkDir },
+                            tarStream,
+                            cancellationToken);
+                    }
                     // 执行容器
+                    throw new Exception("all right until now");
 
                     // 等待执行完毕
 
@@ -435,7 +451,7 @@ namespace JoyOI.ManagementService.Services.Impl
             var blobIds = result.Select(x => x.Item1.Id).ToList();
             using (var context = _contextFactory())
             {
-                var blobs = await context.Set<BlobEntity>()
+                var blobs = await context.Blobs
                     .Where(x => blobIds.Contains(x.BlobId))
                     .GroupBy(x => x.BlobId)
                     .ToDictionaryAsync(x => x.Key, x => x.OrderBy(b => b.ChunkIndex).ToList());
@@ -449,6 +465,26 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
             }
             return result;
+        }
+
+        public async Task<string> ReadActorCode(string name)
+        {
+            // 从缓存获取
+            _actorCodeCache.TryGetValue(name, out var codeAndTime);
+            if (DateTime.UtcNow - codeAndTime.Item2 <= _actorCodeCacheTime)
+            {
+                return codeAndTime.Item1;
+            }
+            // 从数据库获取
+            using (var context = _contextFactory())
+            {
+                var actor = await context.Actors.FirstOrDefaultAsync(x => x.Name == name);
+                codeAndTime.Item1 = actor?.Body;
+                codeAndTime.Item2 = DateTime.UtcNow;
+            }
+            // 设置到缓存
+            _actorCodeCache[name] = codeAndTime;
+            return codeAndTime.Item1;
         }
     }
 }

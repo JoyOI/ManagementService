@@ -20,14 +20,14 @@ namespace JoyOI.ManagementService.Services.Impl
     /// </summary>
     internal class BlobService : IBlobService
     {
-        private DbContext _dbContext;
+        private JoyOIManagementContext _dbContext;
         private DbSet<BlobEntity> _dbSet;
         private bool _isInMemory;
 
         public BlobService(JoyOIManagementContext dbContext)
         {
             _dbContext = dbContext;
-            _dbSet = _dbContext.Set<BlobEntity>();
+            _dbSet = dbContext.Blobs;
             _isInMemory = DbContextUtils.IsMemoryDb(dbContext);
         }
 

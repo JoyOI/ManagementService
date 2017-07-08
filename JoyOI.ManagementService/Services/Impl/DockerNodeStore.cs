@@ -47,7 +47,7 @@ namespace JoyOI.ManagementService.Services.Impl
             lock (_nodesLock)
             {
                 var node = _nodes.Min;
-                if (node.RunningJobs < _configuration.MaxRunningJobsPerNode)
+                if (node.RunningJobs < _configuration.Container.MaxRunningJobs)
                 {
                     _nodes.Remove(node);
                     ++node.RunningJobs;
