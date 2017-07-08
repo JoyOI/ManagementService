@@ -1,4 +1,4 @@
-﻿using JoyOI.ManagementService.Core;
+using JoyOI.ManagementService.Core;
 using System;
 using System.Collections.Generic;
 using System.Text;
