@@ -6,6 +6,22 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using System.Threading.Tasks;
 using System.Linq;
 
+/*
+
+测试参数:
+
+{
+  "name": "CompileAndRun"
+  "initialBlobs": [
+    {
+      "id": "填写blob.id",
+      "name": "Main.c",
+    }
+  ],
+}
+
+*/
+
 namespace JoyOI.ManagementService.Playground
 {
     public class StateMachine : StateMachineBase

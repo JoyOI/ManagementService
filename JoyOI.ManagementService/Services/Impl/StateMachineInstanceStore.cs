@@ -35,7 +35,6 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 运行状态机实例:
     /// - 如果当前Stage不是初始阶段
     ///   - 查找属于该Stage的StartedActors
-    ///     - 调用docker的api删除残留的容器
     ///     - 删除这些actors并更新到数据库
     /// - 从当前Stage开始运行
     ///   - 调用StateMachineBase.RunAsync
@@ -45,15 +44,16 @@ namespace JoyOI.ManagementService.Services.Impl
     ///   - 调用StateMachineInstanceStore.RunActors运行任务
     ///     - 更新StartedActors
     ///     - 并列处理
-    ///       - 选择一个容器 (应该考虑到负载均衡)
-    ///       - 生成一个container标识
+    ///       - 选择一个节点 (应该考虑到负载均衡)
+    ///       - 生成一个容器名称
     ///       - 更新actor的RunningNode和RunningContainer, 注意线程安全
-    ///       - 调用docker的api创建容器
+    ///       - 创建和运行容器
     ///       - 上传Inputs和代码到容器
-    ///       - 执行容器
+    ///       - 在容器中执行任务
     ///       - 等待执行完毕
     ///       - 下载result.json
     ///       - 根据result.json下载文件并插入到blob
+    ///       - 停止容器, 停止后会自动删除
     ///       - 更新actor的Outputs和Status, 注意线程安全
     /// - 设置状态机实例的Status和EndTime, 更新到数据库
     /// 
@@ -66,6 +66,10 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 强制修改状态机的流程:
     /// - 修改状态机实例的Stage
     /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
+    /// 
+    /// 残留的容器:
+    /// - 目前残留的容器会被自动清理, 条件如下
+    ///   - 容器运行时指定 参数
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
@@ -108,7 +112,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             // 获取运行中的状态机实例
             IDictionary<string, StateMachineEntity> stateMachineMap;
-            var continueInstances = new ConcurrentQueue<StateMachineInstanceEntity>();
+            var continueInstances = new List<StateMachineInstanceEntity>();
             using (var context = _contextFactory())
             {
                 var runningInstances = context.StateMachineInstances
@@ -121,10 +125,8 @@ namespace JoyOI.ManagementService.Services.Impl
                 stateMachineMap = context.StateMachines
                     .Where(x => stateMachineNames.Contains(x.Name))
                     .ToDictionary(x => x.Name);
-                // 判断重新运行次数
-                // 超过最大次数的标记状态到失败
-                // 标记失败的需要删除残留的容器, 删除可以并发处理
-                var childTasks = runningInstances.Select(instance => Task.Run(async () =>
+                // 判断重新运行次数, 超过最大次数的标记状态到失败
+                foreach (var instance in runningInstances)
                 {
                     if (instance.ReRunTimes >= StateMachineInstanceEntity.MaxReRunTimes)
                     {
@@ -139,16 +141,14 @@ namespace JoyOI.ManagementService.Services.Impl
                     else
                     {
                         ++instance.ReRunTimes;
-                        continueInstances.Enqueue(instance);
+                        continueInstances.Add(instance);
                     }
                     if (instance.Status == StateMachineStatus.Failed)
                     {
                         var startedActors = instance.StartedActors;
-                        await RemoveRunningContainers(startedActors);
                         instance.StartedActors = startedActors;
                     }
-                })).ToArray();
-                Task.WaitAll(childTasks);
+                }
                 context.SaveChanges();
             }
             // 继续执行这些状态机实例
@@ -245,8 +245,6 @@ namespace JoyOI.ManagementService.Services.Impl
                     // 查找属于该Stage的StartedActors
                     var startedActors = instance.StartedActors;
                     var removeActors = startedActors.Where(x => x.Stage == instance.Stage).ToList();
-                    // 调用docker的api删除残留的容器
-                    await RemoveRunningContainers(removeActors);
                     // 删除这些actors并更新到数据库
                     foreach (var removeActor in removeActors)
                     {
@@ -272,21 +270,9 @@ namespace JoyOI.ManagementService.Services.Impl
             }
             catch (Exception ex)
             {
-                // 调用docker的api删除残留的容器
-                var startedActors = instance.StartedActors;
-                try
-                {
-                    await RemoveRunningContainers(startedActors);
-                }
-                catch (Exception newEx)
-                {
-                    ex = new InvalidOperationException(
-                        "Remove running containers after error failed:" + newEx.ToString(), ex);
-                }
                 // 设置状态机实例的Status到失败
                 await UpdateInstanceEntity(instance.Id, instanceEntity =>
                 {
-                    instanceEntity.StartedActors = startedActors;
                     instanceEntity.Status = StateMachineStatus.Failed;
                     instanceEntity.Exception = ex.ToString();
                 });
@@ -309,55 +295,16 @@ namespace JoyOI.ManagementService.Services.Impl
             instance.Stage = stage;
         }
 
-        private async Task RemoveRunningContainers(IList<ActorInfo> actorInfos)
-        {
-            var childTasks = actorInfos.GroupBy(x => x.RunningNode)
-                .Select(group => Task.Run(async () =>
-            {
-                // 按节点分组
-                var node = _dockerNodeStore.GetNode(group.Key);
-                if (node == null)
-                {
-                    return;
-                }
-                var containerTags = new HashSet<string>(group.Select(x => x.RunningContainer));
-                using (var client = node.CreateDockerClient())
-                {
-                    // 查找节点下的所有容器
-                    // 节点下的容器数量较少(<100)时可以直接查询全部以减少查询次数
-                    // 如果需要按名称查找可以使用Filters["name"]
-                    var containers = await client.Containers.ListContainersAsync(
-                        new ContainersListParameters() { All = true });
-                    foreach (var container in containers)
-                    {
-                        if (container.Names.Any(name => containerTags.Contains(name)))
-                        {
-                            // 删除容器
-                            await client.Containers.RemoveContainerAsync(
-                                container.ID, new ContainerRemoveParameters() { Force = true });
-                        }
-                    }
-                }
-            })).ToList();
-            await Task.WhenAll(childTasks);
-            // 清空所有RunningNode和RunningContainer
-            foreach (var actorInfo in actorInfos)
-            {
-                actorInfo.RunningNode = null;
-                actorInfo.RunningContainer = null;
-            }
-        }
-
         private async Task RunActorInternal(StateMachineBase instance, ActorInfo actorInfo)
         {
             // 请勿直接调用此函数, 此函数不会更新StartedActors
-            // 选择一个容器
+            // 选择一个节点
             var node = await _dockerNodeStore.AcquireNode();
             try
             {
                 using (var client = node.CreateDockerClient())
                 {
-                    // 生成一个container标识
+                    // 生成一个容器名称
                     var containerTag = PrimaryKeyUtils.Generate<Guid>().ToString();
                     // 更新actor的RunningNode和RunningContainer, 注意线程安全
                     actorInfo.RunningNode = node.Name;
@@ -374,17 +321,27 @@ namespace JoyOI.ManagementService.Services.Impl
                     {
                         instance.DbUpdateLock.Release();
                     }
-                    // 调用docker的api创建容器
+                    // 创建和运行容器
+                    var hostConfig = HostConfigUtils.WithLimitation(
+                        new HostConfig(), instance.Limitation, node.NodeInfo.Container);
+                    hostConfig.AutoRemove = true;
                     var createContainerResponse = await client.Containers.CreateContainerAsync(
                         new CreateContainerParameters()
                         {
                             NetworkDisabled = true,
                             Image = node.NodeInfo.Image,
                             Name = containerTag,
-                            HostConfig = HostConfigUtils.WithLimitation(
-                                new HostConfig(), instance.Limitation, node.NodeInfo.Container)
+                            HostConfig = hostConfig,
+                            WorkingDir = node.NodeInfo.Container.WorkDir,
+                            Cmd = node.NodeInfo.Container.InitialExecuteCommand.Split(' '), // 不考虑转义
                         });
                     var containerId = createContainerResponse.ID;
+                    var startContainerReponse = await client.Containers.StartContainerAsync(
+                        containerId, new ContainerStartParameters());
+                    if (!startContainerReponse)
+                    {
+                        throw new InvalidOperationException("start container failed");
+                    }
                     // 上传Inputs和代码到容器
                     var inputBlobs = await ReadBlobs(actorInfo.Inputs);
                     var actorCode = await ReadActorCode(actorInfo.Name);
@@ -398,7 +355,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     {
                         throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
                     }
-                    inputBlobs = inputBlobs.Concat(new[] {
+                    inputBlobs = inputBlobs.Concat(new[]
+                    {
                         (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorCodePath),
                         Encoding.UTF8.GetBytes(actorCode))
                     });
@@ -411,7 +369,7 @@ namespace JoyOI.ManagementService.Services.Impl
                             tarStream,
                             cancellationToken);
                     }
-                    // 执行容器
+                    // 在容器中执行任务
                     throw new Exception("all right until now");
 
                     // 等待执行完毕
@@ -420,7 +378,10 @@ namespace JoyOI.ManagementService.Services.Impl
 
                     // 根据result.json下载文件并插入到blob
 
+                    // 停止容器, 停止后会自动删除
+
                     // 更新actor的Outputs和Status, 注意线程安全
+
                 }
             }
             finally

@@ -36,6 +36,7 @@ namespace JoyOI.ManagementService.Configuration
                 DevicePath = "/dev/sda",
                 MaxRunningJobs = 32,
                 WorkDir = "/workdir/",
+                InitialExecuteCommand = "sleep 1000",
                 ActorCodePath = "actor/Program.cs",
                 ActorExecuteCommand = "sh run-actor.sh",
             };
@@ -94,6 +95,11 @@ namespace JoyOI.ManagementService.Configuration
             /// </summary>
             public string WorkDir { get; set; }
             /// <summary>
+            /// 初始执行的命令, 因为退出后容器会自动删除, 必须等待足够的时间
+            /// 例如 sleep 1000
+            /// </summary>
+            public string InitialExecuteCommand { get; set; }
+            /// <summary>
             /// 任务代码的路径, 相对于工作目录
             /// 例如: actor/Program.cs
             /// </summary>
@@ -115,6 +121,7 @@ namespace JoyOI.ManagementService.Configuration
                 WorkDir = WorkDir ?? configuration.WorkDir;
                 ActorCodePath = ActorCodePath ?? configuration.ActorCodePath;
                 ActorExecuteCommand = ActorExecuteCommand ?? configuration.ActorExecuteCommand;
+                InitialExecuteCommand = InitialExecuteCommand ?? configuration.InitialExecuteCommand;
                 return this;
             }
         }
