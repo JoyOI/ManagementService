@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JoyOI.ManagementService.Core
@@ -51,6 +52,19 @@ namespace JoyOI.ManagementService.Core
         /// 使用的限制参数
         /// </summary>
         internal ContainerLimitation Limitation { get; set; }
+        /// <summary>
+        /// 更新数据库时使用的锁
+        /// 目前仅在并列执行任务时会使用
+        /// </summary>
+        internal SemaphoreSlim DbUpdateLock { get; set; }
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        public StateMachineBase()
+        {
+            DbUpdateLock = new SemaphoreSlim(1);
+        }
 
         /// <summary>
         /// 状态机运行完毕后执行的函数

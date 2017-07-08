@@ -87,7 +87,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<DateTime>("UpdateTime");
 
                     b.Property<string>("_Limitation")
-                        .HasColumnName("Limitation");
+                        .HasColumnName("Limitation")
+                        .HasColumnType("json");
 
                     b.HasKey("Id");
 
@@ -102,10 +103,6 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd();
 
-                    b.Property<string>("CurrentContainer");
-
-                    b.Property<string>("CurrentNode");
-
                     b.Property<DateTime?>("EndTime");
 
                     b.Property<string>("FromManagementService");
@@ -114,18 +111,23 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<int>("ReRunTimes");
 
+                    b.Property<string>("Stage");
+
                     b.Property<DateTime>("StartTime");
 
                     b.Property<int>("Status");
 
-                    b.Property<string>("_CurrentActor")
-                        .HasColumnName("CurrentActor");
-
-                    b.Property<string>("_FinishedActors")
-                        .HasColumnName("FinishedActors");
+                    b.Property<string>("_InitialBlobs")
+                        .HasColumnName("CurrentActor")
+                        .HasColumnType("json");
 
                     b.Property<string>("_Limitation")
-                        .HasColumnName("Limitation");
+                        .HasColumnName("Limitation")
+                        .HasColumnType("json");
+
+                    b.Property<string>("_StartedActors")
+                        .HasColumnName("FinishedActors")
+                        .HasColumnType("json");
 
                     b.HasKey("Id");
 
