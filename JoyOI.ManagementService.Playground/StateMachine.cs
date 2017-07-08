@@ -14,12 +14,12 @@ namespace JoyOI.ManagementService.Playground
         public static Regex InputFileRegex = new Regex("input_[0-9]{0,}.txt");
         public static Regex OutputFileRegex = new Regex("output_[0-9]{0,}.txt");
 
-        public override async Task RunAsync(string stage = "Start")
+        public override async Task RunAsync()
         {
             // Prepare
             var profile = await InitialBlobs.FindBlob("profile.json").ReadAsJsonAsync<dynamic>();
 
-            switch (stage)
+            switch (Stage)
             {
                 case "Start":
                     await SetStageAsync("Start");
