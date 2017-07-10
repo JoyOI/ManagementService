@@ -105,88 +105,15 @@ namespace JoyOI.ManagementService.Core
         /// <summary>
         /// 切换到新的阶段
         /// </summary>
-        protected Task SetStage(string stage)
+        protected Task SetStageAsync(string stage)
         {
             return Store.SetInstanceStage(this, stage);
         }
 
         /// <summary>
-        /// 查找指定阶段和名称的任务列表, 阶段和名称可以不指定
-        /// </summary>
-        protected IEnumerable<ActorInfo> FindActors(
-            string stage = null, string actor = null, string tag = null)
-        {
-            var result = StartedActors.AsEnumerable();
-            if (!string.IsNullOrEmpty(stage))
-            {
-                result = result.Where(x => x.Stage == actor);
-            }
-            if (!string.IsNullOrEmpty(actor))
-            {
-                result = result.Where(x => x.Name == actor);
-            }
-            if (!string.IsNullOrEmpty(tag))
-            {
-                result = result.Where(x => x.Tag == tag);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// 查找指定阶段和名称的单个列表, 阶段和名称可以不指定, 找不到或者找到多个时抛出错误
-        /// </summary>
-        protected ActorInfo FindSingleActor(
-            string stage = null, string actor = null, string tag = null)
-        {
-            var actorInfos = FindActors(stage, actor);
-            var actorInfo = actorInfos.SingleOrDefault();
-            if (actorInfo != null)
-            {
-                return actorInfo;
-            }
-            throw new InvalidOperationException(
-                actorInfos.Any() ? "more than one actors found" : "no actors found");
-        }
-
-        /// <summary>
-        /// 读取单个文件到字符串
-        /// </summary>
-        protected async Task<string> ReadAllText(BlobInfo blobInfo)
-        {
-            var bytes = await ReadAllBytes(blobInfo);
-            return bytes == null ? null : Encoding.UTF8.GetString(bytes);
-        }
-
-        /// <summary>
-        /// 读取单个文件到字节数组
-        /// </summary>
-        protected async Task<byte[]> ReadAllBytes(BlobInfo blobInfo)
-        {
-            var result = await Store.ReadBlobs(new[] { blobInfo });
-            return result.FirstOrDefault().Item2;
-        }
-
-        /// <summary>
-        /// 批量读取多个文件到字符串列表
-        /// </summary>
-        protected async Task<IEnumerable<(BlobInfo, string)>> BatchReadAllText(IEnumerable<BlobInfo> blobInfos)
-        {
-            var result = await BatchReadAllBytes(blobInfos);
-            return result.Select(x => (x.Item1, Encoding.UTF8.GetString(x.Item2)));
-        }
-
-        /// <summary>
-        /// 批量读取多个文件到字节数组列表
-        /// </summary>
-        protected Task<IEnumerable<(BlobInfo, byte[])>> BatchReadAllBytes(IEnumerable<BlobInfo> blobInfos)
-        {
-            return Store.ReadBlobs(blobInfos);
-        }
-
-        /// <summary>
         /// 作用: TODO
         /// </summary>
-        protected Task<string> HttpInvokeAsync()
+        protected Task<string> HttpInvokeAsync(string method, string endpoint, object body)
         {
             throw new NotImplementedException();
         }
