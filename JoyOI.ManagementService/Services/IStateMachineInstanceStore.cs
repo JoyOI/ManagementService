@@ -42,6 +42,11 @@ namespace JoyOI.ManagementService.Services
         Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos);
 
         /// <summary>
+        /// 插入文件, 返回插入后的文件Id
+        /// </summary>
+        Task<Guid> PutBlob(string filename, byte[] contents, DateTime timeStamp);
+
+        /// <summary>
         /// 读取文件内容, 如果文件不存在内容会等于null
         /// </summary>
         Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos);

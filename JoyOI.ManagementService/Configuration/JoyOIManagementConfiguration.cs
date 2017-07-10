@@ -36,9 +36,10 @@ namespace JoyOI.ManagementService.Configuration
                 DevicePath = "/dev/sda",
                 MaxRunningJobs = 32,
                 WorkDir = "/workdir/",
-                InitialExecuteCommand = "sleep 1000",
                 ActorCodePath = "actor/Program.cs",
-                ActorExecuteCommand = "sh run-actor.sh",
+                ActorExecuteCommand = "sh run-actor.sh &> run-actor.log",
+                ActorExecuteLogPath = "run-actor.log",
+                ResultPath = "return.json"
             };
             Limitation = new ContainerLimitation();
             Nodes = new Dictionary<string, Node>();
@@ -95,20 +96,25 @@ namespace JoyOI.ManagementService.Configuration
             /// </summary>
             public string WorkDir { get; set; }
             /// <summary>
-            /// 初始执行的命令, 因为退出后容器会自动删除, 必须等待足够的时间
-            /// 例如 sleep 1000
-            /// </summary>
-            public string InitialExecuteCommand { get; set; }
-            /// <summary>
             /// 任务代码的路径, 相对于工作目录
             /// 例如: actor/Program.cs
             /// </summary>
             public string ActorCodePath { get; set; }
             /// <summary>
             /// 执行任务的命令
-            /// 例如: sh run-actor.sh
+            /// 例如: sh run-actor.sh &> run-actor.log
             /// </summary>
             public string ActorExecuteCommand { get; set; }
+            /// <summary>
+            /// 执行任务的记录文件
+            /// 例如: run-actor.log
+            /// </summary>
+            public string ActorExecuteLogPath { get; set; }
+            /// <summary>
+            /// 执行任务的结果文件
+            /// 例如: return.json
+            /// </summary>
+            public string ResultPath { get; set; }
 
             public ContainerConfiguration()
             {
@@ -121,7 +127,8 @@ namespace JoyOI.ManagementService.Configuration
                 WorkDir = WorkDir ?? configuration.WorkDir;
                 ActorCodePath = ActorCodePath ?? configuration.ActorCodePath;
                 ActorExecuteCommand = ActorExecuteCommand ?? configuration.ActorExecuteCommand;
-                InitialExecuteCommand = InitialExecuteCommand ?? configuration.InitialExecuteCommand;
+                ActorExecuteLogPath = ActorExecuteLogPath ?? configuration.ActorExecuteLogPath;
+                ResultPath = ResultPath ?? configuration.ResultPath;
                 return this;
             }
         }

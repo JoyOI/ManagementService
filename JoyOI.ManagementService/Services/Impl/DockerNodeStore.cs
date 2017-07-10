@@ -2,6 +2,7 @@
 using JoyOI.ManagementService.Core;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -38,6 +39,11 @@ namespace JoyOI.ManagementService.Services.Impl
             DockerNode node;
             _nodesMap.TryGetValue(nodeName, out node);
             return node;
+        }
+
+        public IEnumerable<DockerNode> GetNodes()
+        {
+            return _nodesMap.Select(x => x.Value);
         }
 
         public async Task<DockerNode> AcquireNode()

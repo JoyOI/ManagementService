@@ -52,18 +52,12 @@ namespace JoyOI.ManagementService.Core
         /// 使用的限制参数
         /// </summary>
         internal ContainerLimitation Limitation { get; set; }
-        /// <summary>
-        /// 更新数据库时使用的锁
-        /// 目前仅在并列执行任务时会使用
-        /// </summary>
-        internal SemaphoreSlim DbUpdateLock { get; set; }
 
         /// <summary>
         /// 初始化
         /// </summary>
         public StateMachineBase()
         {
-            DbUpdateLock = new SemaphoreSlim(1);
         }
 
         /// <summary>
@@ -100,8 +94,8 @@ namespace JoyOI.ManagementService.Core
                     Status = ActorStatus.Running,
                     Stage = Stage,
                     Tag = parameter.Tag,
-                    RunningNode = null,
-                    RunningContainer = null
+                    UsedNode = null,
+                    UsedContainer = null
                 };
                 runActors.Add(actorInfo);
             }

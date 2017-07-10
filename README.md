@@ -166,16 +166,17 @@ docker images
 			"MaxRunningJobs": 32,
 			"WorkDir": "/workdir/",
 			"ActorCodePath": "actor/Program.cs",
-			"ActorExecuteCommand": "sh run-actor.sh",
-			"InitialExecuteCommand": "sleep 1000"
+			"ActorExecuteCommand": "sh run-actor.sh &> run-actor.log",
+			"ActorExecuteLogPath": "run-actor.log",
+			"ResultPath": "return.json"
 		},
 		"Limitation": {
 			"CPUPeriod": 1000000,
 			"CPUQuota": 1000000,
 			"Memory": 268435456,
 			"MemorySwap": 268435456,
-			"BlkioDeviceReadBps": 8388608,
-			"BlkioDeviceWriteBps": 8388608
+			"BlkioDeviceReadBps": 33554432,
+			"BlkioDeviceWriteBps": 33554432
 		},
 		"Nodes": {
 			"docker-1": {
@@ -204,7 +205,8 @@ docker images
   - "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
   - "ActorCodePath": 任务代码的路径, 相对于工作目录
   - "ActorExecuteCommand": 执行任务的命令
-  - "InitialExecuteCommand": 初始执行的命令, 因为退出后容器会自动删除, 必须等待足够的时间
+  - "ActorExecuteLogPath": 执行任务的记录文件
+  - "ResultPath": 执行任务的结果文件
 - "Limitation": 运行任务时对容器的限制
   - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000
   - "CPUQuota": 限制CPU在间隔时间内可以使用的时间, 单位是微秒, 设置为跟CPUPeriod一致时表示只能用一个核心

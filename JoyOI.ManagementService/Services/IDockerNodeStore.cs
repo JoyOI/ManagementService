@@ -17,6 +17,11 @@ namespace JoyOI.ManagementService.Services
         DockerNode GetNode(string nodeName);
 
         /// <summary>
+        /// 获取所有节点
+        /// </summary>
+        IEnumerable<DockerNode> GetNodes();
+
+        /// <summary>
         /// 获取可以用于执行任务的Docker节点
         /// </summary>
         Task<DockerNode> AcquireNode();

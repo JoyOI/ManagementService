@@ -19,6 +19,10 @@ using System.IO;
 using JoyOI.ManagementService.Utils;
 using Docker.DotNet.Models;
 using System.Threading;
+using Newtonsoft.Json;
+using JoyOI.ManagementService.Model.Dtos;
+using AutoMapper;
+using Docker.DotNet;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -42,20 +46,21 @@ namespace JoyOI.ManagementService.Services.Impl
     ///   - 调用StateMachineInstanceStore.SetInstanceStage切换阶段
     ///     - 修改Stage并写入到数据库
     ///   - 调用StateMachineInstanceStore.RunActors运行任务
-    ///     - 更新StartedActors
+    ///     - 更新状态机实例的StartedActors, 更新到数据库
     ///     - 并列处理
     ///       - 选择一个节点 (应该考虑到负载均衡)
     ///       - 生成一个容器名称
-    ///       - 更新actor的RunningNode和RunningContainer, 注意线程安全
-    ///       - 创建和运行容器
+    ///       - 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
+    ///       - 创建容器
     ///       - 上传Inputs和代码到容器
-    ///       - 在容器中执行任务
-    ///       - 等待执行完毕
-    ///       - 下载result.json
-    ///       - 根据result.json下载文件并插入到blob
-    ///       - 停止容器, 停止后会自动删除
-    ///       - 更新actor的Outputs和Status, 注意线程安全
-    /// - 设置状态机实例的Status和EndTime, 更新到数据库
+    ///       - 运行容器并等待完毕
+    ///       - 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
+    ///       - 根据return.json下载文件并插入到blob
+    ///       - 更新actorInfo的Outputs, Status, EndTime, 不更新到数据库
+    ///       - 删除容器 (finally)
+    /// - 是否发生错误?
+    ///   - 是: 更新状态机实例的StartedActors, Status, Exceptions, 更新到数据库
+    ///   - 否: 更新状态机实例的StartedActors, 更新到数据库
     /// 
     /// 启动已中断的状态机实例:
     /// - 获取数据库中Running的状态机实例
@@ -63,13 +68,14 @@ namespace JoyOI.ManagementService.Services.Impl
     ///   - 如果ReRunTimes >= MaxReRunTimes, 则直接标记为Failed
     /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
     /// 
-    /// 强制修改状态机的流程:
+    /// 强制修改状态机:
+    /// - TODO: 如何中断已有状态机的运行?
     /// - 修改状态机实例的Stage
     /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
     /// 
     /// 残留的容器:
-    /// - 目前残留的容器会被自动清理, 条件如下
-    ///   - 容器运行时指定 参数
+    /// - 如果容器执行过程中发生了错误, 会在finally中删除
+    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中已停止的容器
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
@@ -103,9 +109,39 @@ namespace JoyOI.ManagementService.Services.Impl
             lock (_initializeLock)
             {
                 _contextFactory = contextFactory;
+                RemoveStoppedContainers();
                 ContinueRunningInstances();
                 _initilaized = true;
             }
+        }
+
+        private void RemoveStoppedContainers()
+        {
+            // 删除已停止的容器
+            var childTasks = _dockerNodeStore.GetNodes().Select(node => Task.Run(async () =>
+            {
+                using (var client = node.CreateDockerClient())
+                {
+                    var result = await client.Containers.ListContainersAsync(
+                        new ContainersListParameters() { All = true });
+                    foreach (var container in result)
+                    {
+                        if (container.State == "created" || container.State == "exited")
+                        {
+                            try
+                            {
+                                await client.Containers.RemoveContainerAsync(container.ID,
+                                    new ContainerRemoveParameters() { Force = true });
+                            }
+                            catch (DockerContainerNotFoundException)
+                            {
+                                // 可能被其他同时启动的管理服务删除了
+                            }
+                        }
+                    }
+                }
+            })).ToArray();
+            Task.WaitAll(childTasks);
         }
 
         private void ContinueRunningInstances()
@@ -162,7 +198,8 @@ namespace JoyOI.ManagementService.Services.Impl
             }
         }
 
-        private async Task UpdateInstanceEntity(Guid id, Action<StateMachineInstanceEntity> update)
+        private async Task UpdateInstanceEntity(
+            Guid id, Action<StateMachineInstanceEntity> update)
         {
             using (var context = _contextFactory())
             {
@@ -170,7 +207,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     .FirstOrDefaultAsync(x => x.Id == id);
                 if (instanceEntity == null)
                 {
-                    throw new InvalidOperationException($"state machine instance entity {id} not found");
+                    throw new InvalidOperationException(
+                        $"state machine instance entity {id} not found");
                 }
                 update(instanceEntity);
                 await context.SaveChangesAsync();
@@ -246,14 +284,17 @@ namespace JoyOI.ManagementService.Services.Impl
                     var startedActors = instance.StartedActors;
                     var removeActors = startedActors.Where(x => x.Stage == instance.Stage).ToList();
                     // 删除这些actors并更新到数据库
-                    foreach (var removeActor in removeActors)
+                    if (removeActors.Count > 0)
                     {
-                        startedActors.Remove(removeActor);
+                        foreach (var removeActor in removeActors)
+                        {
+                            startedActors.Remove(removeActor);
+                        }
+                        await UpdateInstanceEntity(instance.Id, instanceEntity =>
+                        {
+                            instanceEntity.StartedActors = startedActors;
+                        });
                     }
-                    await UpdateInstanceEntity(instance.Id, instanceEntity =>
-                    {
-                        instanceEntity.StartedActors = startedActors;
-                    });
                 }
                 // 从当前Stage开始运行
                 await instance.RunAsync();
@@ -268,9 +309,13 @@ namespace JoyOI.ManagementService.Services.Impl
                     instanceEntity.EndTime = endTime;
                 });
             }
+            catch (StateMachineFailedException)
+            {
+                // 任务的代码发生了错误, 状态机已经失败, 跳过处理
+            }
             catch (Exception ex)
             {
-                // 设置状态机实例的Status到失败
+                // 状态机的代码本身发生了错误, 更新Status到失败
                 await UpdateInstanceEntity(instance.Id, instanceEntity =>
                 {
                     instanceEntity.Status = StateMachineStatus.Failed;
@@ -302,101 +347,153 @@ namespace JoyOI.ManagementService.Services.Impl
             var node = await _dockerNodeStore.AcquireNode();
             try
             {
+                // 生成一个容器名称
+                var containerTag = PrimaryKeyUtils.Generate<Guid>().ToString();
                 using (var client = node.CreateDockerClient())
                 {
-                    // 生成一个容器名称
-                    var containerTag = PrimaryKeyUtils.Generate<Guid>().ToString();
-                    // 更新actor的RunningNode和RunningContainer, 注意线程安全
-                    actorInfo.RunningNode = node.Name;
-                    actorInfo.RunningContainer = containerTag;
-                    await instance.DbUpdateLock.WaitAsync();
-                    try
-                    {
-                        await UpdateInstanceEntity(instance.Id, instanceEntity =>
-                        {
-                            instanceEntity.StartedActors = instance.StartedActors;
-                        });
-                    }
-                    finally
-                    {
-                        instance.DbUpdateLock.Release();
-                    }
-                    // 创建和运行容器
+                    // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
+                    actorInfo.UsedNode = node.Name;
+                    actorInfo.UsedContainer = containerTag;
+                    // 创建容器
                     var hostConfig = HostConfigUtils.WithLimitation(
                         new HostConfig(), instance.Limitation, node.NodeInfo.Container);
-                    hostConfig.AutoRemove = true;
                     var createContainerResponse = await client.Containers.CreateContainerAsync(
                         new CreateContainerParameters()
                         {
+                            Tty = true,
                             NetworkDisabled = true,
                             Image = node.NodeInfo.Image,
                             Name = containerTag,
                             HostConfig = hostConfig,
                             WorkingDir = node.NodeInfo.Container.WorkDir,
-                            Cmd = node.NodeInfo.Container.InitialExecuteCommand.Split(' '), // 不考虑转义
+                            Cmd = new[] { "bash", "-c", node.NodeInfo.Container.ActorExecuteCommand }
                         });
                     var containerId = createContainerResponse.ID;
-                    var startContainerReponse = await client.Containers.StartContainerAsync(
-                        containerId, new ContainerStartParameters());
-                    if (!startContainerReponse)
+                    try
                     {
-                        throw new InvalidOperationException("start container failed");
+                        // 上传Inputs和代码到容器
+                        var inputBlobs = await ReadBlobs(actorInfo.Inputs);
+                        var actorCode = await ReadActorCode(actorInfo.Name);
+                        var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
+                        if (noExistBlob.Item1 != null)
+                        {
+                            throw new ArgumentException(
+                                $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
+                        }
+                        if (string.IsNullOrEmpty(actorCode))
+                        {
+                            throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
+                        }
+                        inputBlobs = inputBlobs.Concat(new[]
+                        {
+                            (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorCodePath),
+                            Encoding.UTF8.GetBytes(actorCode))
+                        });
+                        using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
+                        {
+                            await client.Containers.ExtractArchiveToContainerAsync(
+                                containerId,
+                                new ContainerPathStatParameters() { Path = node.NodeInfo.Container.WorkDir },
+                                tarStream,
+                                new CancellationToken());
+                        }
+                        // 运行容器并等待完毕
+                        var startContainerResponse = await client.Containers.StartContainerAsync(
+                            containerId, new ContainerStartParameters());
+                        if (!startContainerResponse)
+                        {
+                            throw new InvalidOperationException("start container failed");
+                        }
+                        var waitContainerResponse = await client.Containers.WaitContainerAsync(
+                            containerId, new CancellationToken());
+                        // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
+                        string resultJson;
+                        if (waitContainerResponse.StatusCode == 0)
+                        {
+                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                                containerId,
+                                new GetArchiveFromContainerParameters()
+                                {
+                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ResultPath
+                                },
+                                false, new CancellationToken());
+                            resultJson = await Task.Run(() => Encoding.UTF8.GetString(
+                                ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2));
+                        }
+                        else
+                        {
+                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                                containerId,
+                                new GetArchiveFromContainerParameters()
+                                {
+                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ActorExecuteLogPath
+                                },
+                                false, new CancellationToken());
+                            var log = await Task.Run(() => Encoding.UTF8.GetString(
+                                ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2));
+                            throw new ActorExecuteException(log);
+                        }
+                        // 根据return.json下载文件并插入到blob
+                        var result = JsonConvert.DeserializeObject<RunActorResult>(resultJson);
+                        var actorOutputs = new List<BlobInfo>();
+                        foreach (var output in result.Outputs)
+                        {
+                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                                containerId,
+                                new GetArchiveFromContainerParameters()
+                                {
+                                    Path = node.NodeInfo.Container.WorkDir + output
+                                },
+                                false, new CancellationToken());
+                            var bytes = await Task.Run(() => ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2);
+                            var blobId = await PutBlob(output, bytes, getArchiveFromContainerResponse.Stat.Mtime);
+                            actorOutputs.Add(new BlobInfo()
+                            {
+                                Id = blobId,
+                                Name = output
+                            });
+                        }
+                        // 更新actorInfo的Outputs, Status, EndTime, 不更新到数据库
+                        actorInfo.Outputs = actorOutputs;
+                        actorInfo.Status = ActorStatus.Succeeded;
+                        actorInfo.EndTime = DateTime.UtcNow;
                     }
-                    // 上传Inputs和代码到容器
-                    var inputBlobs = await ReadBlobs(actorInfo.Inputs);
-                    var actorCode = await ReadActorCode(actorInfo.Name);
-                    var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
-                    if (noExistBlob.Item1 != null)
+                    finally
                     {
-                        throw new ArgumentException(
-                            $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
-                    }
-                    if (string.IsNullOrEmpty(actorCode))
-                    {
-                        throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
-                    }
-                    inputBlobs = inputBlobs.Concat(new[]
-                    {
-                        (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorCodePath),
-                        Encoding.UTF8.GetBytes(actorCode))
-                    });
-                    using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
-                    {
-                        var cancellationToken = new CancellationToken();
-                        await client.Containers.ExtractArchiveToContainerAsync(
+                        // 删除容器 (finally)
+                        await client.Containers.RemoveContainerAsync(
                             containerId,
-                            new ContainerPathStatParameters() { Path = node.NodeInfo.Container.WorkDir },
-                            tarStream,
-                            cancellationToken);
+                            new ContainerRemoveParameters() { Force = true });
                     }
-                    // 在容器中执行任务
-                    throw new Exception("all right until now");
-
-                    // 等待执行完毕
-
-                    // 下载result.json
-
-                    // 根据result.json下载文件并插入到blob
-
-                    // 停止容器, 停止后会自动删除
-
-                    // 更新actor的Outputs和Status, 注意线程安全
-
                 }
+            }
+            catch (Exception ex)
+            {
+                // 运行任务失败
+                actorInfo.Status = ActorStatus.Failed;
+                actorInfo.Exceptions = new[] { ex.ToString() };
             }
             finally
             {
+                // 释放节点
                 _dockerNodeStore.ReleaseNode(node);
             }
         }
 
         public async Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)
         {
-            // 更新StartedActors
+            // 更新状态机实例的StartedActors, 更新到数据库
             foreach (var actorInfo in actorInfos)
             {
                 instance.StartedActors.Add(actorInfo);
             }
+            await UpdateInstanceEntity(instance.Id, instanceEntity =>
+            {
+                instanceEntity.StartedActors = instance.StartedActors;
+            });
             // 并列处理
             var childTasks = new List<Task>();
             foreach (var actorInfo in actorInfos)
@@ -405,10 +502,43 @@ namespace JoyOI.ManagementService.Services.Impl
             }
             // 等待全部完成
             await Task.WhenAll(childTasks);
+            // 是否发生错误?
+            var anyErrorHappended = false;
+            await UpdateInstanceEntity(instance.Id, instanceEntity =>
+            {
+                instanceEntity.StartedActors = instance.StartedActors;
+                if (instance.StartedActors.Any(x => x.Status == ActorStatus.Failed))
+                {
+                    anyErrorHappended = true;
+                    instanceEntity.Status = StateMachineStatus.Failed;
+                    instanceEntity.Exception = string.Join("\r\n\r\n",
+                        instance.StartedActors.SelectMany(a => a.Exceptions));
+                }
+            });
+            if (anyErrorHappended)
+            {
+                throw new StateMachineFailedException();
+            }
+        }
+
+        public async Task<Guid> PutBlob(string filename, byte[] contents, DateTime timeStamp)
+        {
+            // 添加单个blob, 返回blob id
+            using (var context = _contextFactory())
+            {
+                var blobService = new BlobService(context);
+                return await blobService.Put(new BlobInputDto()
+                {
+                    Body = Mapper.Map<byte[], string>(contents),
+                    TimeStamp = Mapper.Map<DateTime, long>(timeStamp),
+                    Remark = filename
+                });
+            }
         }
 
         public async Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos)
         {
+            // 批量获取blob的内容
             var result = blobInfos.Select(x => ValueTuple.Create(x, (byte[])null)).ToList();
             var blobIds = result.Select(x => x.Item1.Id).ToList();
             using (var context = _contextFactory())

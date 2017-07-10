@@ -49,10 +49,10 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// <summary>
         /// 执行任务的节点名称
         /// </summary>
-        public string RunningNode { get; set; }
+        public string UsedNode { get; set; }
         /// <summary>
         /// 执行任务的容器ID
         /// </summary>
-        public string RunningContainer { get; set; }
+        public string UsedContainer { get; set; }
     }
 }

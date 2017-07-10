@@ -83,8 +83,7 @@ namespace JoyOI.ManagementService.Model.Entities
         public int ReRunTimes { get; set; }
         /// <summary>
         /// 执行过程中发生的错误
-        /// 这里的错误是状态机本身的错误
-        /// 如果状态为Failed并且这里等于null, 请查找StartedActors中的Exceptions
+        /// 可能是状态机本身的错误, 也可能是任务执行过程中发生的错误
         /// </summary>
         public string Exception { get; set; }
         /// <summary>
