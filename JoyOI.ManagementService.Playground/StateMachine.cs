@@ -11,13 +11,13 @@ using System.Linq;
 测试参数:
 
 {
-  "name": "CompileAndRun"
+  "name": "CompileAndRun",
   "initialBlobs": [
     {
       "id": "填写blob.id",
-      "name": "Main.c",
+      "name": "Main.c"
     }
-  ],
+  ]
 }
 
 */
