@@ -14,7 +14,7 @@ namespace JoyOI.ManagementService.Services.Impl
     internal class DockerNodeStore : IDockerNodeStore
     {
         private JoyOIManagementConfiguration _configuration;
-        private SortedSet<DockerNode> _nodes;
+        private List<DockerNode> _nodes;
         private Dictionary<string, DockerNode> _nodesMap;
         private Queue<TaskCompletionSource<DockerNode>> _waitReleaseQueue;
         private object _nodesLock;
@@ -22,7 +22,7 @@ namespace JoyOI.ManagementService.Services.Impl
         public DockerNodeStore(JoyOIManagementConfiguration configuration)
         {
             _configuration = configuration;
-            _nodes = new SortedSet<DockerNode>(new DockerNodeComparer());
+            _nodes = new List<DockerNode>();
             _nodesMap = new Dictionary<string, DockerNode>();
             _waitReleaseQueue = new Queue<TaskCompletionSource<DockerNode>>();
             _nodesLock = new object();
@@ -52,12 +52,11 @@ namespace JoyOI.ManagementService.Services.Impl
             Task<DockerNode> waitRelease;
             lock (_nodesLock)
             {
-                var node = _nodes.Min;
+                var node = _nodes.First();
                 if (node.RunningJobs < node.NodeInfo.Container.MaxRunningJobs)
                 {
-                    _nodes.Remove(node);
                     ++node.RunningJobs;
-                    _nodes.Add(node);
+                    _nodes.Sort(new DockerNodeComparer());
                     return node;
                 }
                 // 需要等待其他节点完成, 添加到等待队列
@@ -85,9 +84,8 @@ namespace JoyOI.ManagementService.Services.Impl
                 else
                 {
                     // 减少节点的正在运行任务数量
-                    _nodes.Remove(node);
                     --node.RunningJobs;
-                    _nodes.Add(node);
+                    _nodes.Sort(new DockerNodeComparer());
                 }
             }
             if (source != null)
