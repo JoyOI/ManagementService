@@ -70,7 +70,7 @@ namespace JoyOI.ManagementService.WebApi
             // 检查客户端证书
             if (!env.IsDevelopment() || true)
             {
-                CheckClientCertification(app);
+                // CheckClientCertification(app);
             }
 
             // 使用WebApi
