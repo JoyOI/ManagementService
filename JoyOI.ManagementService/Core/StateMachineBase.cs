@@ -29,6 +29,10 @@ namespace JoyOI.ManagementService.Core
         /// </summary>
         public Guid Id { get; internal set; }
         /// <summary>
+        /// 执行时使用的并发键
+        /// </summary>
+        public string ExecutionKey { get; internal set; }
+        /// <summary>
         /// 状态机的当前状态
         /// </summary>
         public StateMachineStatus Status { get; internal set; }

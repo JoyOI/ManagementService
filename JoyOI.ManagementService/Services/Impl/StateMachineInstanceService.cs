@@ -93,6 +93,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     .WithDefaults(_configuration.Limitation),
                 FromManagementService = _configuration.Name,
                 ReRunTimes = 0,
+                Exception = null,
+                ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString(),
                 StartTime = DateTime.UtcNow,
                 EndTime = null
             };

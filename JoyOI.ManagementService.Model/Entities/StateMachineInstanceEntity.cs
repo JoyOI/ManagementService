@@ -87,6 +87,11 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public string Exception { get; set; }
         /// <summary>
+        /// 执行时使用的并发键
+        /// 用于防止多个管理服务同时修改一个状态机实例
+        /// </summary>
+        public string ExecutionKey { get; set; }
+        /// <summary>
         /// 第一个任务的开始时间
         /// </summary>
         public DateTime StartTime { get; set; }

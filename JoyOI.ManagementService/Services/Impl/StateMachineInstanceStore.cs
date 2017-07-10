@@ -177,6 +177,7 @@ namespace JoyOI.ManagementService.Services.Impl
                     else
                     {
                         ++instance.ReRunTimes;
+                        instance.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
                         continueInstances.Add(instance);
                     }
                     if (instance.Status == StateMachineStatus.Failed)
@@ -199,7 +200,7 @@ namespace JoyOI.ManagementService.Services.Impl
         }
 
         private async Task UpdateInstanceEntity(
-            Guid id, Action<StateMachineInstanceEntity> update)
+            Guid id, string executionKey, Action<StateMachineInstanceEntity> update)
         {
             using (var context = _contextFactory())
             {
@@ -210,8 +211,19 @@ namespace JoyOI.ManagementService.Services.Impl
                     throw new InvalidOperationException(
                         $"state machine instance entity {id} not found");
                 }
+                else if (instanceEntity.ExecutionKey != executionKey)
+                {
+                    throw new StateMachineInterpretedException();
+                }
                 update(instanceEntity);
-                await context.SaveChangesAsync();
+                try
+                {
+                    await context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    throw new StateMachineInterpretedException();
+                }
             }
         }
 
@@ -264,6 +276,7 @@ namespace JoyOI.ManagementService.Services.Impl
             // 创建状态机实例
             var instance = factory.Item2();
             instance.Id = stateMachineInstanceEntity.Id;
+            instance.ExecutionKey = stateMachineInstanceEntity.ExecutionKey;
             instance.Status = stateMachineInstanceEntity.Status;
             instance.Stage = stateMachineInstanceEntity.Stage;
             instance.StartedActors = stateMachineInstanceEntity.StartedActors;
@@ -290,7 +303,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         {
                             startedActors.Remove(removeActor);
                         }
-                        await UpdateInstanceEntity(instance.Id, instanceEntity =>
+                        await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
                         {
                             instanceEntity.StartedActors = startedActors;
                         });
@@ -302,25 +315,31 @@ namespace JoyOI.ManagementService.Services.Impl
                 instance.Status = StateMachineStatus.Succeeded;
                 instance.Stage = StateMachineBase.FinalStage;
                 var endTime = DateTime.UtcNow;
-                await UpdateInstanceEntity(instance.Id, instanceEntity =>
-                {
-                    instanceEntity.Status = instance.Status;
-                    instanceEntity.Stage = instance.Stage;
-                    instanceEntity.EndTime = endTime;
-                });
+                await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
+               {
+                   instanceEntity.Status = instance.Status;
+                   instanceEntity.Stage = instance.Stage;
+                   instanceEntity.EndTime = endTime;
+               });
             }
-            catch (StateMachineFailedException)
+            catch (StateMachineInterpretedException)
             {
-                // 任务的代码发生了错误, 状态机已经失败, 跳过处理
+                // 状态机实例已中断, 不需要做额外处理
             }
             catch (Exception ex)
             {
                 // 状态机的代码本身发生了错误, 更新Status到失败
-                await UpdateInstanceEntity(instance.Id, instanceEntity =>
+                try
                 {
-                    instanceEntity.Status = StateMachineStatus.Failed;
-                    instanceEntity.Exception = ex.ToString();
-                });
+                    await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
+                    {
+                        instanceEntity.Status = StateMachineStatus.Failed;
+                        instanceEntity.Exception = ex.ToString();
+                    });
+                }
+                catch (StateMachineInterpretedException)
+                {
+                }
             }
             finally
             {
@@ -332,7 +351,7 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task SetInstanceStage(StateMachineBase instance, string stage)
         {
             // 更新实体中的状态
-            await UpdateInstanceEntity(instance.Id, instanceEntity =>
+            await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
             {
                 instanceEntity.Stage = stage;
             });
@@ -490,7 +509,7 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 instance.StartedActors.Add(actorInfo);
             }
-            await UpdateInstanceEntity(instance.Id, instanceEntity =>
+            await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
             {
                 instanceEntity.StartedActors = instance.StartedActors;
             });
@@ -504,7 +523,7 @@ namespace JoyOI.ManagementService.Services.Impl
             await Task.WhenAll(childTasks);
             // 是否发生错误?
             var anyErrorHappended = false;
-            await UpdateInstanceEntity(instance.Id, instanceEntity =>
+            await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
             {
                 instanceEntity.StartedActors = instance.StartedActors;
                 if (instance.StartedActors.Any(x => x.Status == ActorStatus.Failed))
@@ -517,7 +536,7 @@ namespace JoyOI.ManagementService.Services.Impl
             });
             if (anyErrorHappended)
             {
-                throw new StateMachineFailedException();
+                throw new StateMachineInterpretedException();
             }
         }
 
