@@ -37,8 +37,8 @@ namespace JoyOI.ManagementService.Utils
             }
             if (limitation.BlkioDeviceWriteBps.HasValue)
             {
-                hostConfig.BlkioDeviceWriteIOps = hostConfig.BlkioDeviceWriteIOps ?? new List<ThrottleDevice>();
-                hostConfig.BlkioDeviceWriteIOps.Add(new ThrottleDevice()
+                hostConfig.BlkioDeviceWriteBps = hostConfig.BlkioDeviceWriteBps ?? new List<ThrottleDevice>();
+                hostConfig.BlkioDeviceWriteBps.Add(new ThrottleDevice()
                 {
                     Path = containerConfiguration.DevicePath,
                     Rate = (ulong)limitation.BlkioDeviceWriteBps.Value
