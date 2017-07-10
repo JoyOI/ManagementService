@@ -227,15 +227,12 @@ docker images
 
 **配置WebApi**
 
-生成WebApi使用的服务端证书和客户端证书, 运行以下命令:
+TODO
 
-```
-# 会问很多东西, 可以全部留空
-openssl req -x509 -newkey rsa:4096 -keyout webapi-key.pem -out webapi-cert.pem -days 36500
+https://stackoverflow.com/questions/8309780/does-iis-do-the-ssl-certificate-check-or-do-i-have-to-verify-it
+https://blogs.msdn.microsoft.com/bradleycotier/2011/12/14/mutual-authentication-with-a-iis-hosted-wcf-data-service-installed-in-a-workgroup-environment/
+https://blogs.msdn.microsoft.com/asiatech/2014/02/12/how-to-configure-iis-client-certificate-mapping-authentication-for-iis7/
 
-# 生成管理服务用的客户端证书, 生成时会问密码, 记住这个密码
-openssl pkcs12 -export -inkey key.pem -in cert.pem -out key.pfx
-```
 
 # Api一览
 
