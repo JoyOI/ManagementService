@@ -72,6 +72,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddTransient<IStateMachineInstanceService, StateMachineInstanceService>();
             services.AddSingleton<IStateMachineInstanceStore, StateMachineInstanceStore>();
             services.AddSingleton<IDockerNodeStore, DockerNodeStore>();
+            services.AddSingleton<IDynamicCompileService, DynamicCompileService>();
 
             // 静态功能
             InitializeStaticFunctions();

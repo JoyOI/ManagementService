@@ -36,7 +36,7 @@ namespace JoyOI.ManagementService.Configuration
                 DevicePath = "/dev/sda",
                 MaxRunningJobs = 32,
                 WorkDir = "/workdir/",
-                ActorCodePath = "actor/Program.cs",
+                ActorExecutablePath = "actor/bin/Debug/netcoreapp2.0/actor.dll",
                 ActorExecuteCommand = "sh run-actor.sh &> run-actor.log",
                 ActorExecuteLogPath = "run-actor.log",
                 ResultPath = "return.json"
@@ -96,10 +96,10 @@ namespace JoyOI.ManagementService.Configuration
             /// </summary>
             public string WorkDir { get; set; }
             /// <summary>
-            /// 任务代码的路径, 相对于工作目录
-            /// 例如: actor/Program.cs
+            /// 任务可执行文件的路径, 相对于工作目录
+            /// 例如: actor/bin/Debug/netcoreapp2.0/actor.dll
             /// </summary>
-            public string ActorCodePath { get; set; }
+            public string ActorExecutablePath { get; set; }
             /// <summary>
             /// 执行任务的命令
             /// 例如: sh run-actor.sh &> run-actor.log
@@ -125,7 +125,7 @@ namespace JoyOI.ManagementService.Configuration
                 DevicePath = DevicePath ?? configuration.DevicePath;
                 MaxRunningJobs = MaxRunningJobs > 0 ? MaxRunningJobs : configuration.MaxRunningJobs;
                 WorkDir = WorkDir ?? configuration.WorkDir;
-                ActorCodePath = ActorCodePath ?? configuration.ActorCodePath;
+                ActorExecutablePath = ActorExecutablePath ?? configuration.ActorExecutablePath;
                 ActorExecuteCommand = ActorExecuteCommand ?? configuration.ActorExecuteCommand;
                 ActorExecuteLogPath = ActorExecuteLogPath ?? configuration.ActorExecuteLogPath;
                 ResultPath = ResultPath ?? configuration.ResultPath;

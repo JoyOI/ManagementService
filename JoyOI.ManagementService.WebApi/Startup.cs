@@ -67,6 +67,12 @@ namespace JoyOI.ManagementService.WebApi
             // 全局处理mvc的错误, 发生错误时返回统一格式的json
             CatchExceptionAndReplyJson(app, env.IsDevelopment());
 
+            // 检查客户端证书
+            if (!env.IsDevelopment() || true)
+            {
+                CheckClientCertification(app);
+            }
+
             // 使用WebApi
             app.UseMvc();
 
@@ -74,7 +80,18 @@ namespace JoyOI.ManagementService.WebApi
             app.ApplicationServices.StartJoyOIManagement();
         }
 
-        private static void CatchExceptionAndReplyJson(IApplicationBuilder app, bool isDevelopment)
+        private void CheckClientCertification(IApplicationBuilder app)
+        {
+            app.Use(async (context, next) =>
+            {
+                var cert = context.Connection.ClientCertificate;
+                var certHash = cert.GetCertHashString();
+
+                await next();
+            });
+        }
+
+        private void CatchExceptionAndReplyJson(IApplicationBuilder app, bool isDevelopment)
         {
             app.Use(async (context, next) =>
             {

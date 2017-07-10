@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using JoyOI.ManagementService.Core;
 using System.Collections.Concurrent;
-using Microsoft.CodeAnalysis.CSharp;
 using System.Reflection;
 using System.Linq;
 using System.Linq.Expressions;
@@ -51,8 +50,9 @@ namespace JoyOI.ManagementService.Services.Impl
     ///       - 选择一个节点 (应该考虑到负载均衡)
     ///       - 生成一个容器名称
     ///       - 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
+    ///       - 编译actor代码
     ///       - 创建容器
-    ///       - 上传Inputs和代码到容器
+    ///       - 上传Inputs和actor.dll到容器
     ///       - 运行容器并等待完毕
     ///       - 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
     ///       - 根据return.json下载文件并插入到blob
@@ -81,6 +81,7 @@ namespace JoyOI.ManagementService.Services.Impl
     {
         private JoyOIManagementConfiguration _configuration;
         private IDockerNodeStore _dockerNodeStore;
+        private IDynamicCompileService _dynamicCompileService;
         private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
         private ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
         private TimeSpan _actorCodeCacheTime;
@@ -88,10 +89,14 @@ namespace JoyOI.ManagementService.Services.Impl
         private bool _initilaized;
         private object _initializeLock;
 
-        public StateMachineInstanceStore(JoyOIManagementConfiguration configuration, IDockerNodeStore dockerNodeStore)
+        public StateMachineInstanceStore(
+            JoyOIManagementConfiguration configuration,
+            IDockerNodeStore dockerNodeStore,
+            IDynamicCompileService dynamicCompileService)
         {
             _configuration = configuration;
             _dockerNodeStore = dockerNodeStore;
+            _dynamicCompileService = dynamicCompileService;
             _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
             _actorCodeCache = new ConcurrentDictionary<string, (string, DateTime)>();
             _actorCodeCacheTime = TimeSpan.FromSeconds(1);
@@ -208,7 +213,7 @@ namespace JoyOI.ManagementService.Services.Impl
                     .FirstOrDefaultAsync(x => x.Id == id);
                 if (instanceEntity == null)
                 {
-                    // 运行中被DEL了
+                    // 运行中被DELETE了
                     throw new StateMachineInterpretedException();
                 }
                 else if (instanceEntity.ExecutionKey != executionKey)
@@ -237,29 +242,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 factory.Item1 != stateMachineEntity.Body)
             {
                 // 不存在或内容有变化时调用roslyn重新编译
-                // https://github.com/dotnet/roslyn/wiki/Scripting-API-Samples#delegate
-                var assemblyName = $"__{stateMachineEntity.Name}_{DateTime.UtcNow.Ticks}";
-                var optimizationLevel = OptimizationLevel.Debug;
-                var compilationOptions = new CSharpCompilationOptions(
-                    OutputKind.DynamicallyLinkedLibrary,
-                    optimizationLevel: optimizationLevel);
-                var references = AppDomain.CurrentDomain.GetAssemblies()
-                    .Where(a => !a.IsDynamic && !a.FullName.StartsWith("__"))
-                    .Select(a => MetadataReference.CreateFromFile(a.Location));
-                var syntaxTree = CSharpSyntaxTree.ParseText(stateMachineEntity.Body);
-                var compilation = CSharpCompilation.Create(assemblyName)
-                    .WithOptions(compilationOptions)
-                    .AddReferences(references)
-                    .AddSyntaxTrees(syntaxTree);
-                var assemblyPath = string.Join(Path.GetTempPath(), assemblyName + ".dll");
-                var emitResult = compilation.Emit(assemblyPath);
-                if (!emitResult.Success)
-                {
-                    throw new InvalidOperationException(string.Join("\r\n",
-                        emitResult.Diagnostics.Where(d => d.WarningLevel == 0)));
-                }
-                var assemblyBytes = File.ReadAllBytes(assemblyPath);
-                File.Delete(assemblyPath);
+                var assemblyBytes = _dynamicCompileService.Compile(stateMachineEntity.Body);
                 var assembly = Assembly.Load(assemblyBytes);
                 var stateMachineType = assembly.GetTypes()
                     .FirstOrDefault(x => typeof(StateMachineBase).IsAssignableFrom(x));
@@ -374,6 +357,9 @@ namespace JoyOI.ManagementService.Services.Impl
                     // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
                     actorInfo.UsedNode = node.Name;
                     actorInfo.UsedContainer = containerTag;
+                    // 编译actor代码
+                    var actorCode = await ReadActorCode(actorInfo.Name);
+                    var actorBytes = _dynamicCompileService.Compile(actorCode);
                     // 创建容器
                     var hostConfig = HostConfigUtils.WithLimitation(
                         new HostConfig(), instance.Limitation, node.NodeInfo.Container);
@@ -391,9 +377,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     var containerId = createContainerResponse.ID;
                     try
                     {
-                        // 上传Inputs和代码到容器
+                        // 上传Inputs和actor.dll到容器
                         var inputBlobs = await ReadBlobs(actorInfo.Inputs);
-                        var actorCode = await ReadActorCode(actorInfo.Name);
                         var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
                         if (noExistBlob.Item1 != null)
                         {
@@ -406,8 +391,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         }
                         inputBlobs = inputBlobs.Concat(new[]
                         {
-                            (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorCodePath),
-                            Encoding.UTF8.GetBytes(actorCode))
+                            (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorExecutablePath), actorBytes)
                         });
                         using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
                         {

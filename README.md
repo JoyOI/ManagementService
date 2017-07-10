@@ -225,9 +225,17 @@ docker images
 
 下载所有docker节点生成的key.pfx, 放到上面配置的"ClientCertificatePath"属性对应的目录下.
 
-**Webapi的客户端验证**
+**配置WebApi**
 
-TODO
+生成WebApi使用的服务端证书和客户端证书, 运行以下命令:
+
+```
+# 会问很多东西, 可以全部留空
+openssl req -x509 -newkey rsa:4096 -keyout webapi-key.pem -out webapi-cert.pem -days 36500
+
+# 生成管理服务用的客户端证书, 生成时会问密码, 记住这个密码
+openssl pkcs12 -export -inkey key.pem -in cert.pem -out key.pfx
+```
 
 # Api一览
 
