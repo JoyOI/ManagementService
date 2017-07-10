@@ -22,6 +22,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// </summary>
     internal class StateMachineInstanceService : IStateMachineInstanceService
     {
+        private const int ConcurrencyErrorMaxRetryTimes = 100;
         private JoyOIManagementConfiguration _configuration;
         private JoyOIManagementContext _dbContext;
         private DbSet<StateMachineInstanceEntity> _dbSet;
@@ -40,7 +41,7 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string stage)
         {
-            var query =  _dbSet.AsNoTracking();
+            var query = _dbSet.AsNoTracking();
             if (!string.IsNullOrEmpty(name))
             {
                 query = query.Where(x => x.Name == name);
@@ -111,9 +112,78 @@ namespace JoyOI.ManagementService.Services.Impl
                 Mapper.Map<StateMachineInstanceEntity, StateMachineInstanceOutputDto>(stateMachineInstanceEntity));
         }
 
-        public Task<StateMachineInstancePatchResultDto> Patch(Guid id, StateMachineInstancePatchDto dto)
+        public async Task<StateMachineInstancePatchResultDto> Patch(Guid id, StateMachineInstancePatchDto dto)
         {
-            throw new NotImplementedException();
+            // 更新阶段和并发键
+            StateMachineInstanceEntity stateMachineInstanceEntity = null;
+            StateMachineEntity stateMachineEntity = null;
+            for (int from = 0; from <= ConcurrencyErrorMaxRetryTimes; ++from)
+            {
+                stateMachineInstanceEntity = await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
+                if (stateMachineInstanceEntity == null)
+                {
+                    return StateMachineInstancePatchResultDto.NotFound("state machine instance not found");
+                }
+                stateMachineEntity = await _dbContext.StateMachines
+                    .FirstOrDefaultAsync(x => x.Name == stateMachineInstanceEntity.Name);
+                if (stateMachineEntity == null)
+                {
+                    return StateMachineInstancePatchResultDto.NotFound("state machine not found");
+                }
+                stateMachineInstanceEntity.Stage = dto.Stage ?? StateMachineBase.InitialStage;
+                stateMachineInstanceEntity.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
+                stateMachineInstanceEntity.FromManagementService = _configuration.Name;
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                    break;
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (from == ConcurrencyErrorMaxRetryTimes)
+                    {
+                        throw;
+                    }
+                    await Task.Delay(1);
+                }
+            }
+            // 创建状态机实例
+            var stateMachineInstance = await _stateMachineInstanceStore.CreateInstance(
+                stateMachineEntity, stateMachineInstanceEntity);
+            // 运行状态机, 从这里开始会在后台运行
+#pragma warning disable CS4014
+            _stateMachineInstanceStore.RunInstance(stateMachineInstance);
+#pragma warning restore CS4014
+            return StateMachineInstancePatchResultDto.Success();
+        }
+
+        public async Task<long> Delete(Guid id)
+        {
+            // 删除指定id的状态机实例, 因为有并发键需要重试多次
+            StateMachineInstanceEntity stateMachineInstanceEntity = null;
+            for (int from = 0; from <= ConcurrencyErrorMaxRetryTimes; ++from)
+            {
+                stateMachineInstanceEntity = await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
+                if (stateMachineInstanceEntity == null)
+                {
+                    return 0;
+                }
+                _dbSet.Remove(stateMachineInstanceEntity);
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                    break;
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (from == ConcurrencyErrorMaxRetryTimes)
+                    {
+                        throw;
+                    }
+                    await Task.Delay(1);
+                }
+            }
+            return 1;
         }
     }
 }

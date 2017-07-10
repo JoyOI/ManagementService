@@ -7,6 +7,6 @@ namespace JoyOI.ManagementService.Model.Dtos
 {
     public class StateMachineInstancePatchDto : IInputDto
     {
-
+        public string Stage { get; set; }
     }
 }

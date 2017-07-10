@@ -14,7 +14,7 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 搜索状态机实例
         /// </summary>
-        Task<IList<StateMachineInstanceOutputDto>> Search(string name, string currentActor);
+        Task<IList<StateMachineInstanceOutputDto>> Search(string name, string stage);
 
         /// <summary>
         /// 获取状态机实例
@@ -30,5 +30,10 @@ namespace JoyOI.ManagementService.Services
         /// 更新状态机实例
         /// </summary>
         Task<StateMachineInstancePatchResultDto> Patch(Guid id, StateMachineInstancePatchDto dto);
+
+        /// <summary>
+        /// 删除状态机实例
+        /// </summary>
+        Task<long> Delete(Guid id);
     }
 }

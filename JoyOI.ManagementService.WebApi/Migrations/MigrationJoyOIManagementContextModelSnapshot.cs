@@ -87,8 +87,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<DateTime>("UpdateTime");
 
                     b.Property<string>("_Limitation")
-                        .HasColumnName("Limitation")
-                        .HasColumnType("json");
+                        .HasColumnName("Limitation");
 
                     b.HasKey("Id");
 
@@ -123,16 +122,13 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<int>("Status");
 
                     b.Property<string>("_InitialBlobs")
-                        .HasColumnName("CurrentActor")
-                        .HasColumnType("json");
+                        .HasColumnName("InitialBlobs");
 
                     b.Property<string>("_Limitation")
-                        .HasColumnName("Limitation")
-                        .HasColumnType("json");
+                        .HasColumnName("Limitation");
 
                     b.Property<string>("_StartedActors")
-                        .HasColumnName("FinishedActors")
-                        .HasColumnType("json");
+                        .HasColumnName("StartedActors");
 
                     b.HasKey("Id");
 

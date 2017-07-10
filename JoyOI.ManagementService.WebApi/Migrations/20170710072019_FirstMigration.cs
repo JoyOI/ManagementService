@@ -48,15 +48,16 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false),
                     EndTime = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     Exception = table.Column<string>(type: "longtext", nullable: true),
+                    ExecutionKey = table.Column<string>(type: "longtext", nullable: true),
                     FromManagementService = table.Column<string>(type: "longtext", nullable: true),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     ReRunTimes = table.Column<int>(type: "int", nullable: false),
                     Stage = table.Column<string>(type: "longtext", nullable: true),
                     StartTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    CurrentActor = table.Column<string>(type: "json", nullable: true),
-                    Limitation = table.Column<string>(type: "json", nullable: true),
-                    FinishedActors = table.Column<string>(type: "json", nullable: true)
+                    InitialBlobs = table.Column<string>(type: "longtext", nullable: true),
+                    Limitation = table.Column<string>(type: "longtext", nullable: true),
+                    StartedActors = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -72,7 +73,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     CreateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
                     UpdateTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Limitation = table.Column<string>(type: "json", nullable: true)
+                    Limitation = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>
                 {

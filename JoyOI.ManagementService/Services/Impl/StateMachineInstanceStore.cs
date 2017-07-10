@@ -208,11 +208,12 @@ namespace JoyOI.ManagementService.Services.Impl
                     .FirstOrDefaultAsync(x => x.Id == id);
                 if (instanceEntity == null)
                 {
-                    throw new InvalidOperationException(
-                        $"state machine instance entity {id} not found");
+                    // 运行中被DEL了
+                    throw new StateMachineInterpretedException();
                 }
                 else if (instanceEntity.ExecutionKey != executionKey)
                 {
+                    // 运行中被PATCH了
                     throw new StateMachineInterpretedException();
                 }
                 update(instanceEntity);

@@ -38,14 +38,14 @@ namespace JoyOI.ManagementService.DbContexts
             blobsEntity.HasIndex(x => x.BodyHash); // 考虑到并发上传, 不设唯一键
 
             var stateMachineEntity = modelBuilder.Entity<StateMachineEntity>();
-            stateMachineEntity.Property(x => x._Limitation).HasColumnName("Limitation").HasColumnType("json");
+            stateMachineEntity.Property(x => x._Limitation).HasColumnName("Limitation");
             stateMachineEntity.Ignore(x => x.Limitation);
             stateMachineEntity.HasIndex(x => x.Name).IsUnique();
 
             var stateMachineInstanceEntity = modelBuilder.Entity<StateMachineInstanceEntity>();
-            stateMachineInstanceEntity.Property(x => x._StartedActors).HasColumnName("FinishedActors").HasColumnType("json");
-            stateMachineInstanceEntity.Property(x => x._InitialBlobs).HasColumnName("CurrentActor").HasColumnType("json");
-            stateMachineInstanceEntity.Property(x => x._Limitation).HasColumnName("Limitation").HasColumnType("json");
+            stateMachineInstanceEntity.Property(x => x._StartedActors).HasColumnName("StartedActors");
+            stateMachineInstanceEntity.Property(x => x._InitialBlobs).HasColumnName("InitialBlobs");
+            stateMachineInstanceEntity.Property(x => x._Limitation).HasColumnName("Limitation");
             stateMachineInstanceEntity.Ignore(x => x.StartedActors);
             stateMachineInstanceEntity.Ignore(x => x.InitialBlobs);
             stateMachineInstanceEntity.Ignore(x => x.Limitation);

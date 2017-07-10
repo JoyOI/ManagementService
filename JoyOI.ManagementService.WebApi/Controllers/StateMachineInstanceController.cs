@@ -52,5 +52,15 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var result = new PatchResult(patchResult.Code == 200 ? 1 : 0);
             return ApiResponse.Custom(patchResult.Code, patchResult.Message, result);
         }
+
+        [HttpDelete]
+        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
+        {
+            var deleted = await _stateMachineInstanceService.Delete(id);
+            var result = new DeleteResult(deleted);
+            if (deleted <= 0)
+                return ApiResponse.NotFound("state machine instance not found", result);
+            return ApiResponse.OK(result);
+        }
     }
 }

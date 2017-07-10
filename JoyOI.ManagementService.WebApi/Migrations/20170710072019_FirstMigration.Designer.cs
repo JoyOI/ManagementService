@@ -12,8 +12,8 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    [Migration("20170710063451_Add_StateMachineInstanceEntity_ExecutionKey")]
-    partial class Add_StateMachineInstanceEntity_ExecutionKey
+    [Migration("20170710072019_FirstMigration")]
+    partial class FirstMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -88,8 +88,7 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<DateTime>("UpdateTime");
 
                     b.Property<string>("_Limitation")
-                        .HasColumnName("Limitation")
-                        .HasColumnType("json");
+                        .HasColumnName("Limitation");
 
                     b.HasKey("Id");
 
@@ -124,16 +123,13 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     b.Property<int>("Status");
 
                     b.Property<string>("_InitialBlobs")
-                        .HasColumnName("CurrentActor")
-                        .HasColumnType("json");
+                        .HasColumnName("InitialBlobs");
 
                     b.Property<string>("_Limitation")
-                        .HasColumnName("Limitation")
-                        .HasColumnType("json");
+                        .HasColumnName("Limitation");
 
                     b.Property<string>("_StartedActors")
-                        .HasColumnName("FinishedActors")
-                        .HasColumnType("json");
+                        .HasColumnName("StartedActors");
 
                     b.HasKey("Id");
 
