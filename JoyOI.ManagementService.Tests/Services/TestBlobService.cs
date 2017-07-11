@@ -13,11 +13,11 @@ using Xunit;
 
 namespace JoyOI.ManagementService.Tests.Services
 {
-    public class BlobServiceTest : ServiceTestBase
+    public class TestBlobService : ServiceTestBase
     {
         private IBlobService _service;
 
-        public BlobServiceTest()
+        public TestBlobService()
         {
             _service = new BlobService(_context);
         }

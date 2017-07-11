@@ -1,7 +1,6 @@
 ﻿using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
-using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,23 +10,23 @@ using Xunit;
 
 namespace JoyOI.ManagementService.Tests.Services
 {
-    public class StateMachineServiceTest : ServiceTestBase
+    public class TestActorService : ServiceTestBase
     {
-        private IStateMachineService _service;
+        private IActorService _service;
 
-        public StateMachineServiceTest()
+        public TestActorService()
         {
-
-            _service = new StateMachineService(_context);
+            
+            _service = new ActorService(_context);
         }
 
         [Fact]
         public async Task GetAll()
         {
             var firstId = await _service.Put(
-                new StateMachineInputDto() { Name = "first name", Body = "first body" });
+                new ActorInputDto() { Name = "first name", Body = "first body" });
             var secondId = await _service.Put(
-                new StateMachineInputDto() { Name = "second name", Body = "second body" });
+                new ActorInputDto() { Name = "second name", Body = "second body" });
             var all = await _service.GetAll(null);
             Assert.Equal(2, all.Count);
             Assert.True(all.Any(x => x.Id == firstId && x.Name == "first name" && x.Body == "first body"));
@@ -38,9 +37,9 @@ namespace JoyOI.ManagementService.Tests.Services
         public async Task Get()
         {
             var firstId = await _service.Put(
-                new StateMachineInputDto() { Name = "first name", Body = "first body" });
+                new ActorInputDto() { Name = "first name", Body = "first body" });
             var secondId = await _service.Put(
-                new StateMachineInputDto() { Name = "second name", Body = "second body" });
+                new ActorInputDto() { Name = "second name", Body = "second body" });
             var first = await _service.Get("first name");
             var second = await _service.Get("second name");
             var third = await _service.Get("third name");
@@ -58,34 +57,31 @@ namespace JoyOI.ManagementService.Tests.Services
         [Fact]
         public async Task Put()
         {
-            var putId = await _service.Put(new StateMachineInputDto()
+            var putId = await _service.Put(
+                new ActorInputDto() { Name = "put name", Body = "put body" });
+            // InMemoryDatabase doesn't support unique index
+            /* await Assert.ThrowsAnyAsync<Exception>(async () =>
             {
-                Name = "put name",
-                Body = "put body",
-                Limitation = new ContainerLimitation() { Memory = 123 }
-            });
+                await _service.Put(
+                    new ActorInputDto() { Name = "put name", Body = "put body" });
+            }); */
             var put = await _service.Get("put name");
             Assert.True(put != null);
             Assert.Equal(putId, put.Id);
             Assert.Equal("put name", put.Name);
             Assert.Equal("put body", put.Body);
-            Assert.Equal(123, put.Limitation.Memory);
         }
 
         [Fact]
         public async Task Patch()
         {
             var firstId = await _service.Put(
-                new StateMachineInputDto() { Name = "first name", Body = "first body" });
+                new ActorInputDto() { Name = "first name", Body = "first body" });
             var secondId = await _service.Put(
-                new StateMachineInputDto() { Name = "second name", Body = "second body" });
-            var firstPatch = await _service.Patch("first name", new StateMachineInputDto()
-            {
-                Name = "first name updated",
-                Limitation = new ContainerLimitation() { BlkioDeviceReadBps = 3 }
-            });
-            var secondPatch = await _service.Patch("second name", new StateMachineInputDto() { Body = "second body updated" });
-            var thirdPatch = await _service.Patch("third name", new StateMachineInputDto() { Name = "no exist" });
+                new ActorInputDto() { Name = "second name", Body = "second body" });
+            var firstPatch = await _service.Patch("first name", new ActorInputDto() { Name = "first name updated" });
+            var secondPatch = await _service.Patch("second name", new ActorInputDto() { Body = "second body updated" });
+            var thirdPatch = await _service.Patch("third name", new ActorInputDto() { Name = "no exist" });
             Assert.Equal(1, firstPatch);
             Assert.Equal(1, secondPatch);
             Assert.Equal(0, thirdPatch);
@@ -96,21 +92,19 @@ namespace JoyOI.ManagementService.Tests.Services
             Assert.Equal(firstId, first.Id);
             Assert.Equal("first name updated", first.Name);
             Assert.Equal("first body", first.Body);
-            Assert.Equal(3, first.Limitation.BlkioDeviceReadBps);
             Assert.True(second != null);
             Assert.Equal(secondId, second.Id);
             Assert.Equal("second name", second.Name);
             Assert.Equal("second body updated", second.Body);
-            Assert.True(second.Limitation.IsAllDefault());
         }
 
         [Fact]
         public async Task Delete()
         {
             var firstId = await _service.Put(
-                new StateMachineInputDto() { Name = "first name", Body = "first body" });
+                new ActorInputDto() { Name = "first name", Body = "first body" });
             var secondId = await _service.Put(
-                new StateMachineInputDto() { Name = "second name", Body = "second body" });
+                new ActorInputDto() { Name = "second name", Body = "second body" });
             var firstDelete = await _service.Delete("first name");
             var thirdDelete = await _service.Delete("third name");
             Assert.Equal(1, firstDelete);
