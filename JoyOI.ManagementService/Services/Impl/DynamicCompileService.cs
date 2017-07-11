@@ -1,8 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,13 +15,17 @@ namespace JoyOI.ManagementService.Services.Impl
     internal class DynamicCompileService : IDynamicCompileService
     {
         private ConcurrentDictionary<string, byte[]> _compileCache { get; set; }
+        private volatile object _assemblyLoadHelper;
 
         public DynamicCompileService()
         {
             _compileCache = new ConcurrentDictionary<string, byte[]>();
+            _assemblyLoadHelper = typeof(Task).GetType();
+            _assemblyLoadHelper = typeof(Process).GetType();
+            _assemblyLoadHelper = typeof(JsonConvert).GetType();
         }
 
-        public byte[] Compile(string code)
+        public byte[] Compile(string code, OutputKind outputKind)
         {
             // 从缓存获取
             if (_compileCache.TryGetValue(code, out var assemblyBytes))
@@ -30,7 +36,7 @@ namespace JoyOI.ManagementService.Services.Impl
             var assemblyName = $"__DynamicAssembly_{DateTime.UtcNow.Ticks}";
             var optimizationLevel = OptimizationLevel.Debug;
             var compilationOptions = new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary,
+                outputKind,
                 optimizationLevel: optimizationLevel);
             var references = AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic && !a.FullName.StartsWith("__"))

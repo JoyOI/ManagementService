@@ -36,8 +36,8 @@ namespace JoyOI.ManagementService.Services.Impl
     ///   - 调用StateMachineInstanceStore.RunInstance运行状态机实例, 会在后台运行
     /// 
     /// 运行状态机实例:
-    /// - 如果当前Stage不是初始阶段
-    ///   - 查找属于该Stage的StartedActors
+    /// - 如果之前已经运行过该状态机
+    ///   - 查找该Stage之后的StartedActors
     ///     - 删除这些actors并更新到数据库
     /// - 从当前Stage开始运行
     ///   - 调用StateMachineBase.RunAsync
@@ -242,7 +242,8 @@ namespace JoyOI.ManagementService.Services.Impl
                 factory.Item1 != stateMachineEntity.Body)
             {
                 // 不存在或内容有变化时调用roslyn重新编译
-                var assemblyBytes = _dynamicCompileService.Compile(stateMachineEntity.Body);
+                var assemblyBytes = _dynamicCompileService.Compile(
+                    stateMachineEntity.Body, OutputKind.DynamicallyLinkedLibrary);
                 var assembly = Assembly.Load(assemblyBytes);
                 var stateMachineType = assembly.GetTypes()
                     .FirstOrDefault(x => typeof(StateMachineBase).IsAssignableFrom(x));
@@ -274,24 +275,41 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             try
             {
-                // 如果当前Stage不是初始阶段
-                if (instance.Stage != StateMachineBase.InitialStage)
+                // 如果之前已经运行过该状态机
+                if (instance.Stage != StateMachineBase.InitialStage ||
+                    instance.Status != StateMachineStatus.Running ||
+                    instance.StartedActors.Count > 0)
                 {
-                    // 查找属于该Stage的StartedActors
+                    // 查找该Stage之后的StartedActors
                     var startedActors = instance.StartedActors;
-                    var removeActors = startedActors.Where(x => x.Stage == instance.Stage).ToList();
                     // 删除这些actors并更新到数据库
-                    if (removeActors.Count > 0)
+                    if (instance.Stage == StateMachineBase.InitialStage)
                     {
-                        foreach (var removeActor in removeActors)
-                        {
-                            startedActors.Remove(removeActor);
-                        }
-                        await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
-                        {
-                            instanceEntity.StartedActors = startedActors;
-                        });
+                        startedActors.Clear();
                     }
+                    else
+                    {
+                        var newStartedActors = new List<ActorInfo>();
+                        foreach (var startedActor in newStartedActors)
+                        {
+                            if (startedActor.Stage == instance.Stage)
+                            {
+                                break;
+                            }
+                            newStartedActors.Add(startedActor);
+                        }
+                        startedActors = newStartedActors;
+                        instance.StartedActors = startedActors;
+                    }
+                    await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
+                    {
+                        instanceEntity.StartedActors = startedActors;
+                        instanceEntity.Status = StateMachineStatus.Running;
+                        instanceEntity.Stage = instance.Stage;
+                        instanceEntity.ReRunTimes = 0;
+                        instanceEntity.Exception = null;
+                        instanceEntity.EndTime = null;
+                    });
                 }
                 // 从当前Stage开始运行
                 await instance.RunAsync();
@@ -300,11 +318,11 @@ namespace JoyOI.ManagementService.Services.Impl
                 instance.Stage = StateMachineBase.FinalStage;
                 var endTime = DateTime.UtcNow;
                 await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
-               {
-                   instanceEntity.Status = instance.Status;
-                   instanceEntity.Stage = instance.Stage;
-                   instanceEntity.EndTime = endTime;
-               });
+                {
+                    instanceEntity.Status = instance.Status;
+                    instanceEntity.Stage = instance.Stage;
+                    instanceEntity.EndTime = endTime;
+                });
             }
             catch (StateMachineInterpretedException)
             {
@@ -359,7 +377,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     actorInfo.UsedContainer = containerTag;
                     // 编译actor代码
                     var actorCode = await ReadActorCode(actorInfo.Name);
-                    var actorBytes = _dynamicCompileService.Compile(actorCode);
+                    var actorBytes = _dynamicCompileService.Compile(
+                        actorCode, OutputKind.ConsoleApplication);
                     // 创建容器
                     var hostConfig = HostConfigUtils.WithLimitation(
                         new HostConfig(), instance.Limitation, node.NodeInfo.Container);

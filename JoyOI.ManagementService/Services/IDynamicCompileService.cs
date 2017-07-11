@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,6 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 编译代码到程序集的字节数组
         /// </summary>
-        byte[] Compile(string code);
+        byte[] Compile(string code, OutputKind outputKind);
     }
 }
