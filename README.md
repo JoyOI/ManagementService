@@ -163,9 +163,9 @@ docker images
 		"Name": "Default",
 		"Container": {
 			"DevicePath": "/dev/sda",
-			"MaxRunningJobs": 32,
+			"MaxRunningJobs": 8,
 			"WorkDir": "/workdir/",
-			"ActorCodePath": "actor/Program.cs",
+			"ActorExecutablePath": "actor/bin/Debug/netcoreapp2.0/actor.dll",
 			"ActorExecuteCommand": "sh run-actor.sh &> run-actor.log",
 			"ActorExecuteLogPath": "run-actor.log",
 			"ResultPath": "return.json"
@@ -240,4 +240,5 @@ TODO
 
 # 注意事项
 
-TODO
+- 默认配置有限制IO, 如果不想限制请删除BlkioDeviceReadBps和BlkioDeviceWriteBps的所在行
+- 同时执行多个Actor请使用DeployAndRunActorsAsync, 否则不能保证线程安全
