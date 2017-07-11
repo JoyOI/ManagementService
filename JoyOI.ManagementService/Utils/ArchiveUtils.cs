@@ -47,9 +47,6 @@ namespace JoyOI.ManagementService.Utils
         {
             using (var reader = ReaderFactory.Open(stream))
             {
-                if (reader == null)
-                    throw new Exception("reader is null");
-                Console.WriteLine(reader);
                 while (reader.MoveToNextEntry())
                 {
                     var entry = reader.Entry;

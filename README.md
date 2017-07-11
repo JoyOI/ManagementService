@@ -45,7 +45,7 @@ Mgmt Svc与Docker Node使用Docker Remote Api通信, Docker Node需要使用自�
 
 环境 Ubuntu 16.04.2 Server LTS
 
-** 生成CA的私钥和公钥 **
+**生成CA的私钥和公钥**
 
 这个步骤只需要做一次, 生成的CA证书可以用在所有节点上.
 
@@ -58,7 +58,7 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 
 运行后会生成`ca-key.pem ca-key.pfx ca.pem`这三个文件, 都下载到本地.
 
-** 配置Docker节点 **
+**配置Docker节点**
 
 请确保hostname已设置, 并且hostname指向当前节点的连接IP.
 
@@ -66,7 +66,7 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 
 - ca-key.pem
 - ca.pem
-- node-deploy.sh
+- node-deploy.sh (在NodeDeployment文件夹下)
 
 # 配置管理服务
 
@@ -164,7 +164,7 @@ TODO
 https://stackoverflow.com/questions/8309780/does-iis-do-the-ssl-certificate-check-or-do-i-have-to-verify-it
 https://blogs.msdn.microsoft.com/bradleycotier/2011/12/14/mutual-authentication-with-a-iis-hosted-wcf-data-service-installed-in-a-workgroup-environment/
 https://blogs.msdn.microsoft.com/asiatech/2014/02/12/how-to-configure-iis-client-certificate-mapping-authentication-for-iis7/
-
+http://www.dylanbeattie.net/docs/openssl%5Fiis%5Fssl%5Fhowto.html
 
 # Api一览
 

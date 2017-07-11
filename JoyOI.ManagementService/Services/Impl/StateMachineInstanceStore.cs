@@ -69,8 +69,10 @@ namespace JoyOI.ManagementService.Services.Impl
     /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
     /// 
     /// 强制修改状态机:
-    /// - TODO: 如何中断已有状态机的运行?
+    /// - 修改状态机实例的ExecutionKey
+    ///   - 修改后正在运行的实例将不能修改这个实例, 并且在检测到不能修改时中断运行
     /// - 修改状态机实例的Stage
+    /// - 删除该Stage之后的StartedActors
     /// - 调用StateMachineInstanceStore.RunInstance运行状态机实例
     /// 
     /// 残留的容器:

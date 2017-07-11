@@ -37,7 +37,7 @@ openssl x509 -req -days 36500 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pe
 
 # 让服务端使用证书, 这里未设置私钥的所有者和权限, 如果节点有多用户请自行设置
 mkdir -p /etc/docker/cert.d
-cp * /etc/docker/cert.d
+cp -fv * /etc/docker/cert.d
 sed -i "s/-H fd:\/\///g" /lib/systemd/system/docker.service
 systemctl daemon-reload
 echo '{ "tlsverify": true, "tlscacert": "/etc/docker/cert.d/ca.pem", "tlscert": "/etc/docker/cert.d/server-cert.pem", "tlskey": "/etc/docker/cert.d/server-key.pem", "hosts": [ "unix:///var/run/docker.sock", "tcp://0.0.0.0:2376" ] }' > /etc/docker/daemon.json
@@ -47,7 +47,7 @@ systemctl start docker
 
 # 让客户端使用证书, 可选, 仅测试使用
 mkdir -pv ~/.docker
-cp -v ca.pem cert.pem key.pem ~/.docker
+cp -fv ca.pem cert.pem key.pem ~/.docker
 
 # 测试客户端证书, 如果输出正常则表示配置成功
 docker --tlsverify -H="tcp://$(hostname):2376" images
