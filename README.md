@@ -34,107 +34,39 @@ Mgmt Svc与Docker Node使用Docker Remote Api通信, Docker Node需要使用自�
 
 # 项目文件
 
-- JoyOI.ManagementService
-  - 管理服务的核心项目
-- JoyOI.ManagementService.FunctionalTests
-  - 功能测试项目, 要求节点可以正常连接
-- JoyOI.ManagementService.Model
-  - 储存模型类的项目
-- JoyOI.ManagementService.Tests
-  - 单元测试项目, 不要求节点可以正常连接
-- JoyOI.ManagementService.WebApi
-  - WebApi项目, 提供对外的Http接口
+- JoyOI.ManagementService: 管理服务的核心项目
+- JoyOI.ManagementService.FunctionalTests: 功能测试项目, 要求节点可以正常连接
+- JoyOI.ManagementService.Model: 储存模型类的项目
+- JoyOI.ManagementService.Playground: 用于实验性的编写Actor和StateMachine的代码
+- JoyOI.ManagementService.Tests: 单元测试项目, 不要求节点可以正常连接
+- JoyOI.ManagementService.WebApi: WebApi项目, 提供对外的Http接口
 
 # 配置节点
 
 环境 Ubuntu 16.04.2 Server LTS
 
-运行命令
+** 生成CA的私钥和公钥 **
 
-```
-sudo su
-apt-get install curl software-properties-common
+这个步骤只需要做一次, 生成的CA证书可以用在所有节点上.
 
-############ 安装docker ############
-# https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-apt-get update
-apt-get install docker-ce
-
-# 拉取镜像
-docker pull daocloud.io/ubuntu:16.04
-
-############ 设置docker远程api ############
-# 请确保hostname和hostname指向的ip地址都正确设置
-# https://docs.docker.com/engine/security/https
-mkdir tmp
-cd tmp
-
-# 生成CA的私钥和公钥
-# 问密码的时候随便填, 但是要记住
+``` text
+# 问密码的时候随便填, 但是要记住, 其他项可以忽略
 openssl genrsa -aes256 -out ca-key.pem 4096
-# 会问很多东西, 只需要在"Common Name"上写主机的名称, 其他项可以忽略
-openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem
-
-# 生成服务器的私钥和公钥, 并使用CA签名
-openssl genrsa -out server-key.pem 4096
-openssl req -subj "/CN=$(hostname)" -sha256 -new -key server-key.pem -out server.csr
-# 允许连接使用hostname指向的ip和127.0.0.1
-echo "subjectAltName = DNS:$(hostname),IP:$(hostname -i),IP:127.0.0.1" > extfile.cnf
-openssl x509 -req -days 36500 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem \
-  -CAcreateserial -out server-cert.pem -extfile extfile.cnf
-
-# 生成客户端的私钥和公钥，并使用CA签名
-openssl genrsa -out key.pem 4096
-openssl req -subj '/CN=client' -new -key key.pem -out client.csr
-echo extendedKeyUsage = clientAuth > client-extfile.cnf
-openssl x509 -req -days 36500 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem \
-  -CAcreateserial -out cert.pem -extfile client-extfile.cnf
-
-# 让服务端使用证书, 这里未设置私钥的所有者和权限, 如果节点有多用户请自行设置
-mkdir -p /etc/docker/cert.d
-cp * /etc/docker/cert.d
-sed -i "s/-H fd:\/\///g" /lib/systemd/system/docker.service
-systemctl daemon-reload
-echo '{ "tlsverify": true, "tlscacert": "/etc/docker/cert.d/ca.pem", "tlscert": "/etc/docker/cert.d/server-cert.pem", "tlskey": "/etc/docker/cert.d/server-key.pem", "hosts": [ "unix:///var/run/docker.sock", "tcp://0.0.0.0:2376" ] }' > /etc/docker/daemon.json
-systemctl stop docker
-systemctl start docker
-systemctl status docker
-
-# 让客户端使用证书, 可选, 仅测试使用
-mkdir -pv ~/.docker
-cp -v {ca,cert,key}.pem ~/.docker
-
-# 测试客户端证书, 如果输出正常则表示配置成功
-docker --tlsverify -H="tcp://$(hostname):2376" images
-
-# 删除临时文件夹
-cd ..
-rm -rfv tmp
-
-# 生成管理服务用的客户端证书, 生成时会问密码, 记住这个密码
-cd ~/.docker
-openssl pkcs12 -export -inkey key.pem -in cert.pem -out key.pfx
-
-# 生成管理服务用的CA证书, 生成时会问密码, 记住这个密码
-cd /etc/docker/cert.d
+openssl req -new -x509 -days 36500 -key ca-key.pem -sha256 -out ca.pem
 openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
-
-############ 构建docker镜像 ############
-# 你可以选择拖取hub上的镜像, 或者自己构建
-
-# 自己构建的步骤
-# 上传 Dockerfile 和 runner 到 /root/docker 下
-# cd ~/docker
-# docker build -t joyoi .
-
-# 拖取hub上的镜像的步骤
-docker pull yuko/joyoi
-
-# 完成后确认本地的镜像列表
-docker images
 ```
+
+运行后会生成`ca-key.pem ca-key.pfx ca.pem`这三个文件, 都下载到本地.
+
+** 配置Docker节点 **
+
+请确保hostname已设置, 并且hostname指向当前节点的连接IP.
+
+上传以下文件到节点上, 并运行`sudo su -c "sh node-deploy.sh"`
+
+- ca-key.pem
+- ca.pem
+- node-deploy.sh
 
 # 配置管理服务
 
@@ -223,7 +155,7 @@ docker images
 
 **存放客户端证书**
 
-下载所有docker节点生成的key.pfx, 放到上面配置的"ClientCertificatePath"属性对应的目录下.
+下载所有docker节点生成的"/root/.docker/key.pfx"到上面配置的"ClientCertificatePath"属性对应的目录下.
 
 **配置WebApi**
 

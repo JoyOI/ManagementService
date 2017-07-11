@@ -116,6 +116,7 @@ ClientBin/
 *.dbmdl
 *.[Pp]ublish.xml
 *.pfx
+*.pem
 *.publishsettings
 
 # RIA/Silverlight projects
