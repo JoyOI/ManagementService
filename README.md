@@ -198,6 +198,24 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
     - "ClientCertificatePassword": 客户端证书的密码
     - "Container": 节点单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
 
+**常驻服务**
+
+从"http://www.nssm.cc/download"下载添加服务的工具,<br/>
+假定管理服务在"C:\inetpub\mgmtsvc"下, 执行以下命令:
+
+``` text
+nssm install joyoi_mgmtsvc "C:\Program Files\dotnet\dotnet.exe" "JoyOI.ManagementService.WebApi.dll"
+nssm set joyoi_mgmtsvc AppDirectory "C:\inetpub\mgmtsvc"
+nssm set joyoi_mgmtsvc ObjectName LocalSystem
+nssm set joyoi_mgmtsvc Start SERVICE_AUTO_START
+nssm set joyoi_mgmtsvc AppThrottle 1500
+nssm set joyoi_mgmtsvc AppExit Default Restart
+nssm set joyoi_mgmtsvc AppRestartDelay 0
+nssm set joyoi_mgmtsvc AppStdout "C:\inetpub\mgmtsvc\stdout.log"
+nssm set joyoi_mgmtsvc AppStderr "C:\inetpub\mgmtsvc\stderr.log"
+nssm start joyoi_mgmtsvc
+```
+
 # Api一览
 
 TODO
