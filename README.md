@@ -100,7 +100,7 @@ openssl x509 -req -days 36500 -sha256 -in webapi-client.csr -CA ca.pem -CAkey ca
 openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -out webapi-client.pfx
 ```
 
-下载生成的"webapi-server.pfx"到下面的配置中的"Kestrel"下的"ServerCertificatePath"对应的路径.
+下载生成的"webapi-server.pfx"到下面的配置中的"Kestrel"下的"ServerCertificatePath"对应的路径.<br/>
 然后下载生成的"webapi-client.pfx"到下面配置中的"Kestrel"下的"ClientCertificatePath"对应的路径.
 
 **保存节点客户端证书**
@@ -161,18 +161,6 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
 				"ClientCertificatePath": "ClientCerts/remote-docker-2.pfx",
 				"ClientCertificatePassword": "123456"
 			}
-			/*"docker-1": {
-				"Image": "joyoi",
-				"Address": "http://docker-1:2376",
-				"ClientCertificatePath": "ClientCerts/docker-1.pfx",
-				"ClientCertificatePassword": "123456"
-			},
-			"docker-2": {
-				"Image": "joyoi",
-				"Address": "http://docker-2:2376",
-				"ClientCertificatePath": "ClientCerts/docker-2.pfx",
-				"ClientCertificatePassword": "123456"
-			}*/
 		}
 	}
 }
