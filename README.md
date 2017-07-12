@@ -196,7 +196,7 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
     - "Address": 节点的地址
     - "ClientCertificatePath": 客户端证书的路径
     - "ClientCertificatePassword": 客户端证书的密码
-    - "Container": 阶段单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
+    - "Container": 节点单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
 
 # Api一览
 
