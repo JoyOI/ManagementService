@@ -76,7 +76,38 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 
 注意检查导入的证书的有效期, 有效期之前请重新生成并更新证书.
 
-**修改网站下的appsettings.json, 例如**:
+**保存WebApi服务端和客户端证书**
+
+使用以下命令生成WebApi使用的服务端和客户端证书, CA可以用上面生成的
+
+``` text
+export domain=mgmtsvc.1234.sh
+
+# 生成WebApi服务器的私钥和公钥, 并使用CA签名
+openssl genrsa -out webapi-server-key.pem 2048
+openssl req -subj "/CN=${domain}" -sha256 -new -key webapi-server-key.pem -out webapi-server.csr
+echo "subjectAltName = DNS:${domain}" > extfile.cnf
+openssl x509 -req -days 36500 -sha256 -in webapi-server.csr -CA ca.pem -CAkey ca-key.pem \
+  -CAcreateserial -out webapi-server-cert.pem -extfile extfile.cnf
+openssl pkcs12 -export -inkey webapi-server-key.pem -in webapi-server-cert.pem -out webapi-server.pfx
+
+# 生成WebApi客户端的私钥和公钥，并使用CA签名
+openssl genrsa -out webapi-client-key.pem 2048
+openssl req -subj "/CN=${domain}" -sha256 -new -key webapi-client-key.pem -out webapi-client.csr
+echo "subjectAltName = DNS:${domain}" > extfile.cnf
+openssl x509 -req -days 36500 -sha256 -in webapi-client.csr -CA ca.pem -CAkey ca-key.pem \
+  -CAcreateserial -out webapi-client-cert.pem -extfile extfile.cnf
+openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -out webapi-client.pfx
+```
+
+下载生成的"webapi-server.pfx"到下面的配置中的"Kestrel"下的"ServerCertificatePath"对应的路径.
+然后下载生成的"webapi-client.pfx"到下面配置中的"Kestrel"下的"ClientCertificatePath"对应的路径.
+
+**保存节点客户端证书**
+
+下载所有docker节点生成的"/root/.docker/key.pfx"到下面配置中"Nodes"下的"ClientCertificatePath"对应的路径.
+
+**修改网站下的appsettings.json, 如下**:
 
 ``` json
 {
@@ -87,9 +118,16 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 		"IncludeScopes": false,
 		"LogLevel": {
 			"Default": "Debug",
-			"System": "Information",
-			"Microsoft": "Information"
+			"System": "Warning",
+			"Microsoft": "Warning"
 		}
+	},
+	"Kestrel": {
+		"HttpsListenPort": 443,
+		"ServerCertificatePath": "WebApiCerts/webapi-server.pfx",
+		"ServerCertificatePassword": "123456",
+		"ClientCertificatePath": "WebApiCerts/webapi-client.pfx",
+		"ClientCertificatePassword": "123456"
 	},
 	"JoyOIManagement": {
 		"Name": "Default",
@@ -112,6 +150,18 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 		},
 		"Nodes": {
 			"docker-1": {
+				"Image": "yuko/joyoi",
+				"Address": "http://remote-docker-1:2376",
+				"ClientCertificatePath": "ClientCerts/remote-docker-1.pfx",
+				"ClientCertificatePassword": "123456"
+			},
+			"docker-2": {
+				"Image": "yuko/joyoi",
+				"Address": "http://remote-docker-2:2376",
+				"ClientCertificatePath": "ClientCerts/remote-docker-2.pfx",
+				"ClientCertificatePassword": "123456"
+			}
+			/*"docker-1": {
 				"Image": "joyoi",
 				"Address": "http://docker-1:2376",
 				"ClientCertificatePath": "ClientCerts/docker-1.pfx",
@@ -122,7 +172,7 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 				"Address": "http://docker-2:2376",
 				"ClientCertificatePath": "ClientCerts/docker-2.pfx",
 				"ClientCertificatePassword": "123456"
-			}
+			}*/
 		}
 	}
 }
@@ -130,41 +180,35 @@ openssl pkcs12 -export -inkey ca-key.pem -in ca.pem -out ca-key.pfx
 
 配置说明:
 
-- "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
-- "Container": 容器相关的配置
-  - "DevicePath": 主设备路径
-  - "MaxRunningJobs": 单个节点可以同时运行的任务数量
-  - "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
-  - "ActorCodePath": 任务代码的路径, 相对于工作目录
-  - "ActorExecuteCommand": 执行任务的命令
-  - "ActorExecuteLogPath": 执行任务的记录文件
-  - "ResultPath": 执行任务的结果文件
-- "Limitation": 运行任务时对容器的限制
-  - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000
-  - "CPUQuota": 限制CPU在间隔时间内可以使用的时间, 单位是微秒, 设置为跟CPUPeriod一致时表示只能用一个核心
-  - "Memory": 可以使用的内存, 单位是字节, 默认无限制
-  - "MemorySwap": 可以使用的交换内存, 单位是字节, 默认是Memory的两倍, 设为0时等于默认值(Memory的两倍)
-  - "BlkioDeviceReadBps": 一秒最多读取的字节数, 单位是字节, 默认无限制
-  - "BlkioDeviceWriteBps": 一秒最多写入的字节数, 单位是字节, 默认无限制
-- "Nodes"是docker节点列表
-  - "Image": docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi"
-  - "Address": 节点的地址
-  - "ClientCertificatePath": 客户端证书的路径
-  - "ClientCertificatePassword": 客户端证书的密码
-  - "Container": 阶段单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
-
-**存放客户端证书**
-
-下载所有docker节点生成的"/root/.docker/key.pfx"到上面配置的"ClientCertificatePath"属性对应的目录下.
-
-**配置WebApi**
-
-TODO
-
-https://stackoverflow.com/questions/8309780/does-iis-do-the-ssl-certificate-check-or-do-i-have-to-verify-it
-https://blogs.msdn.microsoft.com/bradleycotier/2011/12/14/mutual-authentication-with-a-iis-hosted-wcf-data-service-installed-in-a-workgroup-environment/
-https://blogs.msdn.microsoft.com/asiatech/2014/02/12/how-to-configure-iis-client-certificate-mapping-authentication-for-iis7/
-http://www.dylanbeattie.net/docs/openssl%5Fiis%5Fssl%5Fhowto.html
+- "Kestrel": 生产环境的配置
+  - "HttpsListenPort": 监听的端口
+  - "ServerCertificatePath": WebApi服务端证书的路径
+  - "ServerCertificatePassword": WebApi服务端证书的密码
+  - "ClientCertificatePath": WebApi客户端证书的路径
+  - "ClientCertificatePassword": WebApi客户端证书的密码
+- "JoyOIManagement": 管理服务的配置
+  - "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
+  - "Container": 容器相关的配置
+    - "DevicePath": 主设备路径
+    - "MaxRunningJobs": 单个节点可以同时运行的任务数量
+    - "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
+    - "ActorCodePath": 任务代码的路径, 相对于工作目录
+    - "ActorExecuteCommand": 执行任务的命令
+    - "ActorExecuteLogPath": 执行任务的记录文件
+    - "ResultPath": 执行任务的结果文件
+  - "Limitation": 运行任务时对容器的限制
+    - "CPUPeriod": 限制CPU时使用的间隔时间, 单位是微秒, 默认是1秒 = 1000000
+    - "CPUQuota": 限制CPU在间隔时间内可以使用的时间, 单位是微秒, 设置为跟CPUPeriod一致时表示只能用一个核心
+    - "Memory": 可以使用的内存, 单位是字节, 默认无限制
+    - "MemorySwap": 可以使用的交换内存, 单位是字节, 默认是Memory的两倍, 设为0时等于默认值(Memory的两倍)
+    - "BlkioDeviceReadBps": 一秒最多读取的字节数, 单位是字节, 默认无限制
+    - "BlkioDeviceWriteBps": 一秒最多写入的字节数, 单位是字节, 默认无限制
+  - "Nodes"是docker节点列表
+    - "Image": docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi"
+    - "Address": 节点的地址
+    - "ClientCertificatePath": 客户端证书的路径
+    - "ClientCertificatePassword": 客户端证书的密码
+    - "Container": 阶段单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
 
 # Api一览
 

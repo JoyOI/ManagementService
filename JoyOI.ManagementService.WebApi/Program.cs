@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
+using System.Net;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Authentication;
 
 namespace JoyOI.ManagementService.WebApi
 {
@@ -13,10 +17,34 @@ namespace JoyOI.ManagementService.WebApi
     {
         public static void Main(string[] args)
         {
-            var host = WebHost.CreateDefaultBuilder(args)
+            var host = new WebHostBuilder()
+                .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseStartup<Startup>()
+                .UseKestrel(options =>
+                {
+                    var configuration = Startup._kestrelConfiguration;
+                    if (configuration != null)
+                    {
+                        var clientCertificate = new X509Certificate2(
+                            configuration.ClientCertificatePath, configuration.ClientCertificatePassword);
+                        options.Listen(IPAddress.Any, configuration.HttpsListenPort, listenOptions =>
+                        {
+                            var httpsOptions = new HttpsConnectionAdapterOptions();
+                            httpsOptions.ServerCertificate = new X509Certificate2(
+                                configuration.ServerCertificatePath, configuration.ServerCertificatePassword);
+                            httpsOptions.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
+                            httpsOptions.ClientCertificateValidation = (cert, chain, errors) =>
+                            {
+                                // 检查客户端证书
+                                return cert.Equals(clientCertificate);
+                            };
+                            httpsOptions.SslProtocols = SslProtocols.Tls12;
+                            listenOptions.UseHttps(httpsOptions);
+                        });
+                    }
+                })
+                .UseIISIntegration()
                 .Build();
-
             host.Run();
         }
     }
