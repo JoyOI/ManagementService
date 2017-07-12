@@ -200,7 +200,7 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
 
 **常驻服务**
 
-从"http://www.nssm.cc/download"下载添加服务的工具,<br/>
+从"[http://www.nssm.cc/download](http://www.nssm.cc/download)"下载添加服务的工具,<br/>
 假定管理服务在"C:\inetpub\mgmtsvc"下, 执行以下命令:
 
 ``` text
@@ -218,7 +218,31 @@ nssm start joyoi_mgmtsvc
 
 # Api一览
 
-TODO
+以下是管理服务包含的Api, 更详细的格式请在本地打开[swagger](http://localhost:38415/swagger/)查看.
+
+```
+get /api/v1/Actor/All
+delete /api/v1/Actor
+get /api/v1/Actor
+patch /api/v1/Actor
+put /api/v1/Actor
+
+get /api/v1/Blob/All
+get /api/v1/Blob
+put /api/v1/Blob
+
+get /api/v1/StateMachine/All
+delete /api/v1/StateMachine
+get /api/v1/StateMachine
+patch /api/v1/StateMachine
+put /api/v1/StateMachine
+
+get /api/v1/StateMachineInstance/Search
+delete /api/v1/StateMachineInstance
+get /api/v1/StateMachineInstance
+patch /api/v1/StateMachineInstance
+put /api/v1/StateMachineInstance 
+```
 
 # 注意事项
 
