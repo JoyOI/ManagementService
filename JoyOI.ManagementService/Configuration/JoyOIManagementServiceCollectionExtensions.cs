@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using JoyOI.ManagementService.Configuration;
+using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.MapperProfiles;
 using JoyOI.ManagementService.Services;
@@ -77,6 +78,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // 会继续之前未执行完毕的状态机
             var stateMahcineInstaceStore = services.GetRequiredService<IStateMachineInstanceStore>();
             stateMahcineInstaceStore.Initialize(() => new JoyOIManagementContext());
+            CoreExtensions.StaticStore = stateMahcineInstaceStore;
         }
     }
 }
