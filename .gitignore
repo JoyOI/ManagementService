@@ -175,3 +175,6 @@ PublishProfiles/
 
 # Rider
 .idea
+
+# Build files
+.build

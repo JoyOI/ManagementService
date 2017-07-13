@@ -7,7 +7,7 @@ using System.Text;
 
 namespace JoyOI.ManagementService.Tests.Services
 {
-    public class TestServiceBase : IDisposable
+    public abstract class TestServiceBase : IDisposable
     {
         protected JoyOIManagementContext _context;
 

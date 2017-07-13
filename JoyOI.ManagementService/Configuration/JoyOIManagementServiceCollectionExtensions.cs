@@ -48,21 +48,8 @@ namespace Microsoft.Extensions.DependencyInjection
         public static void AddJoyOIManagement(
             this IServiceCollection services, JoyOIManagementConfiguration configuration)
         {
-            // 检查配置
-            if ((configuration.Nodes?.Count ?? 0) <= 0)
-            {
-                throw new ArgumentNullException("Please provide atleast 1 docker nodes");
-            }
-
-            // 整合各个node的容器配置
-            foreach (var node in configuration.Nodes)
-            {
-                node.Value.Container = (node.Value.Container ??
-                    new JoyOIManagementConfiguration.ContainerConfiguration())
-                    .WithDefaults(configuration.Container);
-            }
-
             // 注册配置
+            configuration.AfterLoaded();
             services.AddSingleton(configuration);
 
             // 注册服务

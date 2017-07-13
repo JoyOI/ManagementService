@@ -46,6 +46,24 @@ namespace JoyOI.ManagementService.Configuration
         }
 
         /// <summary>
+        /// 加载后的处理
+        /// </summary>
+        public void AfterLoaded()
+        {
+            // 检查配置
+            if ((Nodes?.Count ?? 0) <= 0)
+            {
+                throw new ArgumentNullException("Please provide atleast 1 docker nodes");
+            }
+            // 整合各个node的容器配置
+            foreach (var node in Nodes)
+            {
+                node.Value.Container = (node.Value.Container ?? new ContainerConfiguration())
+                    .WithDefaults(Container);
+            }
+        }
+
+        /// <summary>
         /// 节点配置
         /// </summary>
         public class Node
