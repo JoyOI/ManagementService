@@ -25,8 +25,6 @@ namespace JoyOI.ManagementService.WebApi
                     var configuration = Startup._kestrelConfiguration;
                     if (configuration != null)
                     {
-                        var clientCertificate = new X509Certificate2(
-                            configuration.ClientCertificatePath, configuration.ClientCertificatePassword);
                         options.Listen(IPAddress.Any, configuration.HttpsListenPort, listenOptions =>
                         {
                             var httpsOptions = new HttpsConnectionAdapterOptions();

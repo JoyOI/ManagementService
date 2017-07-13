@@ -101,7 +101,8 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
 ```
 
 下载生成的"webapi-server.pfx"到下面的配置中的"Kestrel"下的"ServerCertificatePath"对应的路径.<br/>
-然后下载生成的"webapi-client.pfx"到下面配置中的"Kestrel"下的"ClientCertificatePath"对应的路径.
+然后下载生成的"webapi-client.pfx", 给调用管理服务的客户端使用.<br/>
+管理服务验证WebApi客户端证书需要导入CA, 请先导入CA到"受信任的根证书颁发机构".<br/>
 
 **保存节点客户端证书**
 
@@ -125,9 +126,7 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
 	"Kestrel": {
 		"HttpsListenPort": 443,
 		"ServerCertificatePath": "WebApiCerts/webapi-server.pfx",
-		"ServerCertificatePassword": "123456",
-		"ClientCertificatePath": "WebApiCerts/webapi-client.pfx",
-		"ClientCertificatePassword": "123456"
+		"ServerCertificatePassword": "123456"
 	},
 	"JoyOIManagement": {
 		"Name": "Default",
@@ -172,8 +171,6 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
   - "HttpsListenPort": 监听的端口
   - "ServerCertificatePath": WebApi服务端证书的路径
   - "ServerCertificatePassword": WebApi服务端证书的密码
-  - "ClientCertificatePath": WebApi客户端证书的路径
-  - "ClientCertificatePassword": WebApi客户端证书的密码
 - "JoyOIManagement": 管理服务的配置
   - "Name": 管理服务的名称, 如果要配置多个管理服务必须使用不同的名称
   - "Container": 容器相关的配置

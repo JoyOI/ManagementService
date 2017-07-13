@@ -27,8 +27,6 @@ namespace JoyOI.ManagementService.WebApi
             public int HttpsListenPort { get; set; }
             public string ServerCertificatePath { get; set; }
             public string ServerCertificatePassword { get; set; }
-            public string ClientCertificatePath { get; set; }
-            public string ClientCertificatePassword { get; set; }
         }
 
         public Startup(IHostingEnvironment env)
