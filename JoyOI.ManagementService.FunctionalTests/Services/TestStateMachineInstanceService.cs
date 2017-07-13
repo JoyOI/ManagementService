@@ -52,8 +52,6 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                 {
                     if (stateMachine.Status == StateMachineStatus.Failed)
                         throw new InvalidOperationException(stateMachine.Exception);
-                    // _outputHelper.WriteLine(stateMachine.Status.ToString());
-                    // _outputHelper.WriteLine(stateMachine.Stage.ToString());
                 }
                 if (stateMachines.All(x => x.Status == StateMachineStatus.Succeeded))
                 {
@@ -65,10 +63,29 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
         }
 
-        [Fact(Skip = "TODO")]
-        public void Get()
+        [Fact]
+        public async Task Get()
         {
-            // TODO
+            var putDto = await PutSimpleDataSet();
+            var putResultA = await _service.Put(putDto);
+            var putResultB = await _service.Put(putDto);
+            Assert.Equal(200, putResultA.Code);
+            Assert.Equal(200, putResultB.Code);
+            while (true)
+            {
+                var stateMachineA = await _service.Get(putResultA.Instance.Id);
+                var stateMachineB = await _service.Get(putResultB.Instance.Id);
+                Assert.True(stateMachineA != null);
+                Assert.True(stateMachineB != null);
+                if (stateMachineA.Status == StateMachineStatus.Failed)
+                    throw new InvalidOperationException(stateMachineA.Exception);
+                if (stateMachineB.Status == StateMachineStatus.Failed)
+                    throw new InvalidOperationException(stateMachineB.Exception);
+                if (stateMachineA.Status == StateMachineStatus.Succeeded &&
+                    stateMachineB.Status == StateMachineStatus.Succeeded)
+                    break;
+                await Task.Delay(1);
+            }
         }
 
         [Fact(Skip = "TODO")]
