@@ -10,7 +10,7 @@ using Xunit;
 
 namespace JoyOI.ManagementService.Tests.Services
 {
-    public class TestActorService : ServiceTestBase
+    public class TestActorService : TestServiceBase
     {
         private IActorService _service;
 

@@ -11,6 +11,7 @@ namespace JoyOI.ManagementService.Playground
     {
         static void Main(string[] args)
         {
+            Process.Start("chmod +x Main.out").WaitForExit();
             var p = Process.Start(new ProcessStartInfo("runner") { RedirectStandardInput = true });
             p.StandardInput.WriteLine("5000");
             p.StandardInput.WriteLine("./Main.out");

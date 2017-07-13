@@ -19,4 +19,9 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0-beta3-build3705" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\JoyOI.ManagementService.Model\JoyOI.ManagementService.Model.csproj" />
+    <ProjectReference Include="..\JoyOI.ManagementService\JoyOI.ManagementService.csproj" />
+  </ItemGroup>
+
 </Project>

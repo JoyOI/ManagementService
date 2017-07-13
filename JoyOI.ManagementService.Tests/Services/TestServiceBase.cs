@@ -7,11 +7,11 @@ using System.Text;
 
 namespace JoyOI.ManagementService.Tests.Services
 {
-    public class ServiceTestBase : IDisposable
+    public class TestServiceBase : IDisposable
     {
         protected JoyOIManagementContext _context;
 
-        public ServiceTestBase()
+        public TestServiceBase()
         {
             JoyOIManagementServiceCollectionExtensions.InitializeStaticFunctions();
             _context = new TestJoyOIManagementContext();

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace JoyOI.ManagementService.Tests.Services
 {
-    public class TestStateMachineService : ServiceTestBase
+    public class TestStateMachineService : TestServiceBase
     {
         private IStateMachineService _service;
 
