@@ -88,10 +88,38 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
         }
 
-        [Fact(Skip = "TODO")]
-        public void Put()
+        [Fact]
+        public async Task Put()
         {
-            // TODO
+            var putDto = await PutSimpleDataSet();
+            var stateMachineIds = new List<Guid>();
+            for (var x = 0; x < 30; ++x)
+            {
+                stateMachineIds.Add((await _service.Put(putDto)).Instance.Id);
+            }
+            while (true)
+            {
+                var stateMachines = await _service.Search(null, null);
+                foreach (var stateMachine in stateMachines)
+                {
+                    if (stateMachine.Status == StateMachineStatus.Failed)
+                        throw new InvalidOperationException(stateMachine.Exception);
+                }
+                if (stateMachines.All(x => x.Status == StateMachineStatus.Succeeded))
+                {
+                    stateMachines = await _service.Search(null, null);
+                    Assert.Equal(stateMachineIds.Count, stateMachines.Count);
+                    foreach (var stateMachine in stateMachines)
+                    {
+                        Assert.True(stateMachineIds.Contains(stateMachine.Id));
+                        Assert.True(stateMachine.EndTime != null);
+                        Assert.Equal(_configuration.Name, stateMachine.FromManagementService);
+                        Assert.Equal(StateMachineBase.FinalStage, stateMachine.Stage);
+                    }
+                    break;
+                }
+                await Task.Delay(1);
+            }
         }
 
         [Fact(Skip = "TODO")]
