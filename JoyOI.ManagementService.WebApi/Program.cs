@@ -36,7 +36,8 @@ namespace JoyOI.ManagementService.WebApi
                             httpsOptions.ClientCertificateValidation = (cert, chain, errors) =>
                             {
                                 // 检查客户端证书
-                                return cert.Equals(clientCertificate);
+                                // return cert.Equals(clientCertificate);
+                                return chain.Build(cert);
                             };
                             httpsOptions.SslProtocols = SslProtocols.Tls12;
                             listenOptions.UseHttps(httpsOptions);
