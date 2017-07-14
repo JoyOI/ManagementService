@@ -115,9 +115,34 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         Assert.True(stateMachine.EndTime != null);
                         Assert.Equal(_configuration.Name, stateMachine.FromManagementService);
                         Assert.Equal(StateMachineBase.FinalStage, stateMachine.Stage);
+                        var blob = stateMachine.StartedActors.Last().Outputs.FindBlob("stdout.txt");
+                        var stdout = (await _store.ReadBlobs(new[] { blob })).Last().Item2;
+                        Assert.Equal("simple state machine is ok\r\n", Encoding.UTF8.GetString(stdout));
                     }
                     break;
                 }
+                await Task.Delay(1);
+            }
+        }
+
+        [Fact]
+        public async Task PutError()
+        {
+            var putDto = await PutSimpleDataSet();
+            putDto.InitialBlobs[0].Id = await PutBlob("incorrect Main.c",
+                Encoding.UTF8.GetBytes("#include <stdiox.h>\r\nint main() { }"));
+            var stateMachineId = (await _service.Put(putDto)).Instance.Id;
+            while (true)
+            {
+                var stateMachine = await _service.Get(stateMachineId);
+                if (stateMachine.Status == StateMachineStatus.Failed)
+                {
+                    Assert.True(
+                        stateMachine.Exception.Contains("stdiox.h: No such file or directory"),
+                        stateMachine.Exception);
+                    break;
+                }
+                Assert.False(stateMachine.Status == StateMachineStatus.Succeeded);
                 await Task.Delay(1);
             }
         }
