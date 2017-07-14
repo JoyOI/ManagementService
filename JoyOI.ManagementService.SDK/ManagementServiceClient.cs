@@ -32,6 +32,13 @@ namespace JoyOI.ManagementService.SDK
             _client = new HttpClient(handler) { BaseAddress = new Uri(config["ManagementService:Url"]) };
         }
 
+        public ManagementServiceClient(string url, string certPath, string password)
+        {
+            var handler = new HttpClientHandler();
+            handler.ClientCertificates.Add(new X509Certificate(File.ReadAllBytes(certPath), password));
+            _client = new HttpClient(handler) { BaseAddress = new Uri(url) };
+        }
+
         public void Dispose()
         {
             _client.Dispose();
