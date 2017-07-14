@@ -26,8 +26,8 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.OK(dtos);
         }
 
-        [HttpGet]
-        public async Task<ApiResponse<BlobOutputDto>> Get([FromQuery]Guid id)
+        [HttpGet("{id}")]
+        public async Task<ApiResponse<BlobOutputDto>> Get(Guid id)
         {
             var dto = await _blobService.Get(id);
             if (dto == null)

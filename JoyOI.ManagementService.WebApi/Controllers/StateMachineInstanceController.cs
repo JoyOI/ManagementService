@@ -21,14 +21,14 @@ namespace JoyOI.ManagementService.WebApi.Controllers
 
         [HttpGet("Search")]
         public async Task<ApiResponse<IList<StateMachineInstanceOutputDto>>> Search(
-            [FromQuery]string name, [FromQuery]string currentActor)
+            string name, string currentActor)
         {
             var dtos = await _stateMachineInstanceService.Search(name, currentActor);
             return ApiResponse.OK(dtos);
         }
 
-        [HttpGet]
-        public async Task<ApiResponse<StateMachineInstanceOutputDto>> Get([FromQuery]Guid id)
+        [HttpGet("{id}")]
+        public async Task<ApiResponse<StateMachineInstanceOutputDto>> Get(Guid id)
         {
             var dto = await _stateMachineInstanceService.Get(id);
             if (dto == null)
@@ -44,17 +44,17 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.Custom(putResult.Code, putResult.Message, result);
         }
 
-        [HttpPatch]
+        [HttpPatch("{id}")]
         public async Task<ApiResponse<PatchResult>> Patch(
-            [FromQuery] Guid id, [FromBody]StateMachineInstancePatchDto dto)
+            Guid id, [FromBody]StateMachineInstancePatchDto dto)
         {
             var patchResult = await _stateMachineInstanceService.Patch(id, dto);
             var result = new PatchResult(patchResult.Code == 200 ? 1 : 0);
             return ApiResponse.Custom(patchResult.Code, patchResult.Message, result);
         }
 
-        [HttpDelete]
-        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] Guid id)
+        [HttpDelete("{id}")]
+        public async Task<ApiResponse<DeleteResult>> Delete(Guid id)
         {
             var deleted = await _stateMachineInstanceService.Delete(id);
             var result = new DeleteResult(deleted);
