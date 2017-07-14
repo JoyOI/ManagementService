@@ -85,7 +85,9 @@ namespace JoyOI.ManagementService.Services.Impl
                     Array.Copy(bodyBytes, bodyBytesStart, entity.Body, 0, entityBodySize);
                 }
                 bodyBytesStart += entityBodySize;
-                entity.TimeStamp = Mapper.Map<long, DateTime>(dto.TimeStamp);
+                entity.TimeStamp = dto.TimeStamp == 0 ?
+                    DateTime.UtcNow :
+                    Mapper.Map<long, DateTime>(dto.TimeStamp);
                 entity.BodyHash = bodyHash;
                 entity.CreateTime = DateTime.UtcNow;
                 yield return entity;

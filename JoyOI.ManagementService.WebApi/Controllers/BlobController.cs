@@ -23,11 +23,17 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         public async Task<ApiResponse<IList<BlobOutputDto>>> Get()
         {
             var dtos = await _blobService.GetAll(null);
+            // fix #3: GET /blob/all needs ignore body in response
+            // I can make it faster, but this api shouldn't use in normal case at all, so I just took the simple way
+            foreach (var dto in dtos)
+            {
+                dto.Body = null;
+            }
             return ApiResponse.OK(dtos);
         }
 
-        [HttpGet]
-        public async Task<ApiResponse<BlobOutputDto>> Get([FromQuery]Guid id)
+        [HttpGet("{id}")]
+        public async Task<ApiResponse<BlobOutputDto>> Get(Guid id)
         {
             var dto = await _blobService.Get(id);
             if (dto == null)

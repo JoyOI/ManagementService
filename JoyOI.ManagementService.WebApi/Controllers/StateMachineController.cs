@@ -26,8 +26,8 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.OK(dtos);
         }
 
-        [HttpGet]
-        public async Task<ApiResponse<StateMachineOutputDto>> Get([FromQuery]string name)
+        [HttpGet("{name}")]
+        public async Task<ApiResponse<StateMachineOutputDto>> Get(string name)
         {
             var dto = await _stateMachineService.Get(name);
             if (dto == null)
@@ -43,8 +43,8 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.OK(result);
         }
 
-        [HttpPatch]
-        public async Task<ApiResponse<PatchResult>> Patch([FromQuery] string name, [FromBody]StateMachineInputDto dto)
+        [HttpPatch("{name}")]
+        public async Task<ApiResponse<PatchResult>> Patch(string name, [FromBody]StateMachineInputDto dto)
         {
             var patched = await _stateMachineService.Patch(name, dto);
             var result = new PatchResult(patched);
@@ -53,8 +53,8 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.OK(result);
         }
 
-        [HttpDelete]
-        public async Task<ApiResponse<DeleteResult>> Delete([FromQuery] string name)
+        [HttpDelete("{name}")]
+        public async Task<ApiResponse<DeleteResult>> Delete(string name)
         {
             var deleted = await _stateMachineService.Delete(name);
             var result = new DeleteResult(deleted);

@@ -279,7 +279,6 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 // 如果之前已经运行过该状态机
                 if (instance.Stage != StateMachineBase.InitialStage ||
-                    instance.Status != StateMachineStatus.Running ||
                     instance.StartedActors.Count > 0)
                 {
                     // 查找该Stage之后的StartedActors
