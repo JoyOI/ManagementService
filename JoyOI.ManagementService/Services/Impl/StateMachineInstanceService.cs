@@ -130,6 +130,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 {
                     return StateMachineInstancePatchResultDto.NotFound("state machine not found");
                 }
+                stateMachineInstanceEntity.Status = StateMachineStatus.Running;
                 stateMachineInstanceEntity.Stage = dto.Stage ?? StateMachineBase.InitialStage;
                 stateMachineInstanceEntity.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
                 stateMachineInstanceEntity.FromManagementService = _configuration.Name;
