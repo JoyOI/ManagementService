@@ -1,8 +1,9 @@
 ﻿using AutoMapper;
 using JoyOI.ManagementService.Configuration;
 using JoyOI.ManagementService.DbContexts;
-using JoyOI.ManagementService.FunctionalTests.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
+using JoyOI.ManagementService.Model.Entities;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services.Impl;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
@@ -19,9 +20,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
     public abstract class TestServiceBase : IDisposable
     {
         protected JoyOIManagementConfiguration _configuration { get; set; }
-        protected string _databaseName { get; set; }
-        protected Func<JoyOIManagementContext> _contextFactory { get; set; }
-        protected JoyOIManagementContext _context;
+        protected DummyStorage _storage;
 
         public TestServiceBase()
         {
@@ -39,54 +38,45 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             _configuration = new JoyOIManagementConfiguration();
             configuration.GetSection("JoyOIManagement").Bind(_configuration);
             _configuration.AfterLoaded();
-            _databaseName = Guid.NewGuid().ToString();
-            _contextFactory = () => new FunctionalTestJoyOIManagementContext(_databaseName);
-            _context = _contextFactory();
+            _storage = new DummyStorage();
         }
 
         public virtual void Dispose()
         {
-            _context.Dispose();
         }
 
         protected async Task<Guid> PutActor(string name, string body)
         {
-            using (var context = _contextFactory())
+            var repository = new DummyRepository<ActorEntity, Guid>(_storage);
+            var service = new ActorService(repository);
+            return await service.Put(new ActorInputDto()
             {
-                var service = new ActorService(context);
-                return await service.Put(new ActorInputDto()
-                {
-                    Name = name,
-                    Body = body
-                });
-            }
+                Name = name,
+                Body = body
+            });
         }
 
         protected async Task<Guid> PutStateMachine(string name, string body)
         {
-            using (var context = _contextFactory())
+            var repository = new DummyRepository<StateMachineEntity, Guid>(_storage);
+            var service = new StateMachineService(repository);
+            return await service.Put(new StateMachineInputDto()
             {
-                var service = new StateMachineService(context);
-                return await service.Put(new StateMachineInputDto()
-                {
-                    Name = name,
-                    Body = body
-                });
-            }
+                Name = name,
+                Body = body
+            });
         }
 
         protected async Task<Guid> PutBlob(string remark, byte[] body)
         {
-            using (var context = _contextFactory())
+            var repository = new DummyRepository<BlobEntity, Guid>(_storage);
+            var service = new BlobService(repository);
+            return await service.Put(new BlobInputDto()
             {
-                var service = new BlobService(context);
-                return await service.Put(new BlobInputDto()
-                {
-                    TimeStamp = Mapper.Map<DateTime, long>(DateTime.UtcNow),
-                    Body = Mapper.Map<byte[], string>(body),
-                    Remark = remark
-                });
-            }
+                TimeStamp = Mapper.Map<DateTime, long>(DateTime.UtcNow),
+                Body = Mapper.Map<byte[], string>(body),
+                Remark = remark
+            });
         }
 
         protected async Task<StateMachineInstancePutDto> PutSimpleDataSet()

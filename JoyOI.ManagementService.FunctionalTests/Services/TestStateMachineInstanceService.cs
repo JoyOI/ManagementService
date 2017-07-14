@@ -1,7 +1,9 @@
 ﻿using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
+using JoyOI.ManagementService.Model.Entities;
 using JoyOI.ManagementService.Model.Enums;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services.Impl;
 using Newtonsoft.Json;
 using System;
@@ -21,18 +23,30 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         private StateMachineInstanceService _service;
         private ITestOutputHelper _outputHelper;
 
+        private class EmptyDisposable : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
         public TestStateMachineInstanceService(ITestOutputHelper outputHelper)
         {
-            _context = _contextFactory();
             _store = new StateMachineInstanceStore(
                 _configuration,
                 new DockerNodeStore(_configuration),
                 new DynamicCompileService());
-            _store.Initialize(_contextFactory);
+            _store.Initialize(
+                () => new EmptyDisposable(),
+                _ => new DummyRepository<BlobEntity, Guid>(_storage),
+                _ => new DummyRepository<ActorEntity, Guid>(_storage),
+                _ => new DummyRepository<StateMachineEntity, Guid>(_storage),
+                _ => new DummyRepository<StateMachineInstanceEntity, Guid>(_storage));
             _service = new StateMachineInstanceService(
                 _configuration,
-                _context,
-                _store);
+                _store,
+                new DummyRepository<StateMachineInstanceEntity, Guid>(_storage),
+                new DummyRepository<StateMachineEntity, Guid>(_storage));
             _outputHelper = outputHelper;
         }
 
