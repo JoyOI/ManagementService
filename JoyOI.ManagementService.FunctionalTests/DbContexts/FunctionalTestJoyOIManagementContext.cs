@@ -17,7 +17,7 @@ namespace JoyOI.ManagementService.FunctionalTests.DbContexts
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseInMemoryDatabase(_databaseName);
+            // optionsBuilder.UseInMemoryDatabase(_databaseName);
         }
     }
 }

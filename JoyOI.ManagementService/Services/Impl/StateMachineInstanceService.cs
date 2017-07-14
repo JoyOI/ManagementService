@@ -5,6 +5,7 @@ using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
 using JoyOI.ManagementService.Model.Enums;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -24,33 +25,36 @@ namespace JoyOI.ManagementService.Services.Impl
     {
         private const int ConcurrencyErrorMaxRetryTimes = 100;
         private JoyOIManagementConfiguration _configuration;
-        private JoyOIManagementContext _dbContext;
-        private DbSet<StateMachineInstanceEntity> _dbSet;
         private IStateMachineInstanceStore _stateMachineInstanceStore;
+        private IRepository<StateMachineInstanceEntity, Guid> _repository;
+        private IRepository<StateMachineEntity, Guid> _stateMachineRepository;
 
         public StateMachineInstanceService(
             JoyOIManagementConfiguration configuration,
-            JoyOIManagementContext dbContext,
-            IStateMachineInstanceStore stateMachineInstanceStore)
+            IStateMachineInstanceStore stateMachineInstanceStore,
+            IRepository<StateMachineInstanceEntity, Guid> repository,
+            IRepository<StateMachineEntity, Guid> stateMachineRepository)
         {
             _configuration = configuration;
-            _dbContext = dbContext;
-            _dbSet = dbContext.StateMachineInstances;
             _stateMachineInstanceStore = stateMachineInstanceStore;
+            _repository = repository;
+            _stateMachineRepository = stateMachineRepository;
         }
 
         public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string stage)
         {
-            var query = _dbSet.AsNoTracking();
-            if (!string.IsNullOrEmpty(name))
+            var entities = await _repository.QueryNoTrackingAsync(q =>
             {
-                query = query.Where(x => x.Name == name);
-            }
-            if (!string.IsNullOrEmpty(stage))
-            {
-                query = query.Where(x => x.Stage == stage);
-            }
-            var entities = await query.ToListAsync();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    q = q.Where(x => x.Name == name);
+                }
+                if (!string.IsNullOrEmpty(stage))
+                {
+                    q = q.Where(x => x.Stage == stage);
+                }
+                return q.ToListAsyncTestable();
+            });
             var dtos = new List<StateMachineInstanceOutputDto>(entities.Count);
             foreach (var entity in entities)
             {
@@ -61,7 +65,8 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<StateMachineInstanceOutputDto> Get(Guid id)
         {
-            var entity = await _dbSet.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            var entity = await _repository.QueryNoTrackingAsync(q =>
+                q.FirstOrDefaultAsyncTestable(x => x.Id == id));
             if (entity != null)
             {
                 var dto = Mapper.Map<StateMachineInstanceEntity, StateMachineInstanceOutputDto>(entity);
@@ -73,8 +78,8 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<StateMachineInstancePutResultDto> Put(StateMachineInstancePutDto dto)
         {
             // 获取name对应的状态机代码
-            var stateMachineEntity = await _dbContext.StateMachines
-                .FirstOrDefaultAsync(x => x.Name == dto.Name);
+            var stateMachineEntity = await _stateMachineRepository.QueryNoTrackingAsync(q =>
+                q.FirstOrDefaultAsyncTestable(x => x.Name == dto.Name));
             if (stateMachineEntity == null)
             {
                 return StateMachineInstancePutResultDto.NotFound("state machine not found");
@@ -102,8 +107,8 @@ namespace JoyOI.ManagementService.Services.Impl
             var stateMachineInstance = await _stateMachineInstanceStore.CreateInstance(
                 stateMachineEntity, stateMachineInstanceEntity);
             // 添加状态机实例到数据库
-            await _dbSet.AddAsync(stateMachineInstanceEntity);
-            await _dbContext.SaveChangesAsync();
+            await _repository.AddAsync(stateMachineInstanceEntity);
+            await _repository.SaveChangesAsync();
             // 运行状态机, 从这里开始会在后台运行
 #pragma warning disable CS4014
             _stateMachineInstanceStore.RunInstance(stateMachineInstance);
@@ -119,13 +124,14 @@ namespace JoyOI.ManagementService.Services.Impl
             StateMachineEntity stateMachineEntity = null;
             for (int from = 0; from <= ConcurrencyErrorMaxRetryTimes; ++from)
             {
-                stateMachineInstanceEntity = await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
+                stateMachineInstanceEntity = await _repository.QueryAsync(q =>
+                    q.FirstOrDefaultAsyncTestable(x => x.Id == id));
                 if (stateMachineInstanceEntity == null)
                 {
                     return StateMachineInstancePatchResultDto.NotFound("state machine instance not found");
                 }
-                stateMachineEntity = await _dbContext.StateMachines
-                    .FirstOrDefaultAsync(x => x.Name == stateMachineInstanceEntity.Name);
+                stateMachineEntity = await _stateMachineRepository.QueryNoTrackingAsync(q =>
+                    q.FirstOrDefaultAsyncTestable(x => x.Name == stateMachineInstanceEntity.Name));
                 if (stateMachineEntity == null)
                 {
                     return StateMachineInstancePatchResultDto.NotFound("state machine not found");
@@ -136,7 +142,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 stateMachineInstanceEntity.FromManagementService = _configuration.Name;
                 try
                 {
-                    await _dbContext.SaveChangesAsync();
+                    await _repository.SaveChangesAsync();
                     break;
                 }
                 catch (DbUpdateConcurrencyException)
@@ -164,15 +170,16 @@ namespace JoyOI.ManagementService.Services.Impl
             StateMachineInstanceEntity stateMachineInstanceEntity = null;
             for (int from = 0; from <= ConcurrencyErrorMaxRetryTimes; ++from)
             {
-                stateMachineInstanceEntity = await _dbSet.FirstOrDefaultAsync(x => x.Id == id);
+                stateMachineInstanceEntity = await _repository.QueryAsync(q =>
+                    q.FirstOrDefaultAsyncTestable(x => x.Id == id));
                 if (stateMachineInstanceEntity == null)
                 {
                     return 0;
                 }
-                _dbSet.Remove(stateMachineInstanceEntity);
+                _repository.Remove(stateMachineInstanceEntity);
                 try
                 {
-                    await _dbContext.SaveChangesAsync();
+                    await _repository.SaveChangesAsync();
                     break;
                 }
                 catch (DbUpdateConcurrencyException)

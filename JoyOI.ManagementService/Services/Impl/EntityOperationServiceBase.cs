@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using System.Linq;
 using JoyOI.ManagementService.Utils;
+using JoyOI.ManagementService.Repositories;
+using JoyOI.ManagementService.Core;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -22,42 +24,36 @@ namespace JoyOI.ManagementService.Services.Impl
         where TInputDto : IInputDto
         where TOutputDto : IOutputDto
     {
-        private DbContext _dbContext;
-        private DbSet<TEntity> _dbSet;
-        private bool _isInMemory;
+        private IRepository<TEntity, TPrimaryKey> _repository;
 
-        public EntityOperationServiceBase(DbContext dbContext)
+        public EntityOperationServiceBase(IRepository<TEntity, TPrimaryKey> repository)
         {
-            _dbContext = dbContext;
-            _dbSet = dbContext.Set<TEntity>();
-            _isInMemory = DbContextUtils.IsMemoryDb(dbContext);
+            _repository = repository;
         }
 
         public async Task<long> Delete(Expression<Func<TEntity, bool>> expression)
         {
-            var query = _dbSet.Where(expression);
-            if (!_isInMemory)
-            {
-                // InMemoryDatabase doesn't support this approach
-                query = query.Select(x => new TEntity() { Id = x.Id });
-            }
-            var entity = await query.FirstOrDefaultAsync();
+            var entity = await _repository.QueryAsync(q => q
+                .Where(expression)
+                .Select(x => new TEntity() { Id = x.Id })
+                .FirstOrDefaultAsyncTestable());
             if (entity != null)
             {
-                _dbSet.Remove(entity);
-                return await _dbContext.SaveChangesAsync();
+                _repository.Remove(entity);
+                await _repository.SaveChangesAsync();
+                return 1;
             }
             return 0;
         }
 
         public async Task<TOutputDto> Get(Expression<Func<TEntity, bool>> expression)
         {
-            var queryable = _dbSet.AsNoTracking();
-            if (expression != null)
+            var entity = await _repository.QueryNoTrackingAsync(q =>
             {
-                queryable = queryable.Where(expression);
-            }
-            var entity = await queryable.FirstOrDefaultAsync();
+                if (expression != null)
+                    q = q.Where(expression);
+                return q.FirstOrDefaultAsyncTestable();
+            });
             if (entity != null)
             {
                 var dto = Mapper.Map<TEntity, TOutputDto>(entity);
@@ -68,12 +64,12 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<IList<TOutputDto>> GetAll(Expression<Func<TEntity, bool>> expression)
         {
-            var queryable = _dbSet.AsNoTracking();
-            if (expression != null)
+            var entities = await _repository.QueryNoTrackingAsync(q =>
             {
-                queryable = queryable.Where(expression);
-            }
-            var entities = await queryable.ToListAsync();
+                if (expression != null)
+                    q = q.Where(expression);
+                return q.ToListAsyncTestable();
+            });
             var dtos = new List<TOutputDto>(entities.Count);
             foreach (var entity in entities)
             {
@@ -84,7 +80,8 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<long> Patch(Expression<Func<TEntity, bool>> expression, TInputDto dto)
         {
-            var entity = await _dbSet.FirstOrDefaultAsync(expression);
+            var entity = await _repository.QueryAsync(q =>
+                q.FirstOrDefaultAsyncTestable(expression));
             if (entity != null)
             {
                 Mapper.Map<TInputDto, TEntity>(dto, entity);
@@ -92,8 +89,9 @@ namespace JoyOI.ManagementService.Services.Impl
                 {
                     updateTimeEntity.UpdateTime = DateTime.UtcNow;
                 }
-                _dbSet.Update(entity); // 设置所有字段为updated, 以防万一检测不出
-                return await _dbContext.SaveChangesAsync();
+                _repository.Update(entity); // 设置所有字段为updated, 以防万一检测不出
+                await _repository.SaveChangesAsync();
+                return 1;
             }
             return 0;
         }
@@ -111,8 +109,8 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 updateTimeEntity.UpdateTime = DateTime.UtcNow;
             }
-            await _dbSet.AddAsync(entity);
-            await _dbContext.SaveChangesAsync();
+            await _repository.AddAsync(entity);
+            await _repository.SaveChangesAsync();
             return entity.Id;
         }
     }

@@ -22,6 +22,7 @@ using Newtonsoft.Json;
 using JoyOI.ManagementService.Model.Dtos;
 using AutoMapper;
 using Docker.DotNet;
+using JoyOI.ManagementService.Repositories;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -87,7 +88,11 @@ namespace JoyOI.ManagementService.Services.Impl
         private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
         private ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
         private TimeSpan _actorCodeCacheTime;
-        private Func<JoyOIManagementContext> _contextFactory;
+        private Func<IDisposable> _contextFactory;
+        private Func<IDisposable, IRepository<BlobEntity, Guid>> _blobRepositoryFactory;
+        private Func<IDisposable, IRepository<ActorEntity, Guid>> _actorRepositoryFactory;
+        private Func<IDisposable, IRepository<StateMachineEntity, Guid>> _stateMachineRepositoryFactory;
+        private Func<IDisposable, IRepository<StateMachineInstanceEntity, Guid>> _stateMachineInstanceRepositoryFactory;
         private bool _initilaized;
         private object _initializeLock;
 
@@ -103,11 +108,20 @@ namespace JoyOI.ManagementService.Services.Impl
             _actorCodeCache = new ConcurrentDictionary<string, (string, DateTime)>();
             _actorCodeCacheTime = TimeSpan.FromSeconds(1);
             _contextFactory = null;
+            _blobRepositoryFactory = null;
+            _actorRepositoryFactory = null;
+            _stateMachineRepositoryFactory = null;
+            _stateMachineInstanceRepositoryFactory = null;
             _initilaized = false;
             _initializeLock = new object();
         }
 
-        public void Initialize(Func<JoyOIManagementContext> contextFactory)
+        public void Initialize(
+            Func<IDisposable> contextFactory,
+            Func<IDisposable, IRepository<BlobEntity, Guid>> blobRepositoryFactory,
+            Func<IDisposable, IRepository<ActorEntity, Guid>> actorRepositoryFactory,
+            Func<IDisposable, IRepository<StateMachineEntity, Guid>> stateMachineRepositoryFactory,
+            Func<IDisposable, IRepository<StateMachineInstanceEntity, Guid>> stateMachineInstanceRepositoryFactory)
         {
             if (_initilaized)
             {
@@ -116,6 +130,10 @@ namespace JoyOI.ManagementService.Services.Impl
             lock (_initializeLock)
             {
                 _contextFactory = contextFactory;
+                _blobRepositoryFactory = blobRepositoryFactory;
+                _actorRepositoryFactory = actorRepositoryFactory;
+                _stateMachineRepositoryFactory = stateMachineRepositoryFactory;
+                _stateMachineInstanceRepositoryFactory = stateMachineInstanceRepositoryFactory;
                 RemoveStoppedContainers();
                 ContinueRunningInstances();
                 _initilaized = true;
@@ -158,16 +176,17 @@ namespace JoyOI.ManagementService.Services.Impl
             var continueInstances = new List<StateMachineInstanceEntity>();
             using (var context = _contextFactory())
             {
-                var runningInstances = context.StateMachineInstances
+                var stateMachineRepository = _stateMachineRepositoryFactory(context);
+                var stateMachineInstanceRepository = _stateMachineInstanceRepositoryFactory(context);
+                var runningInstances = stateMachineInstanceRepository.QueryNoTrackingAsync(q => q
                     .Where(x =>
                         x.Status == StateMachineStatus.Running &&
-                        x.FromManagementService == _configuration.Name)
-                    .ToList();
+                        x.FromManagementService == _configuration.Name).ToListAsyncTestable()).Result;
                 var stateMachineNames = runningInstances
                     .Select(c => c.Name).Distinct().ToList();
-                stateMachineMap = context.StateMachines
-                    .Where(x => stateMachineNames.Contains(x.Name))
-                    .ToDictionary(x => x.Name);
+                stateMachineMap = stateMachineRepository.QueryNoTrackingAsync(q => q
+                    .Where(x => stateMachineNames
+                    .Contains(x.Name)).ToDictionaryAsyncTestable(x => x.Name)).Result;
                 // 判断重新运行次数, 超过最大次数的标记状态到失败
                 foreach (var instance in runningInstances)
                 {
@@ -193,7 +212,8 @@ namespace JoyOI.ManagementService.Services.Impl
                         instance.StartedActors = startedActors;
                     }
                 }
-                context.SaveChanges();
+                stateMachineRepository.SaveChangesAsync().Wait();
+                stateMachineInstanceRepository.SaveChangesAsync().Wait();
             }
             // 继续执行这些状态机实例
             foreach (var instance in continueInstances)
@@ -211,8 +231,9 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             using (var context = _contextFactory())
             {
-                var instanceEntity = await context.StateMachineInstances
-                    .FirstOrDefaultAsync(x => x.Id == id);
+                var repository = _stateMachineInstanceRepositoryFactory(context);
+                var instanceEntity = await repository.QueryAsync(q =>
+                    q.FirstOrDefaultAsyncTestable(x => x.Id == id));
                 if (instanceEntity == null)
                 {
                     // 运行中被DELETE了
@@ -226,7 +247,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 update(instanceEntity);
                 try
                 {
-                    await context.SaveChangesAsync();
+                    await repository.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -550,7 +571,8 @@ namespace JoyOI.ManagementService.Services.Impl
             // 添加单个blob, 返回blob id
             using (var context = _contextFactory())
             {
-                var blobService = new BlobService(context);
+                var repository = _blobRepositoryFactory(context);
+                var blobService = new BlobService(repository);
                 return await blobService.Put(new BlobInputDto()
                 {
                     Body = Mapper.Map<byte[], string>(contents),
@@ -567,10 +589,11 @@ namespace JoyOI.ManagementService.Services.Impl
             var blobIds = result.Select(x => x.Item1.Id).ToList();
             using (var context = _contextFactory())
             {
-                var blobs = await context.Blobs
+                var repository = _blobRepositoryFactory(context);
+                var blobs = await repository.QueryNoTrackingAsync(q => q
                     .Where(x => blobIds.Contains(x.BlobId))
                     .GroupBy(x => x.BlobId)
-                    .ToDictionaryAsync(x => x.Key, x => x.OrderBy(b => b.ChunkIndex).ToList());
+                    .ToDictionaryAsyncTestable(x => x.Key, x => x.OrderBy(b => b.ChunkIndex).ToList()));
                 for (var x = 0; x < result.Count; ++x)
                 {
                     var (blob, contents) = result[x];
@@ -594,7 +617,9 @@ namespace JoyOI.ManagementService.Services.Impl
             // 从数据库获取
             using (var context = _contextFactory())
             {
-                var actor = await context.Actors.FirstOrDefaultAsync(x => x.Name == name);
+                var repository = _actorRepositoryFactory(context);
+                var actor = await repository.QueryNoTrackingAsync(q =>
+                    q.FirstOrDefaultAsyncTestable(x => x.Name == name));
                 codeAndTime.Item1 = actor?.Body;
                 codeAndTime.Item2 = DateTime.UtcNow;
             }

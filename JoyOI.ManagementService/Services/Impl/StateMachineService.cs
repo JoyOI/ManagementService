@@ -3,8 +3,8 @@ using JoyOI.ManagementService.Model.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using JoyOI.ManagementService.DbContexts;
 using System.Threading.Tasks;
+using JoyOI.ManagementService.Repositories;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -15,7 +15,7 @@ namespace JoyOI.ManagementService.Services.Impl
         EntityOperationServiceBase<StateMachineEntity, Guid, StateMachineInputDto, StateMachineOutputDto>,
         IStateMachineService
     {
-        public StateMachineService(JoyOIManagementContext dbContext) : base(dbContext)
+        public StateMachineService(IRepository<StateMachineEntity, Guid> repository) : base(repository)
         {
         }
 

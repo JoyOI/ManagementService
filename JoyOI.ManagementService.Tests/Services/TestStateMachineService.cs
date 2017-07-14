@@ -1,4 +1,6 @@
 ﻿using JoyOI.ManagementService.Model.Dtos;
+using JoyOI.ManagementService.Model.Entities;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -17,8 +19,7 @@ namespace JoyOI.ManagementService.Tests.Services
 
         public TestStateMachineService()
         {
-
-            _service = new StateMachineService(_context);
+            _service = new StateMachineService(new DummyRepository<StateMachineEntity, Guid>(_storage));
         }
 
         [Fact]

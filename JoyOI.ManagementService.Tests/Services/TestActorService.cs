@@ -1,4 +1,6 @@
 ﻿using JoyOI.ManagementService.Model.Dtos;
+using JoyOI.ManagementService.Model.Entities;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
 using System;
@@ -16,8 +18,7 @@ namespace JoyOI.ManagementService.Tests.Services
 
         public TestActorService()
         {
-            
-            _service = new ActorService(_context);
+            _service = new ActorService(new DummyRepository<ActorEntity, Guid>(_storage));
         }
 
         [Fact]

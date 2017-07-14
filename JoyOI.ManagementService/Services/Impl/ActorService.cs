@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using JoyOI.ManagementService.DbContexts;
 using System.Threading.Tasks;
+using JoyOI.ManagementService.Repositories;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -15,7 +16,7 @@ namespace JoyOI.ManagementService.Services.Impl
         EntityOperationServiceBase<ActorEntity, Guid, ActorInputDto, ActorOutputDto>,
         IActorService
     {
-        public ActorService(JoyOIManagementContext dbContext) : base(dbContext)
+        public ActorService(IRepository<ActorEntity, Guid> repository) : base(repository)
         {
         }
 

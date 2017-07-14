@@ -6,10 +6,11 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using JoyOI.ManagementService.DbContexts;
 using System.Linq;
 using AutoMapper;
 using JoyOI.ManagementService.Utils;
+using JoyOI.ManagementService.Repositories;
+using JoyOI.ManagementService.Core;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -20,15 +21,11 @@ namespace JoyOI.ManagementService.Services.Impl
     /// </summary>
     internal class BlobService : IBlobService
     {
-        private JoyOIManagementContext _dbContext;
-        private DbSet<BlobEntity> _dbSet;
-        private bool _isInMemory;
+        private IRepository<BlobEntity, Guid> _repository;
 
-        public BlobService(JoyOIManagementContext dbContext)
+        public BlobService(IRepository<BlobEntity, Guid> repository)
         {
-            _dbContext = dbContext;
-            _dbSet = dbContext.Blobs;
-            _isInMemory = DbContextUtils.IsMemoryDb(dbContext);
+            _repository = repository;
         }
 
         public BlobOutputDto MergeChunks(IList<BlobEntity> entities)
@@ -71,6 +68,7 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 var entityBodySize = Math.Min(bodyBytes.Length - bodyBytesStart, BlobEntity.BlobChunkSize);
                 var entity = new BlobEntity();
+                entity.Id = PrimaryKeyUtils.Generate<Guid>();
                 entity.BlobId = blobId;
                 entity.ChunkIndex = chunkIndex++;
                 entity.Remark = dto.Remark;
@@ -97,23 +95,21 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<long> Delete(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities = null;
-            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
+            using (var transaction = await _repository.BeginTransactionAsync())
             {
-                var query = _dbSet.Where(expression);
-                if (!_isInMemory)
+                entities = await _repository.QueryAsync(q =>
                 {
-                    query = query.Select(x => new BlobEntity()
+                    return q.Where(expression).Select(x => new BlobEntity()
                     {
                         Id = x.Id,
                         BlobId = x.BlobId,
                         ChunkIndex = x.ChunkIndex
-                    });
-                }
-                entities = await query.ToListAsync();
+                    }).ToListAsyncTestable();
+                });
                 if (entities.Count > 0)
                 {
-                    _dbSet.RemoveRange(entities);
-                    await _dbContext.SaveChangesAsync();
+                    _repository.RemoveRange(entities);
+                    await _repository.SaveChangesAsync();
                     transaction.Commit();
                 }
             }
@@ -128,12 +124,10 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<BlobOutputDto> Get(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities;
-            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
+            using (var transaction = await _repository.BeginTransactionAsync())
             {
-                entities = _dbSet.AsNoTracking()
-                    .Where(expression)
-                    .OrderBy(x => x.ChunkIndex)
-                    .ToList();
+                entities = await _repository.QueryNoTrackingAsync(q =>
+                    q.Where(expression).OrderBy(x => x.ChunkIndex).ToListAsyncTestable());
             }
             return MergeChunks(entities);
         }
@@ -146,14 +140,14 @@ namespace JoyOI.ManagementService.Services.Impl
         public async Task<IList<BlobOutputDto>> GetAll(Expression<Func<BlobEntity, bool>> expression)
         {
             IList<BlobEntity> entities;
-            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
+            using (var transaction = await _repository.BeginTransactionAsync())
             {
-                var queryable = _dbSet.AsNoTracking();
-                if (expression != null)
+                entities = await _repository.QueryNoTrackingAsync(q =>
                 {
-                    queryable = queryable.Where(expression);
-                }
-                entities = await queryable.ToListAsync();
+                    if (expression != null)
+                        q = q.Where(expression);
+                    return q.ToListAsyncTestable();
+                });
             }
             var dtos = new List<BlobOutputDto>(32);
             foreach (var group in entities.GroupBy(e => e.BlobId))
@@ -165,7 +159,7 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public Task<long> Patch(Expression<Func<BlobEntity, bool>> expression, BlobInputDto dto)
         {
-            throw new NotSupportedException("modify an exist blob without changing it's blob id is dangerous");
+            throw new NotSupportedException("modify an exist blob without changing it's blob id is dangerous and unsupported");
         }
 
         public Task<long> Patch(Guid key, BlobInputDto dto)
@@ -177,21 +171,21 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             var blobId = PrimaryKeyUtils.Generate<Guid>();
             var chunks = new List<BlobEntity>(SplitChunks(blobId, dto));
-            using (var transaction = await DbContextUtils.BeginTransactionAsync(_dbContext, _isInMemory))
+            using (var transaction = await _repository.BeginTransactionAsync())
             {
                 // 如果有相同内容的blob时, 返回原blob的id
-                var existBlobId = await _dbSet
-                    .Where(x => x.BodyHash == chunks[0].BodyHash)
-                    .Select(x => x.BlobId)
-                    .FirstOrDefaultAsync();
+                var existBlobId = await _repository.QueryNoTrackingAsync(q =>
+                    q.Where(x => x.BodyHash == chunks[0].BodyHash)
+                        .Select(x => x.BlobId)
+                        .FirstOrDefaultAsyncTestable());
                 if (existBlobId != Guid.Empty)
                 {
                     return existBlobId;
                 }
                 // 添加新的blob
                 // 注意并发添加时可能会添加相同内容的blob
-                await _dbSet.AddRangeAsync(chunks);
-                await _dbContext.SaveChangesAsync();
+                await _repository.AddRangeAsync(chunks);
+                await _repository.SaveChangesAsync();
                 transaction.Commit();
             }
             return blobId;

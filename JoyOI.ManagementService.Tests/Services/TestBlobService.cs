@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
 using JoyOI.ManagementService.Utils;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +17,13 @@ namespace JoyOI.ManagementService.Tests.Services
 {
     public class TestBlobService : TestServiceBase
     {
+        private IRepository<BlobEntity, Guid> _repository;
         private IBlobService _service;
 
         public TestBlobService()
         {
-            _service = new BlobService(_context);
+            _repository = new DummyRepository<BlobEntity, Guid>(_storage);
+            _service = new BlobService(_repository);
         }
 
         private BlobInputDto GetSmallBlob()
@@ -97,7 +101,8 @@ namespace JoyOI.ManagementService.Tests.Services
         {
             var smallBlob = GetSmallBlob();
             var smallId = await _service.Put(smallBlob);
-            var smallChunks = _context.Blobs.Count(x => x.BlobId == smallId);
+            var smallChunks = await _repository.QueryNoTrackingAsync(q =>
+                Task.FromResult(q.Count(x => x.BlobId == smallId)));
             Assert.Equal(1, smallChunks);
 
             var smallBlobGet = await _service.Get(smallId);
@@ -112,7 +117,8 @@ namespace JoyOI.ManagementService.Tests.Services
         {
             var largeBlob = GetLargeBlob();
             var largeId = await _service.Put(largeBlob);
-            var largeChunks = _context.Blobs.Count(x => x.BlobId == largeId);
+            var largeChunks = await _repository.QueryNoTrackingAsync(q =>
+                Task.FromResult(q.Count(x => x.BlobId == largeId)));
             Assert.Equal(3, largeChunks);
 
             var largeBlobGet = await _service.Get(largeId);

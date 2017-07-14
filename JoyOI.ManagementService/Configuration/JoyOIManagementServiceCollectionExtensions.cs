@@ -2,7 +2,9 @@
 using JoyOI.ManagementService.Configuration;
 using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
+using JoyOI.ManagementService.Model.Entities;
 using JoyOI.ManagementService.Model.MapperProfiles;
+using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
 using System;
@@ -54,6 +56,10 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton(configuration);
 
             // 注册服务
+            services.AddTransient<IRepository<ActorEntity, Guid>, EFCoreRepository<ActorEntity, Guid>>();
+            services.AddTransient<IRepository<BlobEntity, Guid>, EFCoreRepository<BlobEntity, Guid>>();
+            services.AddTransient<IRepository<StateMachineEntity, Guid>, EFCoreRepository<StateMachineEntity, Guid>>();
+            services.AddTransient<IRepository<StateMachineInstanceEntity, Guid>, EFCoreRepository<StateMachineInstanceEntity, Guid>>();
             services.AddTransient<IActorService, ActorService>();
             services.AddTransient<IBlobService, BlobService>();
             services.AddTransient<IStateMachineService, StateMachineService>();
@@ -77,7 +83,12 @@ namespace Microsoft.Extensions.DependencyInjection
             // 启动状态机实例仓库
             // 会继续之前未执行完毕的状态机
             var stateMahcineInstaceStore = services.GetRequiredService<IStateMachineInstanceStore>();
-            stateMahcineInstaceStore.Initialize(() => new JoyOIManagementContext());
+            stateMahcineInstaceStore.Initialize(
+                () => new JoyOIManagementContext(),
+                ctx => new EFCoreRepository<BlobEntity, Guid>((JoyOIManagementContext)ctx),
+                ctx => new EFCoreRepository<ActorEntity, Guid>((JoyOIManagementContext)ctx),
+                ctx => new EFCoreRepository<StateMachineEntity, Guid>((JoyOIManagementContext)ctx),
+                ctx => new EFCoreRepository<StateMachineInstanceEntity, Guid>((JoyOIManagementContext)ctx));
             CoreExtensions.StaticStore = stateMahcineInstaceStore;
         }
     }

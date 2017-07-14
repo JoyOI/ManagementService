@@ -1,6 +1,7 @@
 ﻿using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Entities;
+using JoyOI.ManagementService.Repositories;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,12 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 初始化仓库
         /// </summary>
-        void Initialize(Func<JoyOIManagementContext> contextFactory);
+        void Initialize(
+            Func<IDisposable> contextFactory,
+            Func<IDisposable, IRepository<BlobEntity, Guid>> blobRepositoryFactory,
+            Func<IDisposable, IRepository<ActorEntity, Guid>> actorRepositoryFactory,
+            Func<IDisposable, IRepository<StateMachineEntity, Guid>> stateMachineRepositoryFactory,
+            Func<IDisposable, IRepository<StateMachineInstanceEntity, Guid>> stateMachineInstanceRepositoryFactory);
 
         /// <summary>
         /// 编译状态机代码并返回实例

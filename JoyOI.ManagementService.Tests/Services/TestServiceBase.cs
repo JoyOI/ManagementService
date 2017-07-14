@@ -1,5 +1,5 @@
 ﻿using JoyOI.ManagementService.DbContexts;
-using JoyOI.ManagementService.Tests.DbContexts;
+using JoyOI.ManagementService.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -9,17 +9,16 @@ namespace JoyOI.ManagementService.Tests.Services
 {
     public abstract class TestServiceBase : IDisposable
     {
-        protected JoyOIManagementContext _context;
+        protected DummyStorage _storage;
 
         public TestServiceBase()
         {
             JoyOIManagementServiceCollectionExtensions.InitializeStaticFunctions();
-            _context = new TestJoyOIManagementContext();
+            _storage = new DummyStorage();
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
-            _context.Dispose();
         }
     }
 }
