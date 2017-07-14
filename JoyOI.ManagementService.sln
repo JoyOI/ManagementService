@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26711.1
+VisualStudioVersion = 15.0.26621.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService", "JoyOI.ManagementService\JoyOI.ManagementService.csproj", "{44D4F985-F50C-4909-AE49-C51B4485FC67}"
 EndProject
@@ -20,6 +20,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playgrounds", "Playgrounds", "{B92651AF-5FA4-4F39-A45A-DE5FB9BEDFBF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JoyOI.ManagementService.Playground", "JoyOI.ManagementService.Playground\JoyOI.ManagementService.Playground.csproj", "{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JoyOI.ManagementService.SDK", "JoyOI.ManagementService.SDK\JoyOI.ManagementService.SDK.csproj", "{44D7B880-62C6-4FEA-9C75-69FEF69CA375}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44D7B880-62C6-4FEA-9C75-69FEF69CA375}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44D7B880-62C6-4FEA-9C75-69FEF69CA375}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44D7B880-62C6-4FEA-9C75-69FEF69CA375}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44D7B880-62C6-4FEA-9C75-69FEF69CA375}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -62,6 +68,7 @@ Global
 		{CEA0F437-A34D-4D3D-937B-2E046BC9B35C} = {B7FDCE83-DE67-4656-9573-95692B5CEB76}
 		{BCE8051F-387D-487A-AAB6-AB35C260AE21} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
 		{21C2B09B-28DD-44E3-93E3-863A7A61AD5D} = {B92651AF-5FA4-4F39-A45A-DE5FB9BEDFBF}
+		{44D7B880-62C6-4FEA-9C75-69FEF69CA375} = {3703B989-41C6-4194-B1D5-14E63C1F9C3D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AFAF2E18-CD2A-4C7E-8D88-EEFCAEEFF910}
