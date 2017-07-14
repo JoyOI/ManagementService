@@ -7,9 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Microsoft.EntityFrameworkCore.Migrations;
+using JoyOI.ManagementService.Model.Enums;
 using JoyOI.ManagementService.Model.Dtos;
 
 namespace JoyOI.ManagementService.SDK
@@ -17,6 +19,10 @@ namespace JoyOI.ManagementService.SDK
     public class ManagementServiceClient : IDisposable
     {
         private const string _apiVersion = "/api/v1";
+        private const string _blobController = "blob";
+        private const string _stateMachineDefinitionController = "statemachine";
+        private const string _stateMachineInstanceController = "statemachineinstance";
+        private const string _actorController = "actor";
         private HttpClient _client;
 
         public ManagementServiceClient(IConfiguration config)
@@ -32,9 +38,9 @@ namespace JoyOI.ManagementService.SDK
         }
 
         #region Base
-        private async Task<IEnumerable<T>> GetAllBaseAsync<T>(string controller, CancellationToken token = default(CancellationToken))
+        private async Task<IEnumerable<T>> GetAllBaseAsync<T>(string controller, string queryString = null, CancellationToken token = default(CancellationToken))
         {
-            var result = await _client.GetAsync(_apiVersion + "/" + controller + "/all", token);
+            var result = await _client.GetAsync(_apiVersion + "/" + controller + "/all" + (string.IsNullOrEmpty(queryString) ? "" : queryString), token);
             var response = await result.Content.ReadAsStringAsync();
             if (result.StatusCode == System.Net.HttpStatusCode.OK)
             {
@@ -42,6 +48,9 @@ namespace JoyOI.ManagementService.SDK
             }
             throw new ManagementServiceException(response);
         }
+
+        private Task<IEnumerable<T>> GetAllBaseAsync<T>(string controller, CancellationToken token = default(CancellationToken))
+            => GetAllBaseAsync<T>(controller, null, token);
 
         private async Task<T> PutBaseAsync<T>(string controller, object body, string idFieldName = "id", CancellationToken token = default(CancellationToken))
         {
@@ -112,16 +121,16 @@ namespace JoyOI.ManagementService.SDK
 
         #region Blobs
         public Task<IEnumerable<BlobOutputDto>> GetAllBlobsAsync(CancellationToken token = default(CancellationToken))
-            => GetAllBaseAsync<BlobOutputDto>("blob", token);
+            => GetAllBaseAsync<BlobOutputDto>(_blobController, token);
 
         public Task<Guid> PutBlobAsync(string name, byte[] body, CancellationToken token = default(CancellationToken))
-            => PutBaseAsync<Guid>("blob", new { Remark = name, Body = Convert.ToBase64String(body) }, "id", token);
+            => PutBaseAsync<Guid>(_blobController, new { Remark = name, Body = Convert.ToBase64String(body) }, "id", token);
 
         public Task<(string Name, byte[] Body, long Timestamp)> GetBlobAsync(Guid id, CancellationToken token = default(CancellationToken))
-            => GetBaseAsync<BlobOutputDto, (string Name, byte[] Body, long Timestamp)>("blob", id, x => (x.Remark, Convert.FromBase64String(x.Body), x.TimeStamp), token);
+            => GetBaseAsync<BlobOutputDto, (string Name, byte[] Body, long Timestamp)>(_blobController, id, x => (x.Remark, Convert.FromBase64String(x.Body), x.TimeStamp), token);
 
         public Task DeleteBlobAsync(Guid id, CancellationToken token = default(CancellationToken))
-            => DeleteBaseAsync("blob", id, token);
+            => DeleteBaseAsync(_blobController, id, token);
         #endregion
 
         #region StateMachineDefinition
@@ -136,7 +145,7 @@ namespace JoyOI.ManagementService.SDK
 
         public Task PutStateMachineDefinitionAsync(string name, string code, ContainerLimitation limitation = null, CancellationToken token = default(CancellationToken))
             => PutBaseAsync(
-                "statemachine",
+               _stateMachineDefinitionController,
                 new
                 {
                     Name = name,
@@ -150,8 +159,8 @@ namespace JoyOI.ManagementService.SDK
 
         public Task PatchStateMachineDefinitionAsync(string name, string code, ContainerLimitation limitation = null, CancellationToken token = default(CancellationToken))
             => PatchBaseAsync(
-                "statemachine", 
-                name, 
+               _stateMachineDefinitionController,
+                name,
                 new
                 {
                     Name = name,
@@ -181,7 +190,37 @@ namespace JoyOI.ManagementService.SDK
         #endregion
 
         #region StateMachineInstance
+        public Task<IEnumerable<StateMachineInstanceOutputDto>> GetAllStateMachineInstancesAsync(string stateMachineName, string stage = null, StateMachineStatus? status = null, DateTime? begin = null, DateTime? end = null, CancellationToken token = default(CancellationToken))
+        {
+            var queryString = new QueryString();
+            if (!string.IsNullOrWhiteSpace(stateMachineName))
+                queryString = queryString.Add("name", stateMachineName);
+            if (!string.IsNullOrWhiteSpace(stage))
+                queryString = queryString.Add("stage", stage);
+            if (status.HasValue)
+                queryString = queryString.Add("status", status.Value.ToString());
+            if (begin.HasValue)
+                queryString = queryString.Add("begin", begin.Value.ToString());
+            if (end.HasValue)
+                queryString = queryString.Add("end", end.Value.ToString());
 
+            return GetAllBaseAsync<StateMachineInstanceOutputDto>("statemachineinstance", queryString.Value, token);
+        }
+
+        public Task<StateMachineInstanceOutputDto> GetStateMachineInstanceAsync(Guid id, CancellationToken token = default(CancellationToken))
+            => GetBaseAsync<StateMachineInstanceOutputDto>("statemachineinstance", id, token);
+
+        public Task DeleteStateMachineInstance(Guid id, CancellationToken token = default(CancellationToken))
+            => DeleteBaseAsync(_stateMachineInstanceController, id, token);
+
+        public Task<Guid> PutStateMachineInstance(string stateMachineName, IEnumerable<BlobInfo> blobs = null, CancellationToken token = default(CancellationToken))
+            => PutBaseAsync<Guid>(_stateMachineInstanceController, new { Name = stateMachineName, InitialBlobs = blobs });
+
+        public Task<Guid> PutStateMachineInstanceAsync(string stateMachineName, IEnumerable<BlobInfo> blobs, CancellationToken token = default(CancellationToken))
+            => PutStateMachineInstanceAsync(stateMachineName, null, token);
+
+        public Task PatchStateMachineInstanceAsync(Guid id, string stage, CancellationToken token = default(CancellationToken))
+            => PatchBaseAsync(_stateMachineInstanceController, id, new { Stage = stage }, token);
         #endregion
     }
 }
