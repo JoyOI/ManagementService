@@ -141,7 +141,7 @@ namespace JoyOI.ManagementService.SDK
         #endregion
 
         #region StateMachineDefinition
-        public Task<IEnumerable<StateMachineOutputDto>> GetAllStateMachineDefinitions(CancellationToken token = default(CancellationToken))
+        public Task<IEnumerable<StateMachineOutputDto>> GetAllStateMachineDefinitionsAsync(CancellationToken token = default(CancellationToken))
             => GetAllBaseAsync<StateMachineOutputDto>("statemachine", token);
 
         public Task<StateMachineOutputDto> GetStateMachineDefinitionAsync(string name, CancellationToken token = default(CancellationToken))
