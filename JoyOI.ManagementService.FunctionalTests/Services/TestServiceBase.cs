@@ -22,6 +22,13 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         protected JoyOIManagementConfiguration _configuration { get; set; }
         protected DummyStorage _storage;
 
+        internal class EmptyDisposable : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
         public TestServiceBase()
         {
             var dir = Environment.CurrentDirectory;
@@ -58,7 +65,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         {
         }
 
-        protected async Task<Guid> PutActor(string name, string body)
+        protected async Task<Guid> PutTestActor(string name, string body)
         {
             var repository = new DummyRepository<ActorEntity, Guid>(_storage);
             var service = new ActorService(repository);
@@ -69,7 +76,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             });
         }
 
-        protected async Task<Guid> PutStateMachine(string name, string body)
+        protected async Task<Guid> PutTestStateMachine(string name, string body)
         {
             var repository = new DummyRepository<StateMachineEntity, Guid>(_storage);
             var service = new StateMachineService(repository);
@@ -80,7 +87,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             });
         }
 
-        protected async Task<Guid> PutBlob(string remark, byte[] body)
+        protected async Task<Guid> PutTestBlob(string remark, byte[] body)
         {
             var repository = new DummyRepository<BlobEntity, Guid>(_storage);
             var service = new BlobService(repository);
@@ -94,7 +101,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
 
         protected async Task<StateMachineInstancePutDto> PutSimpleDataSet()
         {
-            await PutActor("CompileUserCodeActor", @"
+            await PutTestActor("CompileUserCodeActor", @"
                 using Newtonsoft.Json;
                 using Newtonsoft.Json.Linq;
                 using System;
@@ -126,7 +133,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         }
                     }
                 }");
-            await PutActor("RunUserCodeActor", @"
+            await PutTestActor("RunUserCodeActor", @"
                 using Newtonsoft.Json;
                 using System;
                 using System.Collections.Generic;
@@ -153,7 +160,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         }
                     }
                 }");
-            await PutStateMachine("SimpleStateMachine", @"
+            await PutTestStateMachine("SimpleStateMachine", @"
                 using JoyOI.ManagementService.Core;
                 using System;
                 using System.Collections.Generic;
@@ -184,7 +191,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         }
                     }
                 }");
-            var blobId = await PutBlob("Main.c", Encoding.UTF8.GetBytes(@"
+            var blobId = await PutTestBlob("Main.c", Encoding.UTF8.GetBytes(@"
                 #include <stdio.h>
                 int main() {
                     printf(""simple state machine is ok\r\n"");

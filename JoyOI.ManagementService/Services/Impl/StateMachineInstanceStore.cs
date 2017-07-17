@@ -180,13 +180,13 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 var stateMachineRepository = _stateMachineRepositoryFactory(context);
                 var stateMachineInstanceRepository = _stateMachineInstanceRepositoryFactory(context);
-                var runningInstances = stateMachineInstanceRepository.QueryNoTrackingAsync(q => q
+                var runningInstances = stateMachineInstanceRepository.QueryAsync(q => q
                     .Where(x =>
                         x.Status == StateMachineStatus.Running &&
                         x.FromManagementService == _configuration.Name).ToListAsyncTestable()).Result;
                 var stateMachineNames = runningInstances
                     .Select(c => c.Name).Distinct().ToList();
-                stateMachineMap = stateMachineRepository.QueryNoTrackingAsync(q => q
+                stateMachineMap = stateMachineRepository.QueryAsync(q => q
                     .Where(x => stateMachineNames
                     .Contains(x.Name)).ToDictionaryAsyncTestable(x => x.Name)).Result;
                 // 判断重新运行次数, 超过最大次数的标记状态到失败

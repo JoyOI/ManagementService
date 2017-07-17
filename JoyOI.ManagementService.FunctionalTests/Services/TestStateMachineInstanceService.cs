@@ -1,4 +1,5 @@
-﻿using JoyOI.ManagementService.Core;
+﻿#if false
+using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
@@ -22,13 +23,6 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         private StateMachineInstanceStore _store;
         private StateMachineInstanceService _service;
         private ITestOutputHelper _outputHelper;
-
-        private class EmptyDisposable : IDisposable
-        {
-            public void Dispose()
-            {
-            }
-        }
 
         public TestStateMachineInstanceService(ITestOutputHelper outputHelper)
         {
@@ -195,7 +189,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         public async Task PutError()
         {
             var putDto = await PutSimpleDataSet();
-            putDto.InitialBlobs[0].Id = await PutBlob("incorrect Main.c",
+            putDto.InitialBlobs[0].Id = await PutTestBlob("incorrect Main.c",
                 Encoding.UTF8.GetBytes("#include <stdiox.h>\r\nint main() { }"));
             var stateMachineId = (await _service.Put(putDto)).Instance.Id;
             while (true)
@@ -306,3 +300,4 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         }
     }
 }
+#endif
