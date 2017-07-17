@@ -51,7 +51,7 @@ namespace JoyOI.ManagementService.SDK
             var response = await result.Content.ReadAsStringAsync();
             if (result.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<JObject>(response)["data"].Value<IEnumerable<T>>();
+                return JsonConvert.DeserializeObject<JObject>(response)["data"].Values<T>();
             }
             throw new ManagementServiceException(response);
         }
