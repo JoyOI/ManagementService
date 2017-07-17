@@ -42,6 +42,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             // 数据库除错代码
             if (false)
             {
+#pragma warning disable CS0162
                 _storage.OnSaveChanges = (storage) =>
                 {
                     var stackTrace = new StackTrace().ToString();
@@ -49,6 +50,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                     File.AppendAllText($"e:\\mgmtsvc_dblog_{Process.GetCurrentProcess().Id}.txt",
                         $"{stackTrace}\r\n{tables}\r\n=====================================================\r\n\r\n");
                 };
+#pragma warning restore CS0162
             }
         }
 

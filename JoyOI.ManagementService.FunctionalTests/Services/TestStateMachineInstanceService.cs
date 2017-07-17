@@ -50,7 +50,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             _outputHelper = outputHelper;
         }
 
-        [Fact(Skip = "tmp")]
+        [Fact]
         public async Task Search()
         {
             var putDto = await PutSimpleDataSet();
@@ -79,7 +79,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
         }
 
-        [Fact(Skip = "tmp")]
+        [Fact]
         public async Task Get()
         {
             var putDto = await PutSimpleDataSet();
@@ -104,7 +104,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
         }
 
-        [Fact(Skip = "tmp")]
+        [Fact]
         public async Task Put()
         {
             var putDto = await PutSimpleDataSet();
@@ -191,7 +191,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
         }
 
-        [Fact(Skip = "tmp")]
+        [Fact]
         public async Task PutError()
         {
             var putDto = await PutSimpleDataSet();

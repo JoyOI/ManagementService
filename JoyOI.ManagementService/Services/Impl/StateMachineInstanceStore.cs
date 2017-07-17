@@ -78,7 +78,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 
     /// 残留的容器:
     /// - 如果容器执行过程中发生了错误, 会在finally中删除
-    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中已停止的容器
+    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中已停止的, 并且属于当前管理服务的容器
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
@@ -142,7 +142,8 @@ namespace JoyOI.ManagementService.Services.Impl
 
         private void RemoveStoppedContainers()
         {
-            // 删除已停止的容器
+            // 删除已停止的, 并且属于当前管理服务的容器
+            var prefix = _configuration.Name + ".";
             var childTasks = _dockerNodeStore.GetNodes().Select(node => Task.Run(async () =>
             {
                 using (var client = node.CreateDockerClient())
@@ -151,17 +152,18 @@ namespace JoyOI.ManagementService.Services.Impl
                         new ContainersListParameters() { All = true });
                     foreach (var container in result)
                     {
-                        if (container.State == "created" || container.State == "exited")
+                        if (!(container.State == "created" || container.State == "exited"))
+                            continue;
+                        if (!container.Names.Any(x => x.StartsWith(prefix)))
+                            continue;
+                        try
                         {
-                            try
-                            {
-                                await client.Containers.RemoveContainerAsync(container.ID,
-                                    new ContainerRemoveParameters() { Force = true });
-                            }
-                            catch (DockerContainerNotFoundException)
-                            {
-                                // 可能被其他同时启动的管理服务删除了
-                            }
+                            await client.Containers.RemoveContainerAsync(container.ID,
+                                new ContainerRemoveParameters() { Force = true });
+                        }
+                        catch (DockerContainerNotFoundException)
+                        {
+                            // 可能已经被删除了
                         }
                     }
                 }
@@ -387,7 +389,7 @@ namespace JoyOI.ManagementService.Services.Impl
             try
             {
                 // 生成一个容器名称
-                var containerTag = PrimaryKeyUtils.Generate<Guid>().ToString();
+                var containerTag = $"{_configuration.Name}.{PrimaryKeyUtils.Generate<Guid>()}";
                 using (var client = node.CreateDockerClient())
                 {
                     // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
