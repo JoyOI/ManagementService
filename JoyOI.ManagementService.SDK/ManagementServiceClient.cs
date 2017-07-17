@@ -28,14 +28,14 @@ namespace JoyOI.ManagementService.SDK
         public ManagementServiceClient(IConfiguration config)
         {
             var handler = new HttpClientHandler();
-            handler.ClientCertificates.Add(new X509Certificate(File.ReadAllBytes(config["ManagementService:Certification"]), config["ManagementService:Password"]));
+            handler.ClientCertificates.Add(new X509Certificate2(File.ReadAllBytes(config["ManagementService:Certification"]), config["ManagementService:Password"]));
             _client = new HttpClient(handler) { BaseAddress = new Uri(config["ManagementService:Url"]) };
         }
 
         public ManagementServiceClient(string url, string certPath, string password)
         {
             var handler = new HttpClientHandler();
-            handler.ClientCertificates.Add(new X509Certificate(File.ReadAllBytes(certPath), password));
+            handler.ClientCertificates.Add(new X509Certificate2(File.ReadAllBytes(certPath), password));
             _client = new HttpClient(handler) { BaseAddress = new Uri(url) };
         }
 
@@ -189,10 +189,10 @@ namespace JoyOI.ManagementService.SDK
         public Task DeleteActorAsync(string name, CancellationToken token = default(CancellationToken))
             => DeleteBaseAsync("actor", name, token);
 
-        public Task PutActorAsync(string name, string code, CancellationToken token)
+        public Task PutActorAsync(string name, string code, CancellationToken token = default(CancellationToken))
             => PutBaseAsync("actor", new { Name = name, Body = code }, token);
 
-        public Task PatchActorAsync(string name, string code, CancellationToken token)
+        public Task PatchActorAsync(string name, string code, CancellationToken token = default(CancellationToken))
             => PatchBaseAsync("actor", name, new { Body = code }, token);
         #endregion
 
