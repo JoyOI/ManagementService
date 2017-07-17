@@ -11,24 +11,21 @@ namespace JoyOI.ManagementService.Core
 {
     public static class CoreExtensions
     {
-        // 应柚子强烈要求, 目前只能用静态变量实现这里的功能
-        internal static IStateMachineInstanceStore StaticStore;
-
-        public static async Task<byte[]> ReadAllBytesAsync(this BlobInfo self)
+        public static async Task<byte[]> ReadAllBytesAsync(this BlobInfo self, StateMachineBase stm)
         {
-            var blobs = await StaticStore.ReadBlobs(new[] { self });
+            var blobs = await stm.Store.ReadBlobs(new[] { self });
             return blobs.First().Item2;
         }
 
-        public static async Task<string> ReadAllTextAsync(this BlobInfo self)
+        public static async Task<string> ReadAllTextAsync(this BlobInfo self, StateMachineBase stm)
         {
-            var blobs = await StaticStore.ReadBlobs(new[] { self });
+            var blobs = await stm.Store.ReadBlobs(new[] { self });
             return Encoding.UTF8.GetString(blobs.First().Item2);
         }
 
-        public static async Task<T> ReadAsJsonAsync<T>(this BlobInfo self)
+        public static async Task<T> ReadAsJsonAsync<T>(this BlobInfo self, StateMachineBase stm)
         {
-            return JsonConvert.DeserializeObject<T>(await self.ReadAllTextAsync());
+            return JsonConvert.DeserializeObject<T>(await self.ReadAllTextAsync(stm));
         }
 
         public static IEnumerable<ActorInfo> FindActor(this IEnumerable<ActorInfo> self, string stage = null, string actor = null)

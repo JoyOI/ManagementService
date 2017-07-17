@@ -89,7 +89,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 ctx => new EFCoreRepository<ActorEntity, Guid>((JoyOIManagementContext)ctx),
                 ctx => new EFCoreRepository<StateMachineEntity, Guid>((JoyOIManagementContext)ctx),
                 ctx => new EFCoreRepository<StateMachineInstanceEntity, Guid>((JoyOIManagementContext)ctx));
-            CoreExtensions.StaticStore = stateMahcineInstaceStore;
         }
     }
 }

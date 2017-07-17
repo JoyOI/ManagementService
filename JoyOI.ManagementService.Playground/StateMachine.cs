@@ -34,7 +34,7 @@ namespace JoyOI.ManagementService.Playground
         public override async Task RunAsync()
         {
             // Prepare
-            var profile = await InitialBlobs.FindBlob("profile.json").ReadAsJsonAsync<dynamic>();
+            var profile = await InitialBlobs.FindBlob("profile.json").ReadAsJsonAsync<dynamic>(this);
 
             switch (Stage)
             {
@@ -46,7 +46,7 @@ namespace JoyOI.ManagementService.Playground
                     goto case "ValidateUserCompileResult";
                 case "ValidateUserCompileResult":
                     await SetStageAsync("ValidateUserCompileResult");
-                    var json = await StartedActors.FindSingleActor("Start", "CompileUserCodeActor").Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>();
+                    var json = await StartedActors.FindSingleActor("Start", "CompileUserCodeActor").Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>(this);
                     if (json.ExitCode != 0)
                     {
                         if (json.IsTimeout)
@@ -79,7 +79,7 @@ namespace JoyOI.ManagementService.Playground
                         .FindSingleActor("Start", "CompileValidatorCodeActor")
                         .Outputs
                         .FindBlob("runner.json")
-                        .ReadAsJsonAsync<dynamic>();
+                        .ReadAsJsonAsync<dynamic>(this);
                     if (json2.ExitCode != 0)
                     {
                         if (json2.IsTimeout)
@@ -100,7 +100,7 @@ namespace JoyOI.ManagementService.Playground
                                     .FindSingleActor("Start", "CompileValidatorCodeActor")
                                     .Outputs
                                     .FindBlob("stderr.txt")
-                                    .ReadAllTextAsync(),
+                                    .ReadAllTextAsync(this),
                                 ExitCode = json2.ExitCode
                             });
                         }
@@ -110,7 +110,7 @@ namespace JoyOI.ManagementService.Playground
                 case "RunUserProgramActor":
                     await SetStageAsync("RunUserProgramActor");
                     var compileUserCodeActor = StartedActors.FindSingleActor("Start", "CompileUserCodeActor");
-                    var json3 = await compileUserCodeActor.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>();
+                    var json3 = await compileUserCodeActor.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>(this);
                     if (json3.ExitCode != 0)
                     {
                         if (json3.IsTimeout)
@@ -129,7 +129,7 @@ namespace JoyOI.ManagementService.Playground
                                 Result = "Compile Error",
                                 Error = await compileUserCodeActor
                                     .Outputs
-                                    .FindBlob("stderr.txt").ReadAllTextAsync(),
+                                    .FindBlob("stderr.txt").ReadAllTextAsync(this),
                                 ExitCode = json3.ExitCode
                             });
                         }
@@ -150,7 +150,7 @@ namespace JoyOI.ManagementService.Playground
                     var tasks4 = new List<Task>();
                     foreach (var x in runUserProgramActors)
                     {
-                        var json4 = await x.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>();
+                        var json4 = await x.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>(this);
                         if (json4.PeakMemory > profile.Memory)
                         {
                             tasks4.Add(HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
@@ -187,7 +187,7 @@ namespace JoyOI.ManagementService.Playground
                     var tasks5 = new List<Task>();
                     foreach (var x in compileActors)
                     {
-                        var json5 = await x.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>();
+                        var json5 = await x.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>(this);
                         tasks5.Add(HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + Id, new
                         {
                             Result = json5.ExitCode == 0 ? "Accepted" : (json5.ExitCode == 1 ? "Wrong Answer" : (json5.ExitCode == 2 ? "Presentation Error" : "Validator Error")),
