@@ -220,11 +220,8 @@ namespace JoyOI.ManagementService.SDK
         public Task DeleteStateMachineInstance(Guid id, CancellationToken token = default(CancellationToken))
             => DeleteBaseAsync(_stateMachineInstanceController, id, token);
 
-        public Task<Guid> PutStateMachineInstance(string stateMachineName, IEnumerable<BlobInfo> blobs = null, CancellationToken token = default(CancellationToken))
-            => PutBaseAsync<Guid>(_stateMachineInstanceController, new { Name = stateMachineName, InitialBlobs = blobs });
-
-        public Task<Guid> PutStateMachineInstanceAsync(string stateMachineName, IEnumerable<BlobInfo> blobs, CancellationToken token = default(CancellationToken))
-            => PutStateMachineInstanceAsync(stateMachineName, null, token);
+        public Task<Guid> PutStateMachineInstance(string stateMachineName,string host = null, IEnumerable<BlobInfo> blobs = null, CancellationToken token = default(CancellationToken))
+            => PutBaseAsync<Guid>(_stateMachineInstanceController, new { Name = stateMachineName, InitialBlobs = blobs, Parameters = new { Host = host } });
 
         public Task PatchStateMachineInstanceAsync(Guid id, string stage, CancellationToken token = default(CancellationToken))
             => PatchBaseAsync(_stateMachineInstanceController, id, new { Stage = stage }, token);
