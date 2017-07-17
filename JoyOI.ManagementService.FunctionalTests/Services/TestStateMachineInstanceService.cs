@@ -287,10 +287,22 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                 patchToStartStateMachine.StartedActors[1].UsedContainer);
         }
 
-        [Fact(Skip = "TODO")]
-        public void Delete()
+        [Fact]
+        public async Task Delete()
         {
-            // TODO
+            var putDto = await PutSimpleDataSet();
+            var putResultA = await _service.Put(putDto);
+            var putResultB = await _service.Put(putDto);
+            Assert.Equal(200, putResultA.Code);
+            Assert.Equal(200, putResultB.Code);
+            var deleteResultA = await _service.Delete(putResultA.Instance.Id);
+            var deleteResultB = await _service.Delete(putResultB.Instance.Id);
+            Assert.Equal(1, deleteResultA);
+            Assert.Equal(1, deleteResultB);
+            var getResultA = await _service.Get(putResultA.Instance.Id);
+            var getResultB = await _service.Get(putResultB.Instance.Id);
+            Assert.True(getResultA == null);
+            Assert.True(getResultB == null);
         }
     }
 }
