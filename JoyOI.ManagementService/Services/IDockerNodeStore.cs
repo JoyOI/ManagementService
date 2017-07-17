@@ -24,7 +24,7 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 获取可以用于执行任务的Docker节点
         /// </summary>
-        Task<DockerNode> AcquireNode();
+        Task<DockerNode> AcquireNode(int priority);
 
         /// <summary>
         /// 释放可以用于执行任务的Docker节点

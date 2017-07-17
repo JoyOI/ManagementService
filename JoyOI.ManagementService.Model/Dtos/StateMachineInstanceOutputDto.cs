@@ -16,6 +16,8 @@ namespace JoyOI.ManagementService.Model.Dtos
         public IList<ActorInfo> StartedActors { get; set; }
         public IList<BlobInfo> InitialBlobs { get; set; }
         public ContainerLimitation Limitation { get; set; }
+        public IDictionary<string, string> Parameters { get; set; }
+        public int Priority { get; set; }
         public string FromManagementService { get; set; }
         public int ReRunTimes { get; set; }
         public string Exception { get; set; }

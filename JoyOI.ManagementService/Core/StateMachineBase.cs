@@ -56,6 +56,16 @@ namespace JoyOI.ManagementService.Core
         /// 使用的限制参数
         /// </summary>
         internal ContainerLimitation Limitation { get; set; }
+        /// <summary>
+        /// 自定义参数
+        /// Host等等可以通过这里获取
+        /// </summary>
+        public IDictionary<string, string> Parameters { get; internal set; }
+        /// <summary>
+        /// 运行优先级
+        /// 默认为0, 越低的值越优先
+        /// </summary>
+        public int Priority { get; internal set; }
 
         /// <summary>
         /// 初始化

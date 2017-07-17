@@ -73,6 +73,23 @@ namespace JoyOI.ManagementService.Model.Entities
             set => _Limitation = JsonConvert.SerializeObject(value);
         }
         /// <summary>
+        /// 自定义参数
+        /// Host等等可以通过这里传入
+        /// </summary>
+        public string _Parameters { get; set; }
+        public IDictionary<string, string> Parameters
+        {
+            get => string.IsNullOrEmpty(_Parameters) ?
+                new Dictionary<string, string>() :
+                JsonConvert.DeserializeObject<IDictionary<string, string>>(_Parameters);
+            set => _Parameters = JsonConvert.SerializeObject(value);
+        }
+        /// <summary>
+        /// 运行优先级
+        /// 默认为0, 越低的值越优先
+        /// </summary>
+        public int Priority { get; set; }
+        /// <summary>
         /// 创建此实例的管理服务,各个管理服务只对自己创建的实例负责
         /// </summary>
         public string FromManagementService { get; set; }

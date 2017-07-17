@@ -293,6 +293,8 @@ namespace JoyOI.ManagementService.Services.Impl
             instance.InitialBlobs = stateMachineInstanceEntity.InitialBlobs;
             instance.Store = this;
             instance.Limitation = stateMachineInstanceEntity.Limitation;
+            instance.Parameters = stateMachineInstanceEntity.Parameters;
+            instance.Priority = stateMachineInstanceEntity.Priority;
             return Task.FromResult(instance);
         }
 
@@ -385,7 +387,7 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             // 请勿直接调用此函数, 此函数不会更新StartedActors
             // 选择一个节点
-            var node = await _dockerNodeStore.AcquireNode();
+            var node = await _dockerNodeStore.AcquireNode(instance.Priority);
             try
             {
                 // 生成一个容器名称

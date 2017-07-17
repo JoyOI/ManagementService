@@ -16,7 +16,7 @@ namespace JoyOI.ManagementService.Services.Impl
         private JoyOIManagementConfiguration _configuration;
         private List<DockerNode> _nodes;
         private Dictionary<string, DockerNode> _nodesMap;
-        private Queue<TaskCompletionSource<DockerNode>> _waitReleaseQueue;
+        private SortedDictionary<int, Queue<TaskCompletionSource<DockerNode>>> _waitReleaseQueue;
         private object _nodesLock;
 
         public DockerNodeStore(JoyOIManagementConfiguration configuration)
@@ -24,7 +24,7 @@ namespace JoyOI.ManagementService.Services.Impl
             _configuration = configuration;
             _nodes = new List<DockerNode>();
             _nodesMap = new Dictionary<string, DockerNode>();
-            _waitReleaseQueue = new Queue<TaskCompletionSource<DockerNode>>();
+            _waitReleaseQueue = new SortedDictionary<int, Queue<TaskCompletionSource<DockerNode>>>();
             _nodesLock = new object();
             foreach (var nodeInfo in _configuration.Nodes)
             {
@@ -46,24 +46,28 @@ namespace JoyOI.ManagementService.Services.Impl
             return _nodesMap.Select(x => x.Value);
         }
 
-        public async Task<DockerNode> AcquireNode()
+        public async Task<DockerNode> AcquireNode(int priority)
         {
-            // 使用任务最少的节点
             Task<DockerNode> waitRelease;
             lock (_nodesLock)
             {
-                var node = _nodes.First();
-                if (node.RunningJobs < node.NodeInfo.Container.MaxRunningJobs)
+                // 使用任务最少的节点
+                foreach (var node in _nodes)
                 {
-                    ++node.RunningJobs;
-                    _nodes.Sort(new DockerNodeComparer());
-                    return node;
+                    if (node.RunningJobs < node.NodeInfo.Container.MaxRunningJobs)
+                    {
+                        ++node.RunningJobs;
+                        _nodes.Sort(new DockerNodeComparer());
+                        return node;
+                    }
                 }
                 // 需要等待其他节点完成, 添加到等待队列
                 // https://stackoverflow.com/questions/27891253/how-to-create-a-task-i-can-complete-manually
                 var source = new TaskCompletionSource<DockerNode>();
                 waitRelease = source.Task;
-                _waitReleaseQueue.Enqueue(source);
+                if (!_waitReleaseQueue.TryGetValue(priority, out var childQueue))
+                    _waitReleaseQueue[priority] = childQueue = new Queue<TaskCompletionSource<DockerNode>>();
+                childQueue.Enqueue(source);
             }
             var released = await waitRelease;
             return released;
@@ -74,14 +78,18 @@ namespace JoyOI.ManagementService.Services.Impl
             TaskCompletionSource<DockerNode> source = null;
             lock (_nodesLock)
             {
-                // 判断等待队列是否为空, 
-                if (_waitReleaseQueue.Count > 0)
+                // 判断等待队列是否为空
+                foreach (var childQueue in _waitReleaseQueue)
                 {
                     // 不为空时需要把节点分配给正在等待的任务
                     // 正在运行的任务数量不变
-                    source = _waitReleaseQueue.Dequeue();
+                    if (childQueue.Value.Count > 0)
+                    {
+                        source = childQueue.Value.Dequeue();
+                        break;
+                    }
                 }
-                else
+                if (source == null)
                 {
                     // 减少节点的正在运行任务数量
                     --node.RunningJobs;
