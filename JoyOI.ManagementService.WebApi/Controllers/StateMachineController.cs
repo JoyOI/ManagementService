@@ -31,7 +31,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var dto = await _stateMachineService.Get(name);
             if (dto == null)
-                return ApiResponse.NotFound("state machine not found", dto);
+                return ApiResponse.NotFound(Response, "state machine not found", dto);
             return ApiResponse.OK(dto);
         }
 
@@ -49,7 +49,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var patched = await _stateMachineService.Patch(name, dto);
             var result = new PatchResult(patched);
             if (patched <= 0)
-                return ApiResponse.NotFound("state machine not found", result);
+                return ApiResponse.NotFound(Response, "state machine not found", result);
             return ApiResponse.OK(result);
         }
 
@@ -59,7 +59,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var deleted = await _stateMachineService.Delete(name);
             var result = new DeleteResult(deleted);
             if (deleted <= 0)
-                return ApiResponse.NotFound("state machine not found", result);
+                return ApiResponse.NotFound(Response, "state machine not found", result);
             return ApiResponse.OK(result);
         }
     }

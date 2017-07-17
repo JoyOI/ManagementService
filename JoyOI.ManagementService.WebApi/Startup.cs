@@ -103,10 +103,10 @@ namespace JoyOI.ManagementService.WebApi
                 {
                     // TODO: 判断是否唯一键冲突
                     context.Response.ContentType = "application/json; charset=utf-8";
-                    context.Response.StatusCode = 200;
                     using (var writer = new StreamWriter(context.Response.Body))
                     {
-                        var json = JsonConvert.SerializeObject(ApiResponse.InternalServerError(ex, isDevelopment));
+                        var json = JsonConvert.SerializeObject(
+                            ApiResponse.InternalServerError(context.Response, ex, isDevelopment));
                         writer.Write(json);
                     }
                 }
