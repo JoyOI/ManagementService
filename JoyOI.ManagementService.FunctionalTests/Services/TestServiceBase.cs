@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using JoyOI.ManagementService.Configuration;
-using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
 using JoyOI.ManagementService.Repositories;
@@ -11,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,6 +39,17 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             configuration.GetSection("JoyOIManagement").Bind(_configuration);
             _configuration.AfterLoaded();
             _storage = new DummyStorage();
+            // 数据库除错代码
+            if (false)
+            {
+                _storage.OnSaveChanges = (storage) =>
+                {
+                    var stackTrace = new StackTrace().ToString();
+                    var tables = JsonConvert.SerializeObject(storage.Tables, Formatting.Indented);
+                    File.AppendAllText($"e:\\mgmtsvc_dblog_{Process.GetCurrentProcess().Id}.txt",
+                        $"{stackTrace}\r\n{tables}\r\n=====================================================\r\n\r\n");
+                };
+            }
         }
 
         public virtual void Dispose()

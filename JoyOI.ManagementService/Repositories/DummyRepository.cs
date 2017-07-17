@@ -20,7 +20,7 @@ using Newtonsoft.Json;
 
 namespace JoyOI.ManagementService.Repositories
 {
-    internal class DummyTransaction : IDbContextTransaction
+    public class DummyTransaction : IDbContextTransaction
     {
         public Guid TransactionId => Guid.Empty;
 
@@ -39,8 +39,9 @@ namespace JoyOI.ManagementService.Repositories
 
     public class DummyStorage
     {
-        internal SemaphoreSlim TableLock { get; set; }
-        internal IDictionary<Type, object> Tables { get; set; }
+        public SemaphoreSlim TableLock { get; set; }
+        public IDictionary<Type, object> Tables { get; set; }
+        public Action<DummyStorage> OnSaveChanges { get; set; }
 
         public DummyStorage()
         {
@@ -48,7 +49,7 @@ namespace JoyOI.ManagementService.Repositories
             Tables = new Dictionary<Type, object>();
         }
 
-        internal IDictionary<TPrimaryKey, TEntity> GetTableThreadUnsafe<TEntity, TPrimaryKey>()
+        public IDictionary<TPrimaryKey, TEntity> GetTableThreadUnsafe<TEntity, TPrimaryKey>()
         {
             if (!Tables.TryGetValue(typeof(TEntity), out var table))
                 table = Tables[typeof(TEntity)] = new Dictionary<TPrimaryKey, TEntity>();
@@ -177,7 +178,16 @@ namespace JoyOI.ManagementService.Repositories
 
         public Task SaveChangesAsync()
         {
-            return Task.FromResult(0);
+            _storage.TableLock.Wait();
+            try
+            {
+                _storage.OnSaveChanges?.Invoke(_storage);
+                return Task.FromResult(0);
+            }
+            finally
+            {
+                _storage.TableLock.Release();
+            }
         }
 
         public Task<IDbContextTransaction> BeginTransactionAsync()

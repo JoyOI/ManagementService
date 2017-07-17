@@ -305,14 +305,10 @@ namespace JoyOI.ManagementService.Services.Impl
                     // 查找该Stage之后的StartedActors
                     var startedActors = instance.StartedActors;
                     // 删除这些actors并更新到数据库
-                    if (instance.Stage == StateMachineBase.InitialStage)
+                    var newStartedActors = new List<ActorInfo>();
+                    if (instance.Stage != StateMachineBase.InitialStage)
                     {
-                        startedActors.Clear();
-                    }
-                    else
-                    {
-                        var newStartedActors = new List<ActorInfo>();
-                        foreach (var startedActor in newStartedActors)
+                        foreach (var startedActor in startedActors)
                         {
                             if (startedActor.Stage == instance.Stage)
                             {
@@ -320,9 +316,9 @@ namespace JoyOI.ManagementService.Services.Impl
                             }
                             newStartedActors.Add(startedActor);
                         }
-                        startedActors = newStartedActors;
-                        instance.StartedActors = startedActors;
                     }
+                    startedActors = newStartedActors;
+                    instance.StartedActors = startedActors;
                     await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
                     {
                         instanceEntity.StartedActors = startedActors;
