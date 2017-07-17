@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 /*
 测试参数:
 {
-  "name": "CompileAndRun",
+  "name": "SimpleStateMachine",
   "initialBlobs": [
     {
       "id": "填写blob.id",

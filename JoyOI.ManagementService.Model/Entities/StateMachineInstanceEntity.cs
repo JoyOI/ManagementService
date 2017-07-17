@@ -43,7 +43,7 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_StartedActors) ?
                 new List<ActorInfo>() :
                 JsonConvert.DeserializeObject<IList<ActorInfo>>(_StartedActors);
-            set => _StartedActors = JsonConvert.SerializeObject(value);
+            set => _StartedActors = JsonConvert.SerializeObject(value ?? new List<ActorInfo>());
         }
         /// <summary>
         /// 初始的文件列表
@@ -56,7 +56,7 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_InitialBlobs) ?
                 new List<BlobInfo>() :
                 JsonConvert.DeserializeObject<IList<BlobInfo>>(_InitialBlobs);
-            set => _InitialBlobs = JsonConvert.SerializeObject(value);
+            set => _InitialBlobs = JsonConvert.SerializeObject(value ?? new List<BlobInfo>());
         }
         /// <summary>
         /// 使用的限制参数
@@ -70,7 +70,7 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_Limitation) ?
                 null :
                 JsonConvert.DeserializeObject<ContainerLimitation>(_Limitation);
-            set => _Limitation = JsonConvert.SerializeObject(value);
+            set => _Limitation = JsonConvert.SerializeObject(value ?? new ContainerLimitation());
         }
         /// <summary>
         /// 自定义参数
@@ -82,7 +82,7 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_Parameters) ?
                 new Dictionary<string, string>() :
                 JsonConvert.DeserializeObject<IDictionary<string, string>>(_Parameters);
-            set => _Parameters = JsonConvert.SerializeObject(value);
+            set => _Parameters = JsonConvert.SerializeObject(value ?? new Dictionary<string, string>());
         }
         /// <summary>
         /// 运行优先级

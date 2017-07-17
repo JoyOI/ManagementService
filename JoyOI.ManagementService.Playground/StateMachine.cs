@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Net.Http;
 
 /*
 
@@ -50,7 +51,7 @@ namespace JoyOI.ManagementService.Playground
                     {
                         if (json.IsTimeout)
                         {
-                            await HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            await HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Compile Error",
                                 Error = "Compiler timeout.",
@@ -59,7 +60,7 @@ namespace JoyOI.ManagementService.Playground
                         }
                         else
                         {
-                            await HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            await HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Compile Error",
                                 Error = StartedActors
@@ -83,7 +84,7 @@ namespace JoyOI.ManagementService.Playground
                     {
                         if (json2.IsTimeout)
                         {
-                            await HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            await HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Validator Compile Error",
                                 Error = "Compiler timeout.",
@@ -92,7 +93,7 @@ namespace JoyOI.ManagementService.Playground
                         }
                         else
                         {
-                            await HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            await HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Validator Compile Error",
                                 Error = await StartedActors
@@ -114,7 +115,7 @@ namespace JoyOI.ManagementService.Playground
                     {
                         if (json3.IsTimeout)
                         {
-                            await HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            await HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Compile Error",
                                 Error = "Compiler timeout.",
@@ -123,7 +124,7 @@ namespace JoyOI.ManagementService.Playground
                         }
                         else
                         {
-                            await HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            await HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Compile Error",
                                 Error = await compileUserCodeActor
@@ -152,7 +153,7 @@ namespace JoyOI.ManagementService.Playground
                         var json4 = await x.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>();
                         if (json4.PeakMemory > profile.Memory)
                         {
-                            tasks4.Add(HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            tasks4.Add(HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = "Memory Limit Exceeded",
                                 InputFile = x.Inputs.Single(y => InputFileRegex.IsMatch(y.Name))
@@ -160,7 +161,7 @@ namespace JoyOI.ManagementService.Playground
                         }
                         else if (json4.ExitCode != 0)
                         {
-                            tasks4.Add(HttpInvokeAsync("PUT", "/JudgeResult/" + this.Id, new
+                            tasks4.Add(HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + this.Id, new
                             {
                                 Result = json4.IsTimeout ? "Time Limit Exceeded" : "Runtime Error",
                                 InputFile = x.Inputs.Single(y => InputFileRegex.IsMatch(y.Name))
@@ -187,7 +188,7 @@ namespace JoyOI.ManagementService.Playground
                     foreach (var x in compileActors)
                     {
                         var json5 = await x.Outputs.FindBlob("runner.json").ReadAsJsonAsync<dynamic>();
-                        tasks5.Add(HttpInvokeAsync("PUT", "/JudgeResult/" + Id, new
+                        tasks5.Add(HttpInvokeAsync(HttpMethod.Put, "/JudgeResult/" + Id, new
                         {
                             Result = json5.ExitCode == 0 ? "Accepted" : (json5.ExitCode == 1 ? "Wrong Answer" : (json5.ExitCode == 2 ? "Presentation Error" : "Validator Error")),
                             TimeUsed = json5.UserTime,

@@ -115,7 +115,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                             var runnerInfo = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(""runner.json""));
                             if (runnerInfo[""ExitCode""].Value<int>() != 0)
                             {
-                                throw new InvalidOperationException(File.ReadAllText(""stderr.txt""));
+                                throw new InvalidOperationException(runnerInfo[""Error""].Value<string>());
                             }
 
                             var json = JsonConvert.SerializeObject(new
