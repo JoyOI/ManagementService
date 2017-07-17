@@ -32,7 +32,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var dto = await _actorService.Get(name);
             if (dto == null)
-                return ApiResponse.NotFound("actor not found", dto);
+                return ApiResponse.NotFound(Response, "actor not found", dto);
             return ApiResponse.OK(dto);
         }
 
@@ -50,7 +50,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var patched = await _actorService.Patch(name, dto);
             var result = new PatchResult(patched);
             if (patched <= 0)
-                return ApiResponse.NotFound("actor not found", result);
+                return ApiResponse.NotFound(Response, "actor not found", result);
             return ApiResponse.OK(result);
         }
 
@@ -60,7 +60,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var deleted = await _actorService.Delete(name);
             var result = new DeleteResult(deleted);
             if (deleted <= 0)
-                return ApiResponse.NotFound("actor not found", result);
+                return ApiResponse.NotFound(Response, "actor not found", result);
             return ApiResponse.OK(result);
         }
     }

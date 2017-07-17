@@ -37,7 +37,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var dto = await _blobService.Get(id);
             if (dto == null)
-                return ApiResponse.NotFound("blob not found", dto);
+                return ApiResponse.NotFound(Response, "blob not found", dto);
             return ApiResponse.OK(dto);
         }
 

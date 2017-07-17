@@ -113,6 +113,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<string>("Name");
 
+                    b.Property<int>("Priority");
+
                     b.Property<int>("ReRunTimes");
 
                     b.Property<string>("Stage");
@@ -126,6 +128,9 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<string>("_Limitation")
                         .HasColumnName("Limitation");
+
+                    b.Property<string>("_Parameters")
+                        .HasColumnName("Parameters");
 
                     b.Property<string>("_StartedActors")
                         .HasColumnName("StartedActors");

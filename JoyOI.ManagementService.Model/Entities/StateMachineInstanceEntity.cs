@@ -43,7 +43,7 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_StartedActors) ?
                 new List<ActorInfo>() :
                 JsonConvert.DeserializeObject<IList<ActorInfo>>(_StartedActors);
-            set => _StartedActors = JsonConvert.SerializeObject(value);
+            set => _StartedActors = JsonConvert.SerializeObject(value ?? new List<ActorInfo>());
         }
         /// <summary>
         /// 初始的文件列表
@@ -56,7 +56,7 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_InitialBlobs) ?
                 new List<BlobInfo>() :
                 JsonConvert.DeserializeObject<IList<BlobInfo>>(_InitialBlobs);
-            set => _InitialBlobs = JsonConvert.SerializeObject(value);
+            set => _InitialBlobs = JsonConvert.SerializeObject(value ?? new List<BlobInfo>());
         }
         /// <summary>
         /// 使用的限制参数
@@ -70,8 +70,25 @@ namespace JoyOI.ManagementService.Model.Entities
             get => string.IsNullOrEmpty(_Limitation) ?
                 null :
                 JsonConvert.DeserializeObject<ContainerLimitation>(_Limitation);
-            set => _Limitation = JsonConvert.SerializeObject(value);
+            set => _Limitation = JsonConvert.SerializeObject(value ?? new ContainerLimitation());
         }
+        /// <summary>
+        /// 自定义参数
+        /// Host等等可以通过这里传入
+        /// </summary>
+        public string _Parameters { get; set; }
+        public IDictionary<string, string> Parameters
+        {
+            get => string.IsNullOrEmpty(_Parameters) ?
+                new Dictionary<string, string>() :
+                JsonConvert.DeserializeObject<IDictionary<string, string>>(_Parameters);
+            set => _Parameters = JsonConvert.SerializeObject(value ?? new Dictionary<string, string>());
+        }
+        /// <summary>
+        /// 运行优先级
+        /// 默认为0, 越低的值越优先
+        /// </summary>
+        public int Priority { get; set; }
         /// <summary>
         /// 创建此实例的管理服务,各个管理服务只对自己创建的实例负责
         /// </summary>

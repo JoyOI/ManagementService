@@ -12,7 +12,7 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    [Migration("20170710072019_FirstMigration")]
+    [Migration("20170717033352_FirstMigration")]
     partial class FirstMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -114,6 +114,8 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<string>("Name");
 
+                    b.Property<int>("Priority");
+
                     b.Property<int>("ReRunTimes");
 
                     b.Property<string>("Stage");
@@ -127,6 +129,9 @@ namespace JoyOI.ManagementService.WebApi.Migrations
 
                     b.Property<string>("_Limitation")
                         .HasColumnName("Limitation");
+
+                    b.Property<string>("_Parameters")
+                        .HasColumnName("Parameters");
 
                     b.Property<string>("_StartedActors")
                         .HasColumnName("StartedActors");

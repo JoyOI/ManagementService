@@ -46,9 +46,11 @@ namespace JoyOI.ManagementService.DbContexts
             stateMachineInstanceEntity.Property(x => x._StartedActors).HasColumnName("StartedActors");
             stateMachineInstanceEntity.Property(x => x._InitialBlobs).HasColumnName("InitialBlobs");
             stateMachineInstanceEntity.Property(x => x._Limitation).HasColumnName("Limitation");
+            stateMachineInstanceEntity.Property(x => x._Parameters).HasColumnName("Parameters");
             stateMachineInstanceEntity.Ignore(x => x.StartedActors);
             stateMachineInstanceEntity.Ignore(x => x.InitialBlobs);
             stateMachineInstanceEntity.Ignore(x => x.Limitation);
+            stateMachineInstanceEntity.Ignore(x => x.Parameters);
             stateMachineInstanceEntity.HasIndex(x => x.Name);
             stateMachineInstanceEntity.HasIndex(x => new { x.Name, x.Status });
             stateMachineInstanceEntity.Property(x => x.ExecutionKey).IsConcurrencyToken();

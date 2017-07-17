@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,8 +37,9 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回404(找不到)
         /// </summary>
-        public static ApiResponse<TData> NotFound<TData>(string msg, TData data)
+        public static ApiResponse<TData> NotFound<TData>(HttpResponse response, string msg, TData data)
         {
+            response.StatusCode = 404;
             return new ApiResponse<TData>()
             {
                 code = 404,
@@ -49,8 +51,9 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回500(内部错误)
         /// </summary>
-        public static ApiResponse<object> InternalServerError(Exception ex, bool isDevelopment)
+        public static ApiResponse<object> InternalServerError(HttpResponse response, Exception ex, bool isDevelopment)
         {
+            response.StatusCode = 500;
             while (ex.InnerException != null)
             {
                 ex = ex.InnerException;
@@ -66,8 +69,9 @@ namespace JoyOI.ManagementService.WebApi.WebApiModels
         /// <summary>
         /// 返回自定义
         /// </summary>
-        public static ApiResponse<T> Custom<T>(int code, string msg, T data = default(T))
+        public static ApiResponse<T> Custom<T>(HttpResponse response, int code, string msg, T data = default(T))
         {
+            response.StatusCode = code;
             return new ApiResponse<T>()
             {
                 code = code,

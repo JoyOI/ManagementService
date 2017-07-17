@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using JoyOI.ManagementService.Configuration;
-using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
 using JoyOI.ManagementService.Repositories;
@@ -11,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,6 +21,13 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
     {
         protected JoyOIManagementConfiguration _configuration { get; set; }
         protected DummyStorage _storage;
+
+        internal class EmptyDisposable : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
 
         public TestServiceBase()
         {
@@ -39,13 +46,26 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             configuration.GetSection("JoyOIManagement").Bind(_configuration);
             _configuration.AfterLoaded();
             _storage = new DummyStorage();
+            // 数据库除错代码
+            if (false)
+            {
+#pragma warning disable CS0162
+                _storage.OnSaveChanges = (storage) =>
+                {
+                    var stackTrace = new StackTrace().ToString();
+                    var tables = JsonConvert.SerializeObject(storage.Tables, Formatting.Indented);
+                    File.AppendAllText($"e:\\mgmtsvc_dblog_{Process.GetCurrentProcess().Id}.txt",
+                        $"{stackTrace}\r\n{tables}\r\n=====================================================\r\n\r\n");
+                };
+#pragma warning restore CS0162
+            }
         }
 
         public virtual void Dispose()
         {
         }
 
-        protected async Task<Guid> PutActor(string name, string body)
+        protected async Task<Guid> PutTestActor(string name, string body)
         {
             var repository = new DummyRepository<ActorEntity, Guid>(_storage);
             var service = new ActorService(repository);
@@ -56,7 +76,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             });
         }
 
-        protected async Task<Guid> PutStateMachine(string name, string body)
+        protected async Task<Guid> PutTestStateMachine(string name, string body)
         {
             var repository = new DummyRepository<StateMachineEntity, Guid>(_storage);
             var service = new StateMachineService(repository);
@@ -67,7 +87,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             });
         }
 
-        protected async Task<Guid> PutBlob(string remark, byte[] body)
+        protected async Task<Guid> PutTestBlob(string remark, byte[] body)
         {
             var repository = new DummyRepository<BlobEntity, Guid>(_storage);
             var service = new BlobService(repository);
@@ -81,7 +101,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
 
         protected async Task<StateMachineInstancePutDto> PutSimpleDataSet()
         {
-            await PutActor("CompileUserCodeActor", @"
+            await PutTestActor("CompileUserCodeActor", @"
                 using Newtonsoft.Json;
                 using Newtonsoft.Json.Linq;
                 using System;
@@ -102,7 +122,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                             var runnerInfo = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(""runner.json""));
                             if (runnerInfo[""ExitCode""].Value<int>() != 0)
                             {
-                                throw new InvalidOperationException(File.ReadAllText(""stderr.txt""));
+                                throw new InvalidOperationException(runnerInfo[""Error""].Value<string>());
                             }
 
                             var json = JsonConvert.SerializeObject(new
@@ -113,7 +133,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         }
                     }
                 }");
-            await PutActor("RunUserCodeActor", @"
+            await PutTestActor("RunUserCodeActor", @"
                 using Newtonsoft.Json;
                 using System;
                 using System.Collections.Generic;
@@ -140,7 +160,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         }
                     }
                 }");
-            await PutStateMachine("SimpleStateMachine", @"
+            await PutTestStateMachine("SimpleStateMachine", @"
                 using JoyOI.ManagementService.Core;
                 using System;
                 using System.Collections.Generic;
@@ -171,7 +191,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                         }
                     }
                 }");
-            var blobId = await PutBlob("Main.c", Encoding.UTF8.GetBytes(@"
+            var blobId = await PutTestBlob("Main.c", Encoding.UTF8.GetBytes(@"
                 #include <stdio.h>
                 int main() {
                     printf(""simple state machine is ok\r\n"");

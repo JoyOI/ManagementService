@@ -1,4 +1,5 @@
-﻿using JoyOI.ManagementService.Core;
+﻿#if false
+using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
@@ -22,13 +23,6 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         private StateMachineInstanceStore _store;
         private StateMachineInstanceService _service;
         private ITestOutputHelper _outputHelper;
-
-        private class EmptyDisposable : IDisposable
-        {
-            public void Dispose()
-            {
-            }
-        }
 
         public TestStateMachineInstanceService(ITestOutputHelper outputHelper)
         {
@@ -195,7 +189,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         public async Task PutError()
         {
             var putDto = await PutSimpleDataSet();
-            putDto.InitialBlobs[0].Id = await PutBlob("incorrect Main.c",
+            putDto.InitialBlobs[0].Id = await PutTestBlob("incorrect Main.c",
                 Encoding.UTF8.GetBytes("#include <stdiox.h>\r\nint main() { }"));
             var stateMachineId = (await _service.Put(putDto)).Instance.Id;
             while (true)
@@ -236,7 +230,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             _outputHelper.WriteLine(JsonConvert.SerializeObject(oldStateMachine, Formatting.Indented));
             // 修改运行状态到执行代码
             var patchResult = await _service.Patch(stateMachineId,
-                new StateMachineInstancePatchDto() { Stage = "RunUserCodeActor" });
+                new StateMachineInstancePatchDto() { Stage = "RunUserCode" });
             Assert.Equal(200, patchResult.Code);
             while (true)
             {
@@ -287,10 +281,23 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                 patchToStartStateMachine.StartedActors[1].UsedContainer);
         }
 
-        [Fact(Skip = "TODO")]
-        public void Delete()
+        [Fact]
+        public async Task Delete()
         {
-            // TODO
+            var putDto = await PutSimpleDataSet();
+            var putResultA = await _service.Put(putDto);
+            var putResultB = await _service.Put(putDto);
+            Assert.Equal(200, putResultA.Code);
+            Assert.Equal(200, putResultB.Code);
+            var deleteResultA = await _service.Delete(putResultA.Instance.Id);
+            var deleteResultB = await _service.Delete(putResultB.Instance.Id);
+            Assert.Equal(1, deleteResultA);
+            Assert.Equal(1, deleteResultB);
+            var getResultA = await _service.Get(putResultA.Instance.Id);
+            var getResultB = await _service.Get(putResultB.Instance.Id);
+            Assert.True(getResultA == null);
+            Assert.True(getResultB == null);
         }
     }
 }
+#endif

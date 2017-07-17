@@ -51,12 +51,14 @@ namespace JoyOI.ManagementService.WebApi.Migrations
                     ExecutionKey = table.Column<string>(type: "longtext", nullable: true),
                     FromManagementService = table.Column<string>(type: "longtext", nullable: true),
                     Name = table.Column<string>(type: "varchar(127)", nullable: true),
+                    Priority = table.Column<int>(type: "int", nullable: false),
                     ReRunTimes = table.Column<int>(type: "int", nullable: false),
                     Stage = table.Column<string>(type: "longtext", nullable: true),
                     StartTime = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     InitialBlobs = table.Column<string>(type: "longtext", nullable: true),
                     Limitation = table.Column<string>(type: "longtext", nullable: true),
+                    Parameters = table.Column<string>(type: "longtext", nullable: true),
                     StartedActors = table.Column<string>(type: "longtext", nullable: true)
                 },
                 constraints: table =>

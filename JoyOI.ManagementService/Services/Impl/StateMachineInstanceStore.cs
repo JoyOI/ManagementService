@@ -78,7 +78,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 
     /// 残留的容器:
     /// - 如果容器执行过程中发生了错误, 会在finally中删除
-    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中已停止的容器
+    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中已停止的, 并且属于当前管理服务的容器
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
@@ -142,7 +142,8 @@ namespace JoyOI.ManagementService.Services.Impl
 
         private void RemoveStoppedContainers()
         {
-            // 删除已停止的容器
+            // 删除已停止的, 并且属于当前管理服务的容器
+            var prefix = _configuration.Name + ".";
             var childTasks = _dockerNodeStore.GetNodes().Select(node => Task.Run(async () =>
             {
                 using (var client = node.CreateDockerClient())
@@ -151,17 +152,18 @@ namespace JoyOI.ManagementService.Services.Impl
                         new ContainersListParameters() { All = true });
                     foreach (var container in result)
                     {
-                        if (container.State == "created" || container.State == "exited")
+                        if (!(container.State == "created" || container.State == "exited"))
+                            continue;
+                        if (!container.Names.Any(x => x.StartsWith(prefix)))
+                            continue;
+                        try
                         {
-                            try
-                            {
-                                await client.Containers.RemoveContainerAsync(container.ID,
-                                    new ContainerRemoveParameters() { Force = true });
-                            }
-                            catch (DockerContainerNotFoundException)
-                            {
-                                // 可能被其他同时启动的管理服务删除了
-                            }
+                            await client.Containers.RemoveContainerAsync(container.ID,
+                                new ContainerRemoveParameters() { Force = true });
+                        }
+                        catch (DockerContainerNotFoundException)
+                        {
+                            // 可能已经被删除了
                         }
                     }
                 }
@@ -178,13 +180,13 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 var stateMachineRepository = _stateMachineRepositoryFactory(context);
                 var stateMachineInstanceRepository = _stateMachineInstanceRepositoryFactory(context);
-                var runningInstances = stateMachineInstanceRepository.QueryNoTrackingAsync(q => q
+                var runningInstances = stateMachineInstanceRepository.QueryAsync(q => q
                     .Where(x =>
                         x.Status == StateMachineStatus.Running &&
                         x.FromManagementService == _configuration.Name).ToListAsyncTestable()).Result;
                 var stateMachineNames = runningInstances
                     .Select(c => c.Name).Distinct().ToList();
-                stateMachineMap = stateMachineRepository.QueryNoTrackingAsync(q => q
+                stateMachineMap = stateMachineRepository.QueryAsync(q => q
                     .Where(x => stateMachineNames
                     .Contains(x.Name)).ToDictionaryAsyncTestable(x => x.Name)).Result;
                 // 判断重新运行次数, 超过最大次数的标记状态到失败
@@ -291,6 +293,8 @@ namespace JoyOI.ManagementService.Services.Impl
             instance.InitialBlobs = stateMachineInstanceEntity.InitialBlobs;
             instance.Store = this;
             instance.Limitation = stateMachineInstanceEntity.Limitation;
+            instance.Parameters = stateMachineInstanceEntity.Parameters;
+            instance.Priority = stateMachineInstanceEntity.Priority;
             return Task.FromResult(instance);
         }
 
@@ -305,14 +309,10 @@ namespace JoyOI.ManagementService.Services.Impl
                     // 查找该Stage之后的StartedActors
                     var startedActors = instance.StartedActors;
                     // 删除这些actors并更新到数据库
-                    if (instance.Stage == StateMachineBase.InitialStage)
+                    var newStartedActors = new List<ActorInfo>();
+                    if (instance.Stage != StateMachineBase.InitialStage)
                     {
-                        startedActors.Clear();
-                    }
-                    else
-                    {
-                        var newStartedActors = new List<ActorInfo>();
-                        foreach (var startedActor in newStartedActors)
+                        foreach (var startedActor in startedActors)
                         {
                             if (startedActor.Stage == instance.Stage)
                             {
@@ -320,9 +320,9 @@ namespace JoyOI.ManagementService.Services.Impl
                             }
                             newStartedActors.Add(startedActor);
                         }
-                        startedActors = newStartedActors;
-                        instance.StartedActors = startedActors;
                     }
+                    startedActors = newStartedActors;
+                    instance.StartedActors = startedActors;
                     await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
                     {
                         instanceEntity.StartedActors = startedActors;
@@ -387,11 +387,11 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             // 请勿直接调用此函数, 此函数不会更新StartedActors
             // 选择一个节点
-            var node = await _dockerNodeStore.AcquireNode();
+            var node = await _dockerNodeStore.AcquireNode(instance.Priority);
             try
             {
                 // 生成一个容器名称
-                var containerTag = PrimaryKeyUtils.Generate<Guid>().ToString();
+                var containerTag = $"{_configuration.Name}.{PrimaryKeyUtils.Generate<Guid>()}";
                 using (var client = node.CreateDockerClient())
                 {
                     // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库

@@ -33,7 +33,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var dto = await _stateMachineInstanceService.Get(id);
             if (dto == null)
-                return ApiResponse.NotFound("state machine instance not found", dto);
+                return ApiResponse.NotFound(Response, "state machine instance not found", dto);
             return ApiResponse.OK(dto);
         }
 
@@ -42,7 +42,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var putResult = await _stateMachineInstanceService.Put(dto);
             var result = new PutResult<Guid>(putResult.Instance?.Id ?? Guid.Empty);
-            return ApiResponse.Custom(putResult.Code, putResult.Message, result);
+            return ApiResponse.Custom(Response, putResult.Code, putResult.Message, result);
         }
 
         [HttpPatch("{id}")]
@@ -51,7 +51,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         {
             var patchResult = await _stateMachineInstanceService.Patch(id, dto);
             var result = new PatchResult(patchResult.Code == 200 ? 1 : 0);
-            return ApiResponse.Custom(patchResult.Code, patchResult.Message, result);
+            return ApiResponse.Custom(Response, patchResult.Code, patchResult.Message, result);
         }
 
         [HttpDelete("{id}")]
@@ -60,7 +60,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             var deleted = await _stateMachineInstanceService.Delete(id);
             var result = new DeleteResult(deleted);
             if (deleted <= 0)
-                return ApiResponse.NotFound("state machine instance not found", result);
+                return ApiResponse.NotFound(Response, "state machine instance not found", result);
             return ApiResponse.OK(result);
         }
     }

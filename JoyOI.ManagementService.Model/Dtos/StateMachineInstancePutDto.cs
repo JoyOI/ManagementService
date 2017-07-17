@@ -11,5 +11,7 @@ namespace JoyOI.ManagementService.Model.Dtos
         public string Name { get; set; }
         public IList<BlobInfo> InitialBlobs { get; set; }
         public ContainerLimitation Limitation { get; set; }
+        public IDictionary<string, string> Parameters { get; set; }
+        public int Priority { get; set; }
     }
 }

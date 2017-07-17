@@ -6,11 +6,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.0.0-preview2-final" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.0.0-preview2-final" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\JoyOI.ManagementService.Model\JoyOI.ManagementService.Model.csproj" />
-    <ProjectReference Include="..\JoyOI.ManagementService\JoyOI.ManagementService.csproj" />
   </ItemGroup>
 
 </Project>

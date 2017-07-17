@@ -4,9 +4,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
+using System.Net;
+using JoyOI.ManagementService.Utils;
 
 namespace JoyOI.ManagementService.Core
 {
@@ -56,6 +60,16 @@ namespace JoyOI.ManagementService.Core
         /// 使用的限制参数
         /// </summary>
         internal ContainerLimitation Limitation { get; set; }
+        /// <summary>
+        /// 自定义参数
+        /// Host等等可以通过这里获取
+        /// </summary>
+        public IDictionary<string, string> Parameters { get; internal set; }
+        /// <summary>
+        /// 运行优先级
+        /// 默认为0, 越低的值越优先
+        /// </summary>
+        public int Priority { get; internal set; }
 
         /// <summary>
         /// 初始化
@@ -115,11 +129,12 @@ namespace JoyOI.ManagementService.Core
         }
 
         /// <summary>
-        /// 作用: TODO
+        /// 提交内容到远程服务器, 并返回回应的内容
         /// </summary>
-        protected Task<string> HttpInvokeAsync(string method, string endpoint, object body)
+        protected Task<string> HttpInvokeAsync(HttpMethod method, string endpoint, object body)
         {
-            throw new NotImplementedException();
+            var host = Parameters["Host"];
+            return HttpClientUtils.HttpInvokeAsync(host, method, endpoint, body);
         }
 
         /// <summary>

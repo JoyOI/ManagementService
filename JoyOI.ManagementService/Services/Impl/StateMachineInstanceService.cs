@@ -97,6 +97,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     .WithDefaults(dto.Limitation)
                     .WithDefaults(stateMachineEntity.Limitation)
                     .WithDefaults(_configuration.Limitation),
+                Parameters = dto.Parameters,
+                Priority = dto.Priority,
                 FromManagementService = _configuration.Name,
                 ReRunTimes = 0,
                 Exception = null,
