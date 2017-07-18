@@ -116,8 +116,8 @@ namespace JoyOI.ManagementService.SDK
         private async Task PatchBaseAsync(string controller, object id, object body, CancellationToken token = default(CancellationToken))
         {
             var stringContent = new StringContent(JsonConvert.SerializeObject(body),
-           Encoding.UTF8,
-           "application/json");
+               Encoding.UTF8,
+               "application/json");
             var result = await _client.PatchAsync(_apiVersion + "/" + controller + "/" + id, stringContent, token);
             if (result.StatusCode == System.Net.HttpStatusCode.OK)
             {

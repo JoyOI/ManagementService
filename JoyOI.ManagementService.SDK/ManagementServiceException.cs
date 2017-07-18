@@ -8,7 +8,14 @@ namespace JoyOI.ManagementService.SDK
 
         public ManagementServiceException(string json) : base("Management Service: " + json)
         {
-            this.Code = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(json).code;
+            try
+            {
+                this.Code = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(json).code;
+            }
+            catch
+            {
+                this.Code = -1;
+            }
         }
     }
 }
