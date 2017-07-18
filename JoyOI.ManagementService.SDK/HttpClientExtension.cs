@@ -14,6 +14,6 @@ namespace JoyOI.ManagementService.SDK
             return client.SendAsync(message, cancellationToken);
         }
 
-        public static Task<HttpResponseMessage> PatchAsync(this HttpClient client, string endpoint, HttpContent content, CancellationToken cancellationToken = default(CancellationToken)) => client.PatchAsync(new Uri(client.BaseAddress.AbsoluteUri + requestUri), content, cancellationToken);
+        public static Task<HttpResponseMessage> PatchAsync(this HttpClient client, string endpoint, HttpContent content, CancellationToken cancellationToken = default(CancellationToken)) => client.PatchAsync(new Uri(client.BaseAddress.AbsoluteUri + endpoint), content, cancellationToken);
     }
 }
