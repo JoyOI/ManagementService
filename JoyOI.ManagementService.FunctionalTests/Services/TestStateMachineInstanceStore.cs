@@ -4,6 +4,7 @@ using JoyOI.ManagementService.Model.Enums;
 using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services.Impl;
 using JoyOI.ManagementService.Utils;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -186,34 +187,112 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
         }
 
-        [Fact(Skip = "TODO")]
-        public void SetInstanceStage()
+        [Fact]
+        public async Task SetInstanceStage()
         {
-            // TODO
+            var (stateMachineEntity, stateMachineInstanceEntity) = await PutTestInstance();
+            var instance = await _store.CreateInstance(stateMachineEntity, stateMachineInstanceEntity);
+            await _store.SetInstanceStage(instance, StateMachineBase.FinalStage);
+            var repository = new DummyRepository<StateMachineInstanceEntity, Guid>(_storage);
+            stateMachineInstanceEntity = await repository.QueryNoTrackingAsync(q =>
+                q.FirstOrDefaultAsyncTestable(x => x.Id == stateMachineInstanceEntity.Id));
+            Assert.Equal(StateMachineBase.FinalStage, stateMachineInstanceEntity.Stage);
         }
 
-        [Fact(Skip = "TODO")]
-        public void RunActors()
+        [Fact]
+        public async Task SetInstanceStage_ObsoleteExecutionKey()
         {
-            // TODO
+            var (stateMachineEntity, stateMachineInstanceEntity) = await PutTestInstance();
+            var instance = await _store.CreateInstance(stateMachineEntity, stateMachineInstanceEntity);
+            var repository = new DummyRepository<StateMachineInstanceEntity, Guid>(_storage);
+            stateMachineInstanceEntity.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
+            repository.Update(stateMachineInstanceEntity);
+            await repository.SaveChangesAsync();
+            await Assert.ThrowsAsync<StateMachineInterpretedException>(
+                () => _store.SetInstanceStage(instance, StateMachineBase.FinalStage));
+            repository.Remove(stateMachineInstanceEntity);
+            await repository.SaveChangesAsync();
+            await Assert.ThrowsAsync<StateMachineInterpretedException>(
+                () => _store.SetInstanceStage(instance, StateMachineBase.FinalStage));
         }
 
-        [Fact(Skip = "TODO")]
-        public void PutBlob()
+        [Fact]
+        public async Task RunActorsAsync()
         {
-            // TODO
+            var (stateMachineEntity, stateMachineInstanceEntity) = await PutTestInstance();
+            var instance = await _store.CreateInstance(stateMachineEntity, stateMachineInstanceEntity);
+            var actorInfos = new List<ActorInfo>();
+            var startTime = DateTime.UtcNow;
+            for (var x = 0; x < 3; ++x)
+            {
+                actorInfos.Add(new ActorInfo()
+                {
+                    Name = "CompileUserCodeActor",
+                    StartTime = startTime,
+                    Inputs = stateMachineInstanceEntity.InitialBlobs,
+                    Outputs = new BlobInfo[0],
+                    Exceptions = new string[0],
+                    Status = ActorStatus.Running,
+                    Stage = "CompileUserCode"
+                });
+            }
+            await _store.RunActors(instance, actorInfos);
+            var repository = new DummyRepository<StateMachineInstanceEntity, Guid>(_storage);
+            stateMachineInstanceEntity = await repository.QueryNoTrackingAsync(q =>
+                q.FirstOrDefaultAsyncTestable(x => x.Id == stateMachineInstanceEntity.Id));
+            Assert.Equal(3, stateMachineInstanceEntity.StartedActors.Count);
+            foreach (var actorInfo in stateMachineInstanceEntity.StartedActors)
+            {
+                Assert.Equal("CompileUserCodeActor", actorInfo.Name);
+                Assert.Equal(startTime, actorInfo.StartTime);
+                Assert.True(actorInfo.EndTime != null);
+                Assert.Equal(
+                    JsonConvert.SerializeObject(stateMachineInstanceEntity.InitialBlobs),
+                    JsonConvert.SerializeObject(actorInfo.Inputs));
+                Assert.Equal(4, actorInfo.Outputs.Count());
+                Assert.True(actorInfo.Outputs.Any(x => x.Name == "runner.json"));
+                Assert.True(actorInfo.Outputs.Any(x => x.Name == "Main.out"));
+                Assert.True(actorInfo.Outputs.Any(x => x.Name == "stdout.txt"));
+                Assert.True(actorInfo.Outputs.Any(x => x.Name == "stderr.txt"));
+                Assert.Equal(0, actorInfo.Exceptions.Length);
+                Assert.Equal(ActorStatus.Succeeded, actorInfo.Status);
+                Assert.Equal("CompileUserCode", actorInfo.Stage);
+                Assert.True(actorInfo.Tag == null);
+                Assert.True(actorInfo.UsedNode != null);
+                Assert.True(actorInfo.UsedContainer != null);
+            }
         }
 
-        [Fact(Skip = "TODO")]
-        public void ReadBlobs()
+        [Fact]
+        public async Task PutBlob_ReadBlobs()
         {
-            // TODO
+            var now = DateTime.UtcNow;
+            var blobIdA = await _store.PutBlob("a.txt", Encoding.UTF8.GetBytes("content of a.txt"), now);
+            var blobIdB = await _store.PutBlob("b.txt", Encoding.UTF8.GetBytes("content of b.txt"), now);
+            var readResult = (await _store.ReadBlobs(new[]
+            {
+                new BlobInfo(blobIdA, "read_a.txt", "tag_a"),
+                new BlobInfo(blobIdB, "read_b.txt", "tag_b"),
+            })).ToList();
+            Assert.Equal(2, readResult.Count);
+            Assert.Equal(blobIdA, readResult[0].Item1.Id);
+            Assert.Equal("read_a.txt", readResult[0].Item1.Name);
+            Assert.Equal("tag_a", readResult[0].Item1.Tag);
+            Assert.Equal("content of a.txt", Encoding.UTF8.GetString(readResult[0].Item2));
+            Assert.Equal(blobIdB, readResult[1].Item1.Id);
+            Assert.Equal("read_b.txt", readResult[1].Item1.Name);
+            Assert.Equal("tag_b", readResult[1].Item1.Tag);
+            Assert.Equal("content of b.txt", Encoding.UTF8.GetString(readResult[1].Item2));
         }
 
-        [Fact(Skip = "TODO")]
-        public void ReadActorCode()
+        [Fact]
+        public async Task ReadActorCode()
         {
-            // TODO
+            await PutSimpleDataSet();
+            var code = await _store.ReadActorCode("CompileUserCodeActor");
+            Assert.True(!string.IsNullOrEmpty(code));
+            var notExistCode = await _store.ReadActorCode("NotExistActor");
+            Assert.True(string.IsNullOrEmpty(notExistCode));
         }
     }
 }

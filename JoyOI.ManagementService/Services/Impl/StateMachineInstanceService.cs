@@ -41,7 +41,8 @@ namespace JoyOI.ManagementService.Services.Impl
             _stateMachineRepository = stateMachineRepository;
         }
 
-        public async Task<IList<StateMachineInstanceOutputDto>> Search(string name, string stage)
+        public async Task<IList<StateMachineInstanceOutputDto>> Search(
+            string name, string stage, string status, string begin_time, string finish_time)
         {
             var entities = await _repository.QueryNoTrackingAsync(q =>
             {
@@ -52,6 +53,21 @@ namespace JoyOI.ManagementService.Services.Impl
                 if (!string.IsNullOrEmpty(stage))
                 {
                     q = q.Where(x => x.Stage == stage);
+                }
+                if (!string.IsNullOrEmpty(status))
+                {
+                    var statusEnum = (StateMachineStatus)Enum.Parse(typeof(StateMachineStatus), status);
+                    q = q.Where(x => x.Status == statusEnum);
+                }
+                if (!string.IsNullOrEmpty(begin_time))
+                {
+                    var time = DateTime.Parse(begin_time).ToUniversalTime();
+                    q = q.Where(x => x.StartTime >= time);
+                }
+                if (!string.IsNullOrEmpty(finish_time))
+                {
+                    var time = DateTime.Parse(finish_time).ToUniversalTime();
+                    q = q.Where(x => (x.StartTime < time) || (x.EndTime != null && x.EndTime < time));
                 }
                 return q.ToListAsyncTestable();
             });

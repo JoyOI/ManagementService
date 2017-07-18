@@ -13,6 +13,7 @@ namespace JoyOI.ManagementService.Model.MapperProfiles
         {
             // 时间 <=> 字符串
             CreateMap<DateTime, string>().ConvertUsing(d => d.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss"));
+            CreateMap<DateTime?, string>().ConvertUsing(d => d?.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss"));
             CreateMap<string, DateTime>().ConvertUsing(s => DateTime.Parse(s).ToUniversalTime());
 
             // 时间 <=> 时间戳

@@ -14,7 +14,8 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 搜索状态机实例
         /// </summary>
-        Task<IList<StateMachineInstanceOutputDto>> Search(string name, string stage);
+        Task<IList<StateMachineInstanceOutputDto>> Search(
+            string name, string stage, string status, string begin_time, string finish_time);
 
         /// <summary>
         /// 获取状态机实例

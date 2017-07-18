@@ -19,12 +19,15 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             _stateMachineInstanceService = stateMachineInstanceService;
         }
 
-        // TODO: 改为all, 添加更多搜索条件
-        [HttpGet("Search")]
-        public async Task<ApiResponse<IList<StateMachineInstanceOutputDto>>> Search(
-            string name, string currentActor)
+        [HttpGet("All")]
+        public async Task<ApiResponse<IList<StateMachineInstanceOutputDto>>> All(
+            [FromQuery]string name,
+            [FromQuery]string stage,
+            [FromQuery]string status,
+            [FromQuery]string begin_time,
+            [FromQuery]string finish_time)
         {
-            var dtos = await _stateMachineInstanceService.Search(name, currentActor);
+            var dtos = await _stateMachineInstanceService.Search(name, stage, status, begin_time, finish_time);
             return ApiResponse.OK(dtos);
         }
 
