@@ -3,6 +3,8 @@ using JoyOI.ManagementService.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,14 +16,18 @@ namespace JoyOI.ManagementService.Services.Impl
     internal class DockerNodeStore : IDockerNodeStore
     {
         private JoyOIManagementConfiguration _configuration;
+        private INotificationService _notificationService;
         private List<DockerNode> _nodes;
         private Dictionary<string, DockerNode> _nodesMap;
         private SortedDictionary<int, Queue<TaskCompletionSource<DockerNode>>> _waitReleaseQueue;
         private object _nodesLock;
 
-        public DockerNodeStore(JoyOIManagementConfiguration configuration)
+        public DockerNodeStore(
+            JoyOIManagementConfiguration configuration,
+            INotificationService notificationService)
         {
             _configuration = configuration;
+            _notificationService = notificationService;
             _nodes = new List<DockerNode>();
             _nodesMap = new Dictionary<string, DockerNode>();
             _waitReleaseQueue = new SortedDictionary<int, Queue<TaskCompletionSource<DockerNode>>>();
@@ -31,6 +37,40 @@ namespace JoyOI.ManagementService.Services.Impl
                 var node = new DockerNode(nodeInfo.Key, nodeInfo.Value);
                 _nodes.Add(node);
                 _nodesMap.Add(node.Name, node);
+            }
+        }
+
+        public async Task StartKeepaliveLoop()
+        {
+            // 循环确认Docker节点是否存活
+            // 如果不存活则发送提醒, 各节点一个小时最多发送一次
+            var lastReportedMap = new Dictionary<DockerNode, DateTime>();
+            var reportInterval = TimeSpan.FromHours(1);
+            var scanInterval = TimeSpan.FromSeconds(5);
+            while (true)
+            {
+                foreach (var pair in _nodesMap)
+                {
+                    try
+                    {
+                        using (var client = pair.Value.CreateDockerClient())
+                        {
+                            await client.Miscellaneous.GetVersionAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lastReportedMap.TryGetValue(pair.Value, out var lastReported);
+                        var now = DateTime.UtcNow;
+                        if (now - lastReported > reportInterval)
+                        {
+                            await _notificationService.Send(
+                                $"Docker Node Failure: {pair.Value.Name}", ex.ToString());
+                            lastReportedMap[pair.Value] = now;
+                        }
+                    }
+                }
+                await Task.Delay(scanInterval);
             }
         }
 

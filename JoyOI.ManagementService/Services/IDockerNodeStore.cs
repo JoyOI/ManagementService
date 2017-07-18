@@ -12,6 +12,11 @@ namespace JoyOI.ManagementService.Services
     internal interface IDockerNodeStore
     {
         /// <summary>
+        /// 循环确认Docker节点是否存活
+        /// </summary>
+        Task StartKeepaliveLoop();
+
+        /// <summary>
         /// 获取指定名称的节点, 不存在时返回null
         /// </summary>
         DockerNode GetNode(string nodeName);

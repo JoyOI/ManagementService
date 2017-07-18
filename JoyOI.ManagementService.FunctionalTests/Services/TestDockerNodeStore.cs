@@ -15,7 +15,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         [Fact]
         public void GetNode()
         {
-            var store = new DockerNodeStore(_configuration);
+            var store = new DockerNodeStore(_configuration, new NotificationService());
             var node = store.GetNode("docker-1");
             Assert.True(node != null);
             node = store.GetNode("docker-2");
@@ -25,7 +25,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         [Fact]
         public void GetNodes()
         {
-            var store = new DockerNodeStore(_configuration);
+            var store = new DockerNodeStore(_configuration, new NotificationService());
             var nodes = store.GetNodes();
             Assert.Equal(2, nodes.Count());
             Assert.True(nodes.Any(x => x.Name == "docker-1"));
@@ -35,7 +35,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         [Fact]
         public void AcquireAndReleaseNode()
         {
-            var store = new DockerNodeStore(_configuration);
+            var store = new DockerNodeStore(_configuration, new NotificationService());
             var tasks = new List<Task<DockerNode>>();
             // 获取节点直到达到上限值
             for (var x = 0; x < _configuration.Container.MaxRunningJobs * _configuration.Nodes.Count; ++x)

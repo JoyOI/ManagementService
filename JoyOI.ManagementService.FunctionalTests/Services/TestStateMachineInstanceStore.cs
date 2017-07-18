@@ -24,7 +24,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         {
             _store = new StateMachineInstanceStore(
                 _configuration,
-                new DockerNodeStore(_configuration),
+                new DockerNodeStore(_configuration, new NotificationService()),
                 new DynamicCompileService());
             _store.Initialize(
                 () => new EmptyDisposable(),
@@ -66,7 +66,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             var (_, entity) = await PutTestInstance();
             var store = new StateMachineInstanceStore(
                 _configuration,
-                new DockerNodeStore(_configuration),
+                new DockerNodeStore(_configuration, new NotificationService()),
                 new DynamicCompileService());
             store.Initialize(
                 () => new EmptyDisposable(),

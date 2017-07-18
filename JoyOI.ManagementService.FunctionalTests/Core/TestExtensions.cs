@@ -20,7 +20,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Core
         {
             _store = new StateMachineInstanceStore(
                 _configuration,
-                new DockerNodeStore(_configuration),
+                new DockerNodeStore(_configuration, new NotificationService()),
                 new DynamicCompileService());
             _store.Initialize(
                 () => new EmptyDisposable(),

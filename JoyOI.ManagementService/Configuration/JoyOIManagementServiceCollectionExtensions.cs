@@ -67,6 +67,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<IStateMachineInstanceStore, StateMachineInstanceStore>();
             services.AddSingleton<IDockerNodeStore, DockerNodeStore>();
             services.AddSingleton<IDynamicCompileService, DynamicCompileService>();
+            services.AddSingleton<INotificationService, NotificationService>();
 
             // 静态功能
             InitializeStaticFunctions();
@@ -79,6 +80,7 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             // 启动docker节点仓库
             var dockerNodeStore = services.GetRequiredService<IDockerNodeStore>();
+            dockerNodeStore.StartKeepaliveLoop();
 
             // 启动状态机实例仓库
             // 会继续之前未执行完毕的状态机

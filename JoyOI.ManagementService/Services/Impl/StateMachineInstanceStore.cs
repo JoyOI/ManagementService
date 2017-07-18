@@ -1,5 +1,4 @@
 ﻿using JoyOI.ManagementService.Configuration;
-using JoyOI.ManagementService.DbContexts;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -23,6 +22,8 @@ using JoyOI.ManagementService.Model.Dtos;
 using AutoMapper;
 using Docker.DotNet;
 using JoyOI.ManagementService.Repositories;
+using System.Net.Http;
+using System.Net.Sockets;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -146,26 +147,33 @@ namespace JoyOI.ManagementService.Services.Impl
             var prefix = _configuration.Name + ".";
             var childTasks = _dockerNodeStore.GetNodes().Select(node => Task.Run(async () =>
             {
-                using (var client = node.CreateDockerClient())
+                try
                 {
-                    var result = await client.Containers.ListContainersAsync(
-                        new ContainersListParameters() { All = true });
-                    foreach (var container in result)
+                    using (var client = node.CreateDockerClient())
                     {
-                        if (!(container.State == "created" || container.State == "exited"))
-                            continue;
-                        if (!container.Names.Any(x => x.StartsWith(prefix)))
-                            continue;
-                        try
+                        var result = await client.Containers.ListContainersAsync(
+                            new ContainersListParameters() { All = true });
+                        foreach (var container in result)
                         {
-                            await client.Containers.RemoveContainerAsync(container.ID,
-                                new ContainerRemoveParameters() { Force = true });
-                        }
-                        catch (DockerContainerNotFoundException)
-                        {
-                            // 可能已经被删除了
+                            if (!(container.State == "created" || container.State == "exited"))
+                                continue;
+                            if (!container.Names.Any(x => x.StartsWith(prefix)))
+                                continue;
+                            try
+                            {
+                                await client.Containers.RemoveContainerAsync(container.ID,
+                                    new ContainerRemoveParameters() { Force = true });
+                            }
+                            catch (DockerContainerNotFoundException)
+                            {
+                                // 可能已经被删除了
+                            }
                         }
                     }
+                }
+                catch (Exception ex) when (ex is HttpRequestException || ex is SocketException)
+                {
+                    Console.Error.WriteLine(ex.ToString());
                 }
             })).ToArray();
             Task.WaitAll(childTasks);
