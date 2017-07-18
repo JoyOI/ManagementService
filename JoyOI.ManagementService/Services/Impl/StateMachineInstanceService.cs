@@ -137,7 +137,7 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<StateMachineInstancePatchResultDto> Patch(Guid id, StateMachineInstancePatchDto dto)
         {
-            // 更新阶段和并发键
+            // 更新阶段, 参数和并发键
             StateMachineInstanceEntity stateMachineInstanceEntity = null;
             StateMachineEntity stateMachineEntity = null;
             for (int from = 0; from <= ConcurrencyErrorMaxRetryTimes; ++from)
@@ -158,6 +158,15 @@ namespace JoyOI.ManagementService.Services.Impl
                 stateMachineInstanceEntity.Stage = dto.Stage ?? StateMachineBase.InitialStage;
                 stateMachineInstanceEntity.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
                 stateMachineInstanceEntity.FromManagementService = _configuration.Name;
+                if (dto.Parameters != null)
+                {
+                    var parameters = stateMachineInstanceEntity.Parameters;
+                    foreach (var pair in dto.Parameters)
+                    {
+                        parameters[pair.Key] = pair.Value;
+                    }
+                    stateMachineInstanceEntity.Parameters = parameters;
+                }
                 try
                 {
                     await _repository.SaveChangesAsync();
