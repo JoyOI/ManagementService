@@ -219,25 +219,25 @@ nssm start joyoi_mgmtsvc
 
 ```
 get /api/v1/Actor/All
-delete /api/v1/Actor
-get /api/v1/Actor
-patch /api/v1/Actor
-put /api/v1/Actor
+delete /api/v1/Actor/{name}
+get /api/v1/Actor/{name}
+patch /api/v1/Actor/{name}
+put /api/v1/Actor 
 
 get /api/v1/Blob/All
-get /api/v1/Blob
-put /api/v1/Blob
+get /api/v1/Blob/{id}
+put /api/v1/Blob 
 
 get /api/v1/StateMachine/All
-delete /api/v1/StateMachine
-get /api/v1/StateMachine
-patch /api/v1/StateMachine
-put /api/v1/StateMachine
+delete /api/v1/StateMachine/{name}
+get /api/v1/StateMachine/{name}
+patch /api/v1/StateMachine/{name}
+put /api/v1/StateMachine 
 
-get /api/v1/StateMachineInstance/Search
-delete /api/v1/StateMachineInstance
-get /api/v1/StateMachineInstance
-patch /api/v1/StateMachineInstance
+get /api/v1/StateMachineInstance/All
+delete /api/v1/StateMachineInstance/{id}
+get /api/v1/StateMachineInstance/{id}
+patch /api/v1/StateMachineInstance/{id}
 put /api/v1/StateMachineInstance 
 ```
 
