@@ -25,6 +25,8 @@ namespace JoyOI.ManagementService.SDK
         private const string _actorController = "actor";
         private HttpClient _client;
 
+        public HttpClient Client => _client;
+
         public ManagementServiceClient(IConfiguration config)
         {
             var handler = new HttpClientHandler();

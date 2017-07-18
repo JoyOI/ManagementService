@@ -12,7 +12,7 @@ namespace JoyOI.ManagementService.SDK
             {
                 this.Code = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(json).code;
             }
-            catch
+            catch (Exception)
             {
                 this.Code = -1;
             }
