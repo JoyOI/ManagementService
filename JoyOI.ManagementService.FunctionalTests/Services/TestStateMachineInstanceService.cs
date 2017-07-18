@@ -1,5 +1,4 @@
-﻿#if false
-using JoyOI.ManagementService.Core;
+﻿using JoyOI.ManagementService.Core;
 using JoyOI.ManagementService.DbContexts;
 using JoyOI.ManagementService.Model.Dtos;
 using JoyOI.ManagementService.Model.Entities;
@@ -28,7 +27,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         {
             _store = new StateMachineInstanceStore(
                 _configuration,
-                new DockerNodeStore(_configuration),
+                new DockerNodeStore(_configuration, new NotificationService()),
                 new DynamicCompileService());
             _store.Initialize(
                 () => new EmptyDisposable(),
@@ -52,12 +51,14 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             var putResultB = await _service.Put(putDto);
             Assert.Equal(200, putResultA.Code);
             Assert.Equal(200, putResultB.Code);
-            var stateMachines = await _service.Search("SimpleStateMachine", null);
+            var stateMachines = await _service.Search(
+                "SimpleStateMachine", null, null, null, null);
             Assert.Equal(2, stateMachines.Count);
             Assert.True(stateMachines.All(x => x.Name == "SimpleStateMachine"));
             while (true)
             {
-                stateMachines = await _service.Search("SimpleStateMachine", null);
+                stateMachines = await _service.Search(
+                    "SimpleStateMachine", null, null, null, null);
                 foreach (var stateMachine in stateMachines)
                 {
                     if (stateMachine.Status == StateMachineStatus.Failed)
@@ -65,7 +66,8 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                 }
                 if (stateMachines.All(x => x.Status == StateMachineStatus.Succeeded))
                 {
-                    stateMachines = await _service.Search("SimpleStateMachine", StateMachineBase.FinalStage);
+                    stateMachines = await _service.Search(
+                        "SimpleStateMachine", StateMachineBase.FinalStage, null, null, null);
                     Assert.Equal(2, stateMachines.Count);
                     break;
                 }
@@ -109,7 +111,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             }
             while (true)
             {
-                var stateMachines = await _service.Search(null, null);
+                var stateMachines = await _service.Search(null, null, null, null, null);
                 foreach (var stateMachine in stateMachines)
                 {
                     if (stateMachine.Status == StateMachineStatus.Failed)
@@ -117,7 +119,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
                 }
                 if (stateMachines.All(x => x.Status == StateMachineStatus.Succeeded))
                 {
-                    stateMachines = await _service.Search(null, null);
+                    stateMachines = await _service.Search(null, null, null, null, null);
                     Assert.Equal(stateMachineIds.Count, stateMachines.Count);
                     foreach (var stateMachine in stateMachines)
                     {
@@ -300,4 +302,3 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         }
     }
 }
-#endif
