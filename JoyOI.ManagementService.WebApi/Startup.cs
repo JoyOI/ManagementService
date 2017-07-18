@@ -13,6 +13,7 @@ using Swashbuckle.AspNetCore.Swagger;
 using System.IO;
 using Newtonsoft.Json;
 using JoyOI.ManagementService.WebApi.WebApiModels;
+using System.Text;
 
 namespace JoyOI.ManagementService.WebApi
 {
@@ -102,13 +103,12 @@ namespace JoyOI.ManagementService.WebApi
                 catch (Exception ex)
                 {
                     // TODO: 判断是否唯一键冲突
+                    var json = JsonConvert.SerializeObject(
+                        ApiResponse.InternalServerError(context.Response, ex, isDevelopment));
+                    var jsonBytes = Encoding.UTF8.GetBytes(json);
                     context.Response.ContentType = "application/json; charset=utf-8";
-                    using (var writer = new StreamWriter(context.Response.Body))
-                    {
-                        var json = JsonConvert.SerializeObject(
-                            ApiResponse.InternalServerError(context.Response, ex, isDevelopment));
-                        writer.Write(json);
-                    }
+                    context.Response.ContentLength = jsonBytes.Length;
+                    await context.Response.Body.WriteAsync(jsonBytes, 0, jsonBytes.Length);
                 }
             });
         }
