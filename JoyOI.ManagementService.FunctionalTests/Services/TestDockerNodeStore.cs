@@ -13,6 +13,12 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
     public class TestDockerNodeStore : TestServiceBase
     {
         [Fact]
+        public void StartKeepaliveLoop()
+        {
+            // TODO
+        }
+
+        [Fact]
         public void GetNode()
         {
             var store = new DockerNodeStore(_configuration, new NotificationService());
