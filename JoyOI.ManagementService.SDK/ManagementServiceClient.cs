@@ -144,15 +144,15 @@ namespace JoyOI.ManagementService.SDK
 
         #region StateMachineDefinition
         public Task<IEnumerable<StateMachineOutputDto>> GetAllStateMachineDefinitionsAsync(CancellationToken token = default(CancellationToken))
-            => GetAllBaseAsync<StateMachineOutputDto>("statemachine", token);
+            => GetAllBaseAsync<StateMachineOutputDto>(_stateMachineDefinitionController, token);
 
         public Task<StateMachineOutputDto> GetStateMachineDefinitionAsync(string name, CancellationToken token = default(CancellationToken))
-            => GetBaseAsync<StateMachineOutputDto>("statemachine", name, token);
+            => GetBaseAsync<StateMachineOutputDto>(_stateMachineDefinitionController, name, token);
 
         public Task DeleteStateMachineDefinitionAsync(string name, CancellationToken token = default(CancellationToken))
-            => DeleteBaseAsync("statemachine", name, token);
+            => DeleteBaseAsync(_stateMachineDefinitionController, name, token);
 
-        public Task PutStateMachineDefinitionAsync(string name, string code, ContainerLimitation limitation = null, CancellationToken token = default(CancellationToken))
+        public Task PutStateMachineDefinitionAsync(string name, string code, ContainerLimitation limitation, CancellationToken token = default(CancellationToken))
             => PutBaseAsync(
                _stateMachineDefinitionController,
                 new
@@ -163,10 +163,7 @@ namespace JoyOI.ManagementService.SDK
                 },
                 token);
 
-        public Task PutStateMachineDefinitionAsync(string name, string code, CancellationToken token = default(CancellationToken))
-            => PutStateMachineDefinitionAsync(name, code, null, token);
-
-        public Task PatchStateMachineDefinitionAsync(string name, string code, ContainerLimitation limitation = null, CancellationToken token = default(CancellationToken))
+        public Task PatchStateMachineDefinitionAsync(string name, string code, ContainerLimitation limitation, CancellationToken token = default(CancellationToken))
             => PatchBaseAsync(
                _stateMachineDefinitionController,
                 name,
@@ -176,26 +173,23 @@ namespace JoyOI.ManagementService.SDK
                     Body = code,
                     ContainerLimitation = limitation
                 }, token);
-
-        public Task PatchStateMachineDefinitionAsync(string name, string code, CancellationToken token = default(CancellationToken))
-            => PatchStateMachineDefinitionAsync(name, code, null, token);
         #endregion
 
         #region Actor
         public Task<IEnumerable<ActorOutputDto>> GetAllActorsAsync(CancellationToken token = default(CancellationToken))
-            => GetAllBaseAsync<ActorOutputDto>("actor", token);
+            => GetAllBaseAsync<ActorOutputDto>(_actorController, token);
 
         public Task<ActorOutputDto> GetActorAsync(string name, CancellationToken token = default(CancellationToken))
-            => GetBaseAsync<ActorOutputDto>("actor", name, token);
+            => GetBaseAsync<ActorOutputDto>(_actorController, name, token);
 
         public Task DeleteActorAsync(string name, CancellationToken token = default(CancellationToken))
-            => DeleteBaseAsync("actor", name, token);
+            => DeleteBaseAsync(_actorController, name, token);
 
         public Task PutActorAsync(string name, string code, CancellationToken token = default(CancellationToken))
-            => PutBaseAsync("actor", new { Name = name, Body = code }, token);
+            => PutBaseAsync(_actorController, new { Name = name, Body = code }, token);
 
         public Task PatchActorAsync(string name, string code, CancellationToken token = default(CancellationToken))
-            => PatchBaseAsync("actor", name, new { Body = code }, token);
+            => PatchBaseAsync(_actorController, name, new { Body = code }, token);
         #endregion
 
         #region StateMachineInstance
@@ -217,7 +211,7 @@ namespace JoyOI.ManagementService.SDK
         }
 
         public Task<StateMachineInstanceOutputDto> GetStateMachineInstanceAsync(Guid id, CancellationToken token = default(CancellationToken))
-            => GetBaseAsync<StateMachineInstanceOutputDto>("statemachineinstance", id, token);
+            => GetBaseAsync<StateMachineInstanceOutputDto>(_stateMachineInstanceController, id, token);
 
         public Task DeleteStateMachineInstanceAsync(Guid id, CancellationToken token = default(CancellationToken))
             => DeleteBaseAsync(_stateMachineInstanceController, id, token);
