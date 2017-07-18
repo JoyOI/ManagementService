@@ -67,6 +67,8 @@ namespace JoyOI.ManagementService.SDK
             if (result.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 var obj = JsonConvert.DeserializeObject<JObject>(response);
+                if (typeof(T) == typeof(Guid))
+                    return (T)(object)Guid.Parse(obj["data"][idFieldName].Value<string>());
                 return obj["data"][idFieldName].Value<T>();
             }
             throw new ManagementServiceException(response);

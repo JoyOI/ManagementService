@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
@@ -23,6 +24,7 @@ namespace JoyOI.ManagementService.Services.Impl
             _assemblyLoadHelper = typeof(Task).GetType();
             _assemblyLoadHelper = typeof(Process).GetType();
             _assemblyLoadHelper = typeof(JsonConvert).GetType();
+            _assemblyLoadHelper = typeof(RuntimeBinderException).GetType(); // dynamic
         }
 
         public byte[] Compile(string code, OutputKind outputKind)
