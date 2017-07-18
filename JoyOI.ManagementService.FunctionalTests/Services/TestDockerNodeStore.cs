@@ -1,6 +1,8 @@
 ﻿using JoyOI.ManagementService.Configuration;
 using JoyOI.ManagementService.Core;
+using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,10 +14,34 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
 {
     public class TestDockerNodeStore : TestServiceBase
     {
-        [Fact]
-        public void StartKeepaliveLoop()
+        private class TestNotificationService : INotificationService
         {
-            // TODO
+            public IList<(string, string)> Sent { get; } = new List<(string, string)>();
+
+            public Task Send(string title, string message)
+            {
+                Sent.Add((title, message));
+                return Task.FromResult(0);
+            }
+        }
+
+        [Fact]
+        public async Task StartKeepaliveLoop()
+        {
+            var configure = JsonConvert.DeserializeObject<JoyOIManagementConfiguration>(
+                JsonConvert.SerializeObject(_configuration));
+            configure.Nodes["docker-1"].Address = "http://not-exist:2376";
+            var notificationService = new TestNotificationService();
+            var store = new DockerNodeStore(configure, notificationService);
+#pragma warning disable CS4014
+            store.StartKeepaliveLoop();
+#pragma warning restore CS4014
+            while (notificationService.Sent.Count == 0)
+            {
+                await Task.Delay(1);
+            }
+            Assert.Equal(1, notificationService.Sent.Count);
+            Assert.Equal("Docker Node Failure: docker-1", notificationService.Sent[0].Item1);
         }
 
         [Fact]
