@@ -106,6 +106,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Core
             Assert.True(actorInfoB == actors.FindSingleActor("SecondStage"));
             Assert.True(actorInfoA == actors.FindSingleActor(null, "ActorA"));
             Assert.True(actorInfoB == actors.FindSingleActor(null, "ActorB"));
+            Assert.Throws<KeyNotFoundException>(() => actors.FindSingleActor(null, "ActorC"));
         }
 
         [Fact]
@@ -144,7 +145,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Core
             var blobInfoB = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "b.txt");
             var actorInfo = new ActorInfo()
             {
-                Outputs = new []
+                Outputs = new[]
                 {
                     blobInfoA,
                     blobInfoB
@@ -153,6 +154,53 @@ namespace JoyOI.ManagementService.FunctionalTests.Core
             Assert.True(blobInfoA == actorInfo.FindOutputBlob("a.txt"));
             Assert.True(blobInfoB == actorInfo.FindOutputBlob("b.txt"));
             Assert.True(null == actorInfo.FindOutputBlob("c.txt"));
+        }
+
+        [Fact]
+        public void FindSingleBlob()
+        {
+            var blobInfoA = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "a.txt");
+            var blobInfoB = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "b.txt");
+            var blobs = new[] { blobInfoA, blobInfoB };
+            Assert.True(blobInfoA == blobs.FindSingleBlob("a.txt"));
+            Assert.True(blobInfoB == blobs.FindSingleBlob("b.txt"));
+            Assert.Throws<KeyNotFoundException>(() => blobs.FindSingleBlob("c.txt"));
+        }
+
+        [Fact]
+        public void FindSingleInputBlob()
+        {
+            var blobInfoA = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "a.txt");
+            var blobInfoB = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "b.txt");
+            var actorInfo = new ActorInfo()
+            {
+                Inputs = new[]
+                {
+                    blobInfoA,
+                    blobInfoB
+                }
+            };
+            Assert.True(blobInfoA == actorInfo.FindSingleInputBlob("a.txt"));
+            Assert.True(blobInfoB == actorInfo.FindSingleInputBlob("b.txt"));
+            Assert.Throws<KeyNotFoundException>(() => actorInfo.FindSingleInputBlob("c.txt"));
+        }
+
+        [Fact]
+        public void FindSingleOutputBlob()
+        {
+            var blobInfoA = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "a.txt");
+            var blobInfoB = new BlobInfo(PrimaryKeyUtils.Generate<Guid>(), "b.txt");
+            var actorInfo = new ActorInfo()
+            {
+                Outputs = new[]
+                {
+                    blobInfoA,
+                    blobInfoB
+                }
+            };
+            Assert.True(blobInfoA == actorInfo.FindSingleOutputBlob("a.txt"));
+            Assert.True(blobInfoB == actorInfo.FindSingleOutputBlob("b.txt"));
+            Assert.Throws<KeyNotFoundException>(() => actorInfo.FindSingleOutputBlob("c.txt"));
         }
     }
 }
