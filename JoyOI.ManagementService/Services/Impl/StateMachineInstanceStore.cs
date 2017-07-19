@@ -368,6 +368,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         instanceEntity.Status = StateMachineStatus.Failed;
                         instanceEntity.Exception = ex.ToString();
                     });
+                    await instance.HandleErrorAsync(ex);
                 }
                 catch (StateMachineInterpretedException)
                 {

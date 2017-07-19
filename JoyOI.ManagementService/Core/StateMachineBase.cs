@@ -121,6 +121,16 @@ namespace JoyOI.ManagementService.Core
         }
 
         /// <summary>
+        /// 处理状态机抛出异常时的操作
+        /// </summary>
+        /// <param name="ex"></param>
+        /// <returns></returns>
+        public virtual Task HandleErrorAsync(Exception ex)
+        {
+            return Task.FromResult(-1);
+        }
+
+        /// <summary>
         /// 切换到新的阶段
         /// </summary>
         protected Task SetStageAsync(string stage)
