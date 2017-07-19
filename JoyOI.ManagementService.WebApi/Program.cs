@@ -37,7 +37,7 @@ namespace JoyOI.ManagementService.WebApi
                                 // return cert.Equals(clientCertificate);
                                 return chain.Build(cert);
                             };
-                            httpsOptions.SslProtocols = SslProtocols.Tls12;
+                            httpsOptions.SslProtocols = SslProtocols.Tls;
                             listenOptions.UseHttps(httpsOptions);
                         });
                     }
