@@ -29,14 +29,22 @@ namespace JoyOI.ManagementService.SDK
 
         public ManagementServiceClient(IConfiguration config)
         {
+#if NET461
+            var handler = new WebRequestHandler();
+#else
             var handler = new HttpClientHandler();
+#endif
             handler.ClientCertificates.Add(new X509Certificate2(File.ReadAllBytes(config["ManagementService:Certification"]), config["ManagementService:Password"]));
             _client = new HttpClient(handler) { BaseAddress = new Uri(config["ManagementService:Url"]) };
         }
 
         public ManagementServiceClient(string url, string certPath, string password)
         {
+#if NET461
+            var handler = new WebRequestHandler();
+#else
             var handler = new HttpClientHandler();
+#endif
             handler.ClientCertificates.Add(new X509Certificate2(File.ReadAllBytes(certPath), password));
             _client = new HttpClient(handler) { BaseAddress = new Uri(url) };
         }

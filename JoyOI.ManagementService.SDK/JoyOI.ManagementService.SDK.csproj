@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JoyOI.ManagementService.Model\JoyOI.ManagementService.Model.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net461'">
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Net.Http.WebRequest" />
   </ItemGroup>
 
 </Project>
