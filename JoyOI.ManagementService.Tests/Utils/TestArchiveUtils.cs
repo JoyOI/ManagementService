@@ -12,7 +12,7 @@ namespace JoyOI.ManagementService.Tests.Utils
     public class TestArchiveUtils
     {
         [Fact]
-        public void CompressAndExtract()
+        public void Tar()
         {
             var compressed = ArchiveUtils.CompressToTar(new[]
             {
@@ -27,6 +27,17 @@ namespace JoyOI.ManagementService.Tests.Utils
             Assert.Equal(
                 JsonConvert.SerializeObject(new byte[] { 3, 2, 1 }),
                 JsonConvert.SerializeObject(decompressed["321.txt"].Item2));
+        }
+
+        [Fact]
+        public void GZip()
+        {
+            var bytes = new byte[] { 1, 2, 3 };
+            var compresed = ArchiveUtils.CompressToGZip(bytes);
+            var decompressed = ArchiveUtils.DecompressFromGZsip(compresed);
+            Assert.Equal(
+                JsonConvert.SerializeObject(bytes),
+                JsonConvert.SerializeObject(decompressed));
         }
     }
 }

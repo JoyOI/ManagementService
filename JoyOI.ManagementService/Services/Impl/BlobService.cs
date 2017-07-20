@@ -38,32 +38,40 @@ namespace JoyOI.ManagementService.Services.Impl
             dto.Id = entities[0].BlobId;
             dto.TimeStamp = Mapper.Map<DateTime, long>(entities[0].TimeStamp);
             dto.Remark = entities[0].Remark;
+            // 合并各个分块的内容
+            byte[] bodyBytes;
             if (entities.Count == 1)
             {
-                // 不需要合并
-                dto.Body = Mapper.Map<byte[], string>(entities[0].Body);
+                bodyBytes = entities[0].Body;
             }
             else
             {
-                // 需要合并
-                var bodyBytes = new byte[entities.Sum(e => e.Body.Length)];
+                bodyBytes = new byte[entities.Sum(e => e.Body.Length)];
                 var bodyBytesStart = 0;
                 foreach (var entity in entities)
                 {
                     Array.Copy(entity.Body, 0, bodyBytes, bodyBytesStart, entity.Body.Length);
                     bodyBytesStart += entity.Body.Length;
                 }
-                dto.Body = Mapper.Map<byte[], string>(bodyBytes);
             }
+            // 解压缩合并后的内容
+            bodyBytes = ArchiveUtils.DecompressFromGZsip(bodyBytes);
+            dto.Body = Mapper.Map<byte[], string>(bodyBytes);
             return dto;
         }
 
         public IEnumerable<BlobEntity> SplitChunks(Guid blobId, BlobInputDto dto)
         {
+            // 获取提交过来的内容
             var bodyBytes = Mapper.Map<string, byte[]>(dto.Body);
+            if (dto.IsCompressed)
+                bodyBytes = ArchiveUtils.DecompressFromGZsip(bodyBytes);
             var bodyBytesStart = 0;
             var bodyHash = HashUtils.GetSHA256Hash(bodyBytes);
+            // 压缩分块之前的内容 
+            bodyBytes = ArchiveUtils.CompressToGZip(bodyBytes);
             var chunkIndex = 0;
+            // 对内容进行分块
             do
             {
                 var entityBodySize = Math.Min(bodyBytes.Length - bodyBytesStart, BlobEntity.BlobChunkSize);
@@ -139,6 +147,7 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<IList<BlobOutputDto>> GetAll(Expression<Func<BlobEntity, bool>> expression)
         {
+            // 不获取body防止数据量过大
             IList<BlobEntity> entities;
             using (var transaction = await _repository.BeginTransactionAsync())
             {
@@ -146,13 +155,24 @@ namespace JoyOI.ManagementService.Services.Impl
                 {
                     if (expression != null)
                         q = q.Where(expression);
-                    return q.ToListAsyncTestable();
+                    return q.Select(x => new BlobEntity()
+                    {
+                        Id = x.Id,
+                        BlobId = x.BlobId,
+                        TimeStamp = x.TimeStamp,
+                        Remark = x.Remark,
+                    }).GroupBy(x => x.BlobId).Select(x => x.First()).ToListAsyncTestable();
                 });
             }
             var dtos = new List<BlobOutputDto>(32);
-            foreach (var group in entities.GroupBy(e => e.BlobId))
+            foreach (var entity in entities)
             {
-                dtos.Add(MergeChunks(group.OrderBy(x => x.ChunkIndex).ToList()));
+                dtos.Add(new BlobOutputDto()
+                {
+                    Id = entity.BlobId,
+                    TimeStamp = Mapper.Map<DateTime, long>(entity.TimeStamp),
+                    Remark = entity.Remark,
+                });
             }
             return dtos;
         }
@@ -186,6 +206,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 // 注意并发添加时可能会添加相同内容的blob
                 foreach (var chunk in chunks)
                 {
+                    // 这里需要一个个分块保存, 否则会触发mysql的max_allowed_packet错误
                     await _repository.AddAsync(chunk);
                     await _repository.SaveChangesAsync();
                 }

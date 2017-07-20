@@ -5,6 +5,7 @@ using SharpCompress.Writers;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 
 namespace JoyOI.ManagementService.Utils
@@ -62,6 +63,33 @@ namespace JoyOI.ManagementService.Utils
                         yield return (filename, toStream.ToArray());
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// 使用gzip压缩字节数组
+        /// </summary>
+        public static byte[] CompressToGZip(byte[] bytes)
+        {
+            using (var memStream = new MemoryStream())
+            using (var stream = new GZipStream(memStream, CompressionLevel.Optimal))
+            {
+                stream.Write(bytes, 0, bytes.Length);
+                return memStream.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// 使用gzip解压缩字节数组
+        /// </summary>
+        public static byte[] DecompressFromGZsip(byte[] bytes)
+        {
+            using (var memStream = new MemoryStream(bytes))
+            using (var stream = new GZipStream(memStream, CompressionLevel.Optimal))
+            using (var outStream = new MemoryStream())
+            {
+                stream.CopyTo(outStream);
+                return outStream.ToArray();
             }
         }
     }

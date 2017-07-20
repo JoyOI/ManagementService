@@ -35,10 +35,13 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public int ChunkIndex { get; set; }
         /// <summary>
-        /// 文件内容
-        /// 最大不超过10MB
+        /// 文件内容(longblob)
         /// </summary>
         public byte[] Body { get; set; }
+        /// <summary>
+        /// 文件内容(longtext)
+        /// </summary>
+        public string BodyText { get; set; }
         /// <summary>
         /// 文件时间戳
         /// 由外部传入

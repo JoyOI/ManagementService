@@ -11,5 +11,6 @@ namespace JoyOI.ManagementService.Model.Dtos
         public string Body { get; set; }
         public long TimeStamp { get; set; }
         public string Remark { get; set; }
+        public bool IsCompressed { get; set; }
     }
 }
