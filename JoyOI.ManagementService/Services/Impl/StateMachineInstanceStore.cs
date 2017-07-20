@@ -89,6 +89,7 @@ namespace JoyOI.ManagementService.Services.Impl
         private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
         private ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
         private TimeSpan _actorCodeCacheTime;
+        private int _actorMaxRetryTimes;
         private Func<IDisposable> _contextFactory;
         private Func<IDisposable, IRepository<BlobEntity, Guid>> _blobRepositoryFactory;
         private Func<IDisposable, IRepository<ActorEntity, Guid>> _actorRepositoryFactory;
@@ -108,6 +109,7 @@ namespace JoyOI.ManagementService.Services.Impl
             _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
             _actorCodeCache = new ConcurrentDictionary<string, (string, DateTime)>();
             _actorCodeCacheTime = TimeSpan.FromSeconds(1);
+            _actorMaxRetryTimes = 3;
             _contextFactory = null;
             _blobRepositoryFactory = null;
             _actorRepositoryFactory = null;
@@ -141,6 +143,8 @@ namespace JoyOI.ManagementService.Services.Impl
             }
         }
 
+
+
         private void RemoveStoppedContainers()
         {
             // 删除已停止的, 并且属于当前管理服务的容器
@@ -149,31 +153,33 @@ namespace JoyOI.ManagementService.Services.Impl
             {
                 try
                 {
-                    using (var client = node.CreateDockerClient())
+                    var client = node.Client;
+                    var result = await client.Containers.ListContainersAsync(
+                        new ContainersListParameters() { All = true });
+                    foreach (var container in result)
                     {
-                        var result = await client.Containers.ListContainersAsync(
-                            new ContainersListParameters() { All = true });
-                        foreach (var container in result)
+                        if (!(container.State == "created" || container.State == "exited"))
+                            continue;
+                        if (!container.Names.Any(x => x.StartsWith(prefix)))
+                            continue;
+                        try
                         {
-                            if (!(container.State == "created" || container.State == "exited"))
-                                continue;
-                            if (!container.Names.Any(x => x.StartsWith(prefix)))
-                                continue;
-                            try
-                            {
-                                await client.Containers.RemoveContainerAsync(container.ID,
-                                    new ContainerRemoveParameters() { Force = true });
-                            }
-                            catch (DockerContainerNotFoundException)
-                            {
-                                // 可能已经被删除了
-                            }
+                            await client.Containers.RemoveContainerAsync(container.ID,
+                                new ContainerRemoveParameters() { Force = true });
+                        }
+                        catch (DockerContainerNotFoundException)
+                        {
+                            // 可能已经被删除了
                         }
                     }
                 }
-                catch (Exception ex) when (ex is HttpRequestException || ex is SocketException)
+                catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex.ToString());
+                    // 如果是连接错误则记录日志并正常启动程序, 否则让程序启动失败
+                    if (DockerNode.IsConnectionError(ex))
+                        Console.Error.WriteLine(ex.ToString());
+                    else
+                        throw;
                 }
             })).ToArray();
             Task.WaitAll(childTasks);
@@ -392,149 +398,176 @@ namespace JoyOI.ManagementService.Services.Impl
             instance.Stage = stage;
         }
 
-        private async Task RunActorInternal(StateMachineBase instance, ActorInfo actorInfo)
+        private async Task RunActorInternalRetryable(StateMachineBase instance, ActorInfo actorInfo)
         {
             // 请勿直接调用此函数, 此函数不会更新StartedActors
-            // 选择一个节点
+            // 此函数可以反复重试, 注意不要做出不可逆的修改
             var node = await _dockerNodeStore.AcquireNode(instance.Priority);
             try
             {
+                // 获取docker客户端
+                var client = node.Client;
                 // 生成一个容器名称
                 var containerTag = $"{_configuration.Name}.{PrimaryKeyUtils.Generate<Guid>()}";
-                using (var client = node.CreateDockerClient())
+                // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
+                actorInfo.UsedNode = node.Name;
+                actorInfo.UsedContainer = containerTag;
+                // 编译actor代码
+                var actorCode = await ReadActorCode(actorInfo.Name);
+                var actorBytes = _dynamicCompileService.Compile(
+                    actorCode, OutputKind.ConsoleApplication);
+                // 创建容器
+                var hostConfig = HostConfigUtils.WithLimitation(
+                    new HostConfig(), instance.Limitation, node.NodeInfo.Container);
+                var createContainerResponse = await client.Containers.CreateContainerAsync(
+                    new CreateContainerParameters()
+                    {
+                        Tty = true,
+                        NetworkDisabled = true,
+                        Image = node.NodeInfo.Image,
+                        Name = containerTag,
+                        HostConfig = hostConfig,
+                        WorkingDir = node.NodeInfo.Container.WorkDir,
+                        Cmd = new[] { "bash", "-c", node.NodeInfo.Container.ActorExecuteCommand }
+                    });
+                var containerId = createContainerResponse.ID;
+                try
                 {
-                    // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
-                    actorInfo.UsedNode = node.Name;
-                    actorInfo.UsedContainer = containerTag;
-                    // 编译actor代码
-                    var actorCode = await ReadActorCode(actorInfo.Name);
-                    var actorBytes = _dynamicCompileService.Compile(
-                        actorCode, OutputKind.ConsoleApplication);
-                    // 创建容器
-                    var hostConfig = HostConfigUtils.WithLimitation(
-                        new HostConfig(), instance.Limitation, node.NodeInfo.Container);
-                    var createContainerResponse = await client.Containers.CreateContainerAsync(
-                        new CreateContainerParameters()
-                        {
-                            Tty = true,
-                            NetworkDisabled = true,
-                            Image = node.NodeInfo.Image,
-                            Name = containerTag,
-                            HostConfig = hostConfig,
-                            WorkingDir = node.NodeInfo.Container.WorkDir,
-                            Cmd = new[] { "bash", "-c", node.NodeInfo.Container.ActorExecuteCommand }
-                        });
-                    var containerId = createContainerResponse.ID;
-                    try
+                    // 上传Inputs和actor.dll到容器
+                    var inputBlobs = await ReadBlobs(actorInfo.Inputs);
+                    var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
+                    if (noExistBlob.Item1 != null)
                     {
-                        // 上传Inputs和actor.dll到容器
-                        var inputBlobs = await ReadBlobs(actorInfo.Inputs);
-                        var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
-                        if (noExistBlob.Item1 != null)
-                        {
-                            throw new ArgumentException(
-                                $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
-                        }
-                        if (string.IsNullOrEmpty(actorCode))
-                        {
-                            throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
-                        }
-                        inputBlobs = inputBlobs.Concat(new[]
-                        {
-                            (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorExecutablePath), actorBytes)
-                        });
-                        using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
-                        {
-                            await client.Containers.ExtractArchiveToContainerAsync(
-                                containerId,
-                                new ContainerPathStatParameters() { Path = node.NodeInfo.Container.WorkDir },
-                                tarStream,
-                                new CancellationToken());
-                        }
-                        // 运行容器并等待完毕
-                        var startContainerResponse = await client.Containers.StartContainerAsync(
-                            containerId, new ContainerStartParameters());
-                        if (!startContainerResponse)
-                        {
-                            throw new InvalidOperationException("start container failed");
-                        }
-                        var waitContainerResponse = await client.Containers.WaitContainerAsync(
-                            containerId, new CancellationToken());
-                        // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
-                        string resultJson;
-                        if (waitContainerResponse.StatusCode == 0)
-                        {
-                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                                containerId,
-                                new GetArchiveFromContainerParameters()
-                                {
-                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ResultPath
-                                },
-                                false, new CancellationToken());
-                            resultJson = await Task.Run(() => Encoding.UTF8.GetString(
-                                ArchiveUtils.DecompressFromTar(
-                                getArchiveFromContainerResponse.Stream).First().Item2));
-                        }
-                        else
-                        {
-                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                                containerId,
-                                new GetArchiveFromContainerParameters()
-                                {
-                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ActorExecuteLogPath
-                                },
-                                false, new CancellationToken());
-                            var log = await Task.Run(() => Encoding.UTF8.GetString(
-                                ArchiveUtils.DecompressFromTar(
-                                getArchiveFromContainerResponse.Stream).First().Item2));
-                            throw new ActorExecuteException(log);
-                        }
-                        // 根据return.json下载文件并插入到blob
-                        var result = JsonConvert.DeserializeObject<RunActorResult>(resultJson);
-                        var actorOutputs = new List<BlobInfo>();
-                        foreach (var output in result.Outputs)
-                        {
-                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                                containerId,
-                                new GetArchiveFromContainerParameters()
-                                {
-                                    Path = node.NodeInfo.Container.WorkDir + output
-                                },
-                                false, new CancellationToken());
-                            var bytes = await Task.Run(() => ArchiveUtils.DecompressFromTar(
-                                getArchiveFromContainerResponse.Stream).First().Item2);
-                            var blobId = await PutBlob(output, bytes, getArchiveFromContainerResponse.Stat.Mtime);
-                            actorOutputs.Add(new BlobInfo()
-                            {
-                                Id = blobId,
-                                Name = output
-                            });
-                        }
-                        // 更新actorInfo的Outputs, Status, EndTime, 不更新到数据库
-                        actorInfo.Outputs = actorOutputs;
-                        actorInfo.Status = ActorStatus.Succeeded;
-                        actorInfo.EndTime = DateTime.UtcNow;
+                        throw new ArgumentException(
+                            $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
                     }
-                    finally
+                    if (string.IsNullOrEmpty(actorCode))
                     {
-                        // 删除容器 (finally)
-                        await client.Containers.RemoveContainerAsync(
+                        throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
+                    }
+                    inputBlobs = inputBlobs.Concat(new[]
+                    {
+                        (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorExecutablePath), actorBytes)
+                    });
+                    using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
+                    {
+                        await client.Containers.ExtractArchiveToContainerAsync(
                             containerId,
-                            new ContainerRemoveParameters() { Force = true });
+                            new ContainerPathStatParameters() { Path = node.NodeInfo.Container.WorkDir },
+                            tarStream,
+                            new CancellationToken());
                     }
+                    // 运行容器并等待完毕
+                    var startContainerResponse = await client.Containers.StartContainerAsync(
+                        containerId, new ContainerStartParameters());
+                    if (!startContainerResponse)
+                    {
+                        throw new InvalidOperationException("start container failed");
+                    }
+                    var waitContainerResponse = await client.Containers.WaitContainerAsync(
+                        containerId, new CancellationToken());
+                    // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
+                    string resultJson;
+                    if (waitContainerResponse.StatusCode == 0)
+                    {
+                        var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                            containerId,
+                            new GetArchiveFromContainerParameters()
+                            {
+                                Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ResultPath
+                            },
+                            false, new CancellationToken());
+                        resultJson = await Task.Run(() => Encoding.UTF8.GetString(
+                            ArchiveUtils.DecompressFromTar(
+                            getArchiveFromContainerResponse.Stream).First().Item2));
+                    }
+                    else
+                    {
+                        var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                            containerId,
+                            new GetArchiveFromContainerParameters()
+                            {
+                                Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ActorExecuteLogPath
+                            },
+                            false, new CancellationToken());
+                        var log = await Task.Run(() => Encoding.UTF8.GetString(
+                            ArchiveUtils.DecompressFromTar(
+                            getArchiveFromContainerResponse.Stream).First().Item2));
+                        throw new ActorExecuteException(log);
+                    }
+                    // 根据return.json下载文件并插入到blob
+                    var result = JsonConvert.DeserializeObject<RunActorResult>(resultJson);
+                    var actorOutputs = new List<BlobInfo>();
+                    foreach (var output in result.Outputs)
+                    {
+                        var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                            containerId,
+                            new GetArchiveFromContainerParameters()
+                            {
+                                Path = node.NodeInfo.Container.WorkDir + output
+                            },
+                            false, new CancellationToken());
+                        var bytes = await Task.Run(() => ArchiveUtils.DecompressFromTar(
+                            getArchiveFromContainerResponse.Stream).First().Item2);
+                        var blobId = await PutBlob(output, bytes, getArchiveFromContainerResponse.Stat.Mtime);
+                        actorOutputs.Add(new BlobInfo()
+                        {
+                            Id = blobId,
+                            Name = output
+                        });
+                    }
+                    // 更新actorInfo的Outputs, Status, EndTime, 不更新到数据库
+                    actorInfo.Outputs = actorOutputs;
+                    actorInfo.Status = ActorStatus.Succeeded;
+                    actorInfo.EndTime = DateTime.UtcNow;
+                    // 标记节点未发生错误
+                    node.ErrorFlags = false;
+                }
+                finally
+                {
+                    // 删除容器 (finally)
+                    await client.Containers.RemoveContainerAsync(
+                        containerId,
+                        new ContainerRemoveParameters() { Force = true });
                 }
             }
             catch (Exception ex)
             {
-                // 运行任务失败
-                actorInfo.Status = ActorStatus.Failed;
-                actorInfo.Exceptions = new[] { ex.ToString() };
+                // 如果是连接错误则标记节点发生过错误
+                if (DockerNode.IsConnectionError(ex))
+                    node.ErrorFlags = true;
+                throw;
             }
             finally
             {
                 // 释放节点
                 _dockerNodeStore.ReleaseNode(node);
             }
+        }
+
+        private async Task RunActorInternal(StateMachineBase instance, ActorInfo actorInfo)
+        {
+            // 请勿直接调用此函数, 此函数不会更新StartedActors
+            // 运行actor, 最多重试_actorMaxRetryTimes次 
+            Exception lastEx = null;
+            for (var x = 0; x < _actorMaxRetryTimes; ++x)
+            {
+                try
+                {
+                    await RunActorInternalRetryable(instance, actorInfo);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    // 仅在连接错误时允许重试
+                    lastEx = ex;
+                    if (!DockerNode.IsConnectionError(ex))
+                        break;
+                }
+            }
+            // 运行任务失败
+            actorInfo.Status = ActorStatus.Failed;
+            actorInfo.Exceptions = new[] { lastEx.ToString() };
         }
 
         public async Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)

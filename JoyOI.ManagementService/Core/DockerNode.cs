@@ -2,7 +2,10 @@
 using Docker.DotNet.X509;
 using JoyOI.ManagementService.Configuration;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -26,9 +29,19 @@ namespace JoyOI.ManagementService.Core
         /// 正在运行的任务数量
         /// </summary>
         public int RunningJobs { get; internal set; }
+        /// <summary>
+        /// 上次使用此节点执行任务是否出错
+        /// </summary>
+        public bool ErrorFlags { get; internal set; }
+        /// <summary>
+        /// Docker客户端对象
+        /// 内部使用了HttpClient, 可以单例使用
+        /// </summary>
+        public DockerClient Client => _client;
 
         private CertificateCredentials _credentials;
         private DockerClientConfiguration _dockerClientConfiguration;
+        private DockerClient _client;
 
         public DockerNode(string name, JoyOIManagementConfiguration.Node nodeInfo)
         {
@@ -37,6 +50,7 @@ namespace JoyOI.ManagementService.Core
             _credentials = new CertificateCredentials(
                 new X509Certificate2(nodeInfo.ClientCertificatePath, nodeInfo.ClientCertificatePassword));
             _dockerClientConfiguration = new DockerClientConfiguration(new Uri(nodeInfo.Address), _credentials);
+            _client = _dockerClientConfiguration.CreateClient();
         }
 
         public void Dispose()
@@ -45,9 +59,9 @@ namespace JoyOI.ManagementService.Core
             _dockerClientConfiguration.Dispose();
         }
 
-        public DockerClient CreateDockerClient()
+        internal static bool IsConnectionError(Exception ex)
         {
-            return _dockerClientConfiguration.CreateClient();
+            return ex is HttpRequestException || ex is SocketException;
         }
     }
 }
