@@ -22,6 +22,7 @@ namespace JoyOI.ManagementService.WebApi
                 .UseStartup<Startup>()
                 .UseKestrel(options =>
                 {
+                    options.Limits.MaxRequestBodySize = 1 * 1024 * 1024 * 1024; // 1GB
                     var configuration = Startup._kestrelConfiguration;
                     if (configuration != null)
                     {

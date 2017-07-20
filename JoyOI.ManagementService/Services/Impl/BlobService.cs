@@ -184,8 +184,11 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
                 // 添加新的blob
                 // 注意并发添加时可能会添加相同内容的blob
-                await _repository.AddRangeAsync(chunks);
-                await _repository.SaveChangesAsync();
+                foreach (var chunk in chunks)
+                {
+                    await _repository.AddAsync(chunk);
+                    await _repository.SaveChangesAsync();
+                }
                 transaction.Commit();
             }
             return blobId;

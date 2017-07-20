@@ -2,8 +2,10 @@
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.WebApi.WebApiModels;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -41,12 +43,17 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.OK(dto);
         }
 
-        [HttpPut]
-        public async Task<ApiResponse<PutResult<Guid>>> Put([FromBody]BlobInputDto dto)
+        [HttpPost]
+        public async Task<ApiResponse<PutResult<Guid>>> Put()
         {
-            var key = await _blobService.Put(dto);
-            var result = new PutResult<Guid>(key);
-            return ApiResponse.OK(result);
+            using (var reader = new StreamReader(Request.Body))
+            {
+                var json = await reader.ReadToEndAsync();
+                var dto = JsonConvert.DeserializeObject<BlobInputDto>(json);
+                var key = await _blobService.Put(dto);
+                var result = new PutResult<Guid>(key);
+                return ApiResponse.OK(result);
+            }
         }
     }
 }

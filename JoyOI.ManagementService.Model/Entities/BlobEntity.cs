@@ -7,16 +7,17 @@ namespace JoyOI.ManagementService.Model.Entities
 {
     /// <summary>
     /// 文件
-    /// 文件会分块储存, 最多10MB一块
+    /// 文件会分块储存
     /// </summary>
     public class BlobEntity :
         IEntity<Guid>,
         IEntityWithCreateTime
     {
         /// <summary>
-        /// 文件分块大小, 10MB
+        /// 文件分块大小
+        /// 修改后需要测试是否会引发 "Got a packet bigger than 'max_allowed_packet' bytes" 错误
         /// </summary>
-        public const int BlobChunkSize = 10 * 1024 * 1024;
+        public const int BlobChunkSize = 3 * 1024 * 1024;
         // public const int BlobChunkSize = 20;
 
         /// <summary>
