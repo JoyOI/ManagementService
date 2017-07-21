@@ -37,7 +37,7 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             return ApiResponse.OK(dto);
         }
 
-        [HttpPost]
+        [HttpPut]
         public async Task<ApiResponse<PutResult<Guid>>> Put()
         {
             using (var reader = new StreamReader(Request.Body))

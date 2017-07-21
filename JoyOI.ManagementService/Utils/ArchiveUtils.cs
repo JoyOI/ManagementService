@@ -75,6 +75,7 @@ namespace JoyOI.ManagementService.Utils
             using (var stream = new GZipStream(memStream, CompressionLevel.Optimal))
             {
                 stream.Write(bytes, 0, bytes.Length);
+                stream.Flush();
                 return memStream.ToArray();
             }
         }
@@ -82,10 +83,10 @@ namespace JoyOI.ManagementService.Utils
         /// <summary>
         /// 使用gzip解压缩字节数组
         /// </summary>
-        public static byte[] DecompressFromGZsip(byte[] bytes)
+        public static byte[] DecompressFromGZip(byte[] bytes)
         {
             using (var memStream = new MemoryStream(bytes))
-            using (var stream = new GZipStream(memStream, CompressionLevel.Optimal))
+            using (var stream = new GZipStream(memStream, CompressionMode.Decompress))
             using (var outStream = new MemoryStream())
             {
                 stream.CopyTo(outStream);

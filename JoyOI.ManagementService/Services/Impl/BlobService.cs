@@ -55,22 +55,18 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
             }
             // 解压缩合并后的内容
-            bodyBytes = ArchiveUtils.DecompressFromGZsip(bodyBytes);
+            bodyBytes = ArchiveUtils.DecompressFromGZip(bodyBytes);
             dto.Body = Mapper.Map<byte[], string>(bodyBytes);
             return dto;
         }
 
-        public IEnumerable<BlobEntity> SplitChunks(Guid blobId, BlobInputDto dto)
+        public IEnumerable<BlobEntity> SplitChunks(
+            Guid blobId, byte[] originalBytes, string hash, string remark, long timeStamp)
         {
-            // 获取提交过来的内容
-            var bodyBytes = Mapper.Map<string, byte[]>(dto.Body);
-            if (dto.IsCompressed)
-                bodyBytes = ArchiveUtils.DecompressFromGZsip(bodyBytes);
-            var bodyBytesStart = 0;
-            var bodyHash = HashUtils.GetSHA256Hash(bodyBytes);
             // 压缩分块之前的内容 
-            bodyBytes = ArchiveUtils.CompressToGZip(bodyBytes);
+            var bodyBytes = ArchiveUtils.CompressToGZip(originalBytes);
             var chunkIndex = 0;
+            var bodyBytesStart = 0;
             // 对内容进行分块
             do
             {
@@ -79,7 +75,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 entity.Id = PrimaryKeyUtils.Generate<Guid>();
                 entity.BlobId = blobId;
                 entity.ChunkIndex = chunkIndex++;
-                entity.Remark = dto.Remark;
+                entity.Remark = remark;
                 if (bodyBytesStart == 0 && entityBodySize == bodyBytes.Length)
                 {
                     // 不需要分块
@@ -91,10 +87,10 @@ namespace JoyOI.ManagementService.Services.Impl
                     Array.Copy(bodyBytes, bodyBytesStart, entity.Body, 0, entityBodySize);
                 }
                 bodyBytesStart += entityBodySize;
-                entity.TimeStamp = dto.TimeStamp == 0 ?
+                entity.TimeStamp = timeStamp == 0 ?
                     DateTime.UtcNow :
-                    Mapper.Map<long, DateTime>(dto.TimeStamp);
-                entity.BodyHash = bodyHash;
+                    Mapper.Map<long, DateTime>(timeStamp);
+                entity.BodyHash = hash;
                 entity.CreateTime = DateTime.UtcNow;
                 yield return entity;
             } while (bodyBytesStart < bodyBytes.Length);
@@ -189,24 +185,31 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<Guid> Put(BlobInputDto dto)
         {
-            var blobId = PrimaryKeyUtils.Generate<Guid>();
-            var chunks = new List<BlobEntity>(SplitChunks(blobId, dto));
+            // 获取提交过来的内容, 计算校验值
+            var originalBytes = Mapper.Map<string, byte[]>(dto.Body);
+            if (dto.IsCompressed)
+                originalBytes = ArchiveUtils.DecompressFromGZip(originalBytes);
+            var hash = HashUtils.GetSHA256Hash(originalBytes);
             using (var transaction = await _repository.BeginTransactionAsync())
             {
-                // 如果有相同内容的blob时, 返回原blob的id
+                // 如果有相同校验值的blob, 返回该blob
                 var existBlobId = await _repository.QueryNoTrackingAsync(q =>
-                    q.Where(x => x.BodyHash == chunks[0].BodyHash)
+                    q.Where(x => x.BodyHash == hash)
                         .Select(x => x.BlobId)
                         .FirstOrDefaultAsyncTestable());
                 if (existBlobId != Guid.Empty)
-                {
                     return existBlobId;
-                }
-                // 添加新的blob
-                // 注意并发添加时可能会添加相同内容的blob
+            }
+            // 对内容进行分块
+            var blobId = PrimaryKeyUtils.Generate<Guid>();
+            var chunks = SplitChunks(blobId, originalBytes, hash, dto.Remark, dto.TimeStamp);
+            // 添加新的blob
+            // 注意并发添加时可能会添加相同内容的blob
+            using (var transaction = await _repository.BeginTransactionAsync())
+            {
                 foreach (var chunk in chunks)
                 {
-                    // 这里需要一个个分块保存, 否则会触发mysql的max_allowed_packet错误
+                    // 这里需要逐个分块提交, 否则会触发mysql的max_allowed_packet错误
                     await _repository.AddAsync(chunk);
                     await _repository.SaveChangesAsync();
                 }

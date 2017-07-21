@@ -33,8 +33,11 @@ namespace JoyOI.ManagementService.Tests.Utils
         public void GZip()
         {
             var bytes = new byte[] { 1, 2, 3 };
-            var compresed = ArchiveUtils.CompressToGZip(bytes);
-            var decompressed = ArchiveUtils.DecompressFromGZsip(compresed);
+            var compressed = ArchiveUtils.CompressToGZip(bytes);
+            var decompressed = ArchiveUtils.DecompressFromGZip(compressed);
+            Assert.True(
+                compressed.Length != 0,
+                JsonConvert.SerializeObject(compressed));
             Assert.Equal(
                 JsonConvert.SerializeObject(bytes),
                 JsonConvert.SerializeObject(decompressed));

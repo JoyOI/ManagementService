@@ -35,13 +35,9 @@ namespace JoyOI.ManagementService.Model.Entities
         /// </summary>
         public int ChunkIndex { get; set; }
         /// <summary>
-        /// 文件内容(longblob)
+        /// 文件内容
         /// </summary>
         public byte[] Body { get; set; }
-        /// <summary>
-        /// 文件内容(longtext)
-        /// </summary>
-        public string BodyText { get; set; }
         /// <summary>
         /// 文件时间戳
         /// 由外部传入

@@ -5,7 +5,6 @@ using JoyOI.ManagementService.Repositories;
 using JoyOI.ManagementService.Services;
 using JoyOI.ManagementService.Services.Impl;
 using JoyOI.ManagementService.Utils;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,7 +30,7 @@ namespace JoyOI.ManagementService.Tests.Services
             var dto = new BlobInputDto();
             dto.TimeStamp = Mapper.Map<DateTime, long>(DateTime.UtcNow);
             dto.Remark = "small blob";
-            var body = new byte[BlobEntity.BlobChunkSize];
+            var body = new byte[BlobEntity.BlobChunkSize / 2];
             RandomUtils.GetRandomInstance().NextBytes(body);
             dto.Body = Mapper.Map<byte[], string>(body);
             return dto;
@@ -42,7 +41,7 @@ namespace JoyOI.ManagementService.Tests.Services
             var dto = new BlobInputDto();
             dto.TimeStamp = Mapper.Map<DateTime, long>(DateTime.UtcNow);
             dto.Remark = "large blob";
-            var body = new byte[BlobEntity.BlobChunkSize * 2 + 100];
+            var body = new byte[BlobEntity.BlobChunkSize * 8 + 100];
             RandomUtils.GetRandomInstance().NextBytes(body);
             dto.Body = Mapper.Map<byte[], string>(body);
             return dto;
@@ -58,11 +57,11 @@ namespace JoyOI.ManagementService.Tests.Services
             var all = await _service.GetAll(null);
             Assert.Equal(2, all.Count);
             Assert.True(all.Any(x =>
-                x.Body == smallBlob.Body &&
+                x.Body == null &&
                 x.TimeStamp == smallBlob.TimeStamp &&
                 x.Remark == smallBlob.Remark));
             Assert.True(all.Any(x =>
-                x.Body == largeBlob.Body &&
+                x.Body == null &&
                 x.TimeStamp == largeBlob.TimeStamp &&
                 x.Remark == largeBlob.Remark));
         }
@@ -119,7 +118,7 @@ namespace JoyOI.ManagementService.Tests.Services
             var largeId = await _service.Put(largeBlob);
             var largeChunks = await _repository.QueryNoTrackingAsync(q =>
                 Task.FromResult(q.Count(x => x.BlobId == largeId)));
-            Assert.Equal(3, largeChunks);
+            Assert.True(largeChunks > 1);
 
             var largeBlobGet = await _service.Get(largeId);
             Assert.True(largeBlobGet != null);

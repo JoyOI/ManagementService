@@ -30,6 +30,7 @@ namespace JoyOI.ManagementService.Utils
                 Array.Copy(entity.Body, 0, bodyBytes, bodyBytesStart, entity.Body.Length);
                 bodyBytesStart += entity.Body.Length;
             }
+            bodyBytes = ArchiveUtils.DecompressFromGZip(bodyBytes);
             return bodyBytes;
         }
     }
