@@ -59,7 +59,7 @@ namespace JoyOI.ManagementService.Services.Impl
                     {
                         // 检查连接是否正常
                         var client = pair.Value.Client;
-                        await client.Miscellaneous.GetVersionAsync();
+                        await client.System.GetVersionAsync();
                         // 重置错误标记
                         pair.Value.ErrorFlags = false;
                         // 重置出错次数

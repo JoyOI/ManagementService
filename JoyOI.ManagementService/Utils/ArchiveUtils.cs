@@ -46,7 +46,8 @@ namespace JoyOI.ManagementService.Utils
         /// </summary>
         public static IEnumerable<(string, byte[])> DecompressFromTar(Stream stream)
         {
-            using (var reader = ReaderFactory.Open(stream))
+            using (var reader = ReaderFactory.Open(stream,
+                new ReaderOptions() { LeaveStreamOpen = false }))
             {
                 while (reader.MoveToNextEntry())
                 {

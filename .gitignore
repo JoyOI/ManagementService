@@ -178,3 +178,9 @@ PublishProfiles/
 
 # Build files
 .build
+
+
+# =========================
+# Reference
+# =========================
+!References
