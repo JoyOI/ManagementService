@@ -19,16 +19,22 @@ namespace JoyOI.ManagementService.Utils
         /// <returns></returns>
         public static byte[] MergeChunksBody(IList<BlobEntity> blobs)
         {
+            byte[] bodyBytes;
             if (blobs.Count == 1)
             {
-                return blobs[0].Body;
+                // 不需要合并
+                bodyBytes = blobs[0].Body;
             }
-            var bodyBytes = new byte[blobs.Sum(e => e.Body.Length)];
-            var bodyBytesStart = 0;
-            foreach (var entity in blobs)
+            else
             {
-                Array.Copy(entity.Body, 0, bodyBytes, bodyBytesStart, entity.Body.Length);
-                bodyBytesStart += entity.Body.Length;
+                // 合并到一个数组, 注意blobs必须已经按chunks排好
+                bodyBytes = new byte[blobs.Sum(e => e.Body.Length)];
+                var bodyBytesStart = 0;
+                foreach (var entity in blobs)
+                {
+                    Array.Copy(entity.Body, 0, bodyBytes, bodyBytesStart, entity.Body.Length);
+                    bodyBytesStart += entity.Body.Length;
+                }
             }
             bodyBytes = ArchiveUtils.DecompressFromGZip(bodyBytes);
             return bodyBytes;
