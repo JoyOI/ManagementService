@@ -38,16 +38,11 @@ namespace JoyOI.ManagementService.WebApi.Controllers
         }
 
         [HttpPut]
-        public async Task<ApiResponse<PutResult<Guid>>> Put()
+        public async Task<ApiResponse<PutResult<Guid>>> Put([FromBody]BlobInputDto dto)
         {
-            using (var reader = new StreamReader(Request.Body))
-            {
-                var json = await reader.ReadToEndAsync();
-                var dto = JsonConvert.DeserializeObject<BlobInputDto>(json);
-                var key = await _blobService.Put(dto);
-                var result = new PutResult<Guid>(key);
-                return ApiResponse.OK(result);
-            }
+            var key = await _blobService.Put(dto);
+            var result = new PutResult<Guid>(key);
+            return ApiResponse.OK(result);
         }
     }
 }

@@ -140,12 +140,25 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
 			"ResultPath": "return.json"
 		},
 		"Limitation": {
-			"CPUPeriod": 1000000,
-			"CPUQuota": 1000000,
+			"CPUPeriod": 10000,
+			"CPUQuota": 5000,
 			"Memory": 268435456,
 			"MemorySwap": 268435456,
 			"BlkioDeviceReadBps": 33554432,
-			"BlkioDeviceWriteBps": 33554432
+			"BlkioDeviceWriteBps": 33554432,
+			"ExecutionTimeout": 30000,
+			"Ulimit": {
+				"memlock": 8196,
+				"core": 8196,
+				"nofile": 512,
+				"cpu": 30,
+				"nproc": 32,
+				"locks": 1000,
+				"sigpending": 100,
+				"msgqueue": 100,
+				"nice": 100,
+				"rtprio": 100
+			}
 		},
 		"Nodes": {
 			"docker-1": {
@@ -188,6 +201,10 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
     - "MemorySwap": 可以使用的交换内存, 单位是字节, 默认是Memory的两倍, 设为0时等于默认值(Memory的两倍)
     - "BlkioDeviceReadBps": 一秒最多读取的字节数, 单位是字节, 默认无限制
     - "BlkioDeviceWriteBps": 一秒最多写入的字节数, 单位是字节, 默认无限制
+    - "ExecutionTimeout": 容器最长可以执行的时间, 单位是毫秒, 默认无限制
+      - 这个限制用于防止容器因为不可预料的原因无限期运行, 设置后所有任务都必须在这个时间内完成
+    - "Ulimit": Ulimit限制, 详细参考[这个地址](http://man7.org/linux/man-pages/man2/getrlimit.2.html)
+      - 例如限制RLIMIT_CPU, 可以设置`"cpu": 30`, 表示进程占用的cpu时间最多30秒, 超过时杀死
   - "Nodes"是docker节点列表
     - "Image": docker镜像的名称, 自己构建的镜像是"joyoi", 从hub下载的镜像是"yuko/joyoi"
     - "Address": 节点的地址

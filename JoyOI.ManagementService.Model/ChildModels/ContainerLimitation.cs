@@ -46,6 +46,11 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// </summary>
         public int? BlkioDeviceWriteBps { get; set; }
         /// <summary>
+        /// 容器最长可以执行的时间
+        /// 单位是毫秒, 默认无限制
+        /// </summary>
+        public int? ExecutionTimeout { get; set; }
+        /// <summary>
         /// Ulimit限制
         /// 例如:
         /// memlock, core, nofile, cpu, nproc, locks, sigpending, msgqueue, nice, rtprio
@@ -72,6 +77,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 MemorySwap == null &&
                 BlkioDeviceReadBps == null &&
                 BlkioDeviceWriteBps == null &&
+                ExecutionTimeout == null &&
                 Ulimit.Count == 0;
         }
 
@@ -89,9 +95,13 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             inst.MemorySwap = inst.MemorySwap ?? limitation?.MemorySwap;
             inst.BlkioDeviceReadBps = inst.BlkioDeviceReadBps ?? limitation?.BlkioDeviceReadBps;
             inst.BlkioDeviceWriteBps = inst.BlkioDeviceWriteBps ?? limitation?.BlkioDeviceWriteBps;
-            foreach (var ulimit in limitation.Ulimit)
+            inst.ExecutionTimeout = inst.ExecutionTimeout ?? limitation?.ExecutionTimeout;
+            if (limitation != null)
             {
-                inst.Ulimit[ulimit.Key] = ulimit.Value;
+                foreach (var ulimit in limitation.Ulimit)
+                {
+                    inst.Ulimit[ulimit.Key] = ulimit.Value;
+                }
             }
             return inst;
         }

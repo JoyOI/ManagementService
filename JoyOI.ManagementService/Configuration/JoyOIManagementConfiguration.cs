@@ -16,6 +16,10 @@ namespace JoyOI.ManagementService.Configuration
         /// </summary>
         public string Name { get; set; }
         /// <summary>
+        /// 是否测试模式
+        /// </summary>
+        public bool TestMode { get; set; }
+        /// <summary>
         /// 容器相关的配置
         /// </summary>
         public ContainerConfiguration Container { get; set; }
@@ -31,6 +35,7 @@ namespace JoyOI.ManagementService.Configuration
         public JoyOIManagementConfiguration()
         {
             Name = "Default";
+            TestMode = false;
             Container = new ContainerConfiguration()
             {
                 DevicePath = "/dev/sda",

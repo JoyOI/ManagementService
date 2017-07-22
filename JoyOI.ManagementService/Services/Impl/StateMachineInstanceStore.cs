@@ -79,7 +79,7 @@ namespace JoyOI.ManagementService.Services.Impl
     /// 
     /// 残留的容器:
     /// - 如果容器执行过程中发生了错误, 会在finally中删除
-    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中已停止的, 并且属于当前管理服务的容器
+    /// - 如果管理服务本身崩溃了, 则会在下次启动时删除所有节点中属于当前管理服务的容器, 无论是否已停止
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
@@ -143,12 +143,16 @@ namespace JoyOI.ManagementService.Services.Impl
             }
         }
 
-
-
         private void RemoveStoppedContainers()
         {
-            // 删除已停止的, 并且属于当前管理服务的容器
-            var prefix = _configuration.Name + ".";
+            // 因为xunit会并发执行, 测试时无法实现这里的逻辑
+            if (_configuration.TestMode)
+            {
+                return;
+            }
+            // 删除属于当前管理服务的容器, 无论是否已停止
+            // 名称默认以"/Default."开头
+            var prefix = $"{_configuration.Name}.";
             var childTasks = _dockerNodeStore.GetNodes().Select(node => Task.Run(async () =>
             {
                 try
@@ -158,9 +162,8 @@ namespace JoyOI.ManagementService.Services.Impl
                         new ContainersListParameters() { All = true });
                     foreach (var container in result)
                     {
-                        if (!(container.State == "created" || container.State == "exited"))
-                            continue;
-                        if (!container.Names.Any(x => x.StartsWith(prefix)))
+                        // 如果需要判断是否已停止可以判断State == "created" || State == "exited"
+                        if (!container.Names.Any(x => x.IndexOf(prefix) <= 1))
                             continue;
                         try
                         {
@@ -342,7 +345,6 @@ namespace JoyOI.ManagementService.Services.Impl
                         instanceEntity.StartedActors = startedActors;
                         instanceEntity.Status = StateMachineStatus.Running;
                         instanceEntity.Stage = instance.Stage;
-                        instanceEntity.ReRunTimes = 0;
                         instanceEntity.Exception = null;
                         instanceEntity.EndTime = null;
                     });
@@ -459,14 +461,29 @@ namespace JoyOI.ManagementService.Services.Impl
                             new CancellationToken());
                     }
                     // 运行容器并等待完毕
+                    // WaitContainerAsync对CancellationToken的支持有问题, 需要使用额外的逻辑
                     var startContainerResponse = await client.Containers.StartContainerAsync(
                         containerId, new ContainerStartParameters());
                     if (!startContainerResponse)
                     {
                         throw new InvalidOperationException("start container failed");
                     }
-                    var waitContainerResponse = await client.Containers.WaitContainerAsync(
-                        containerId, new CancellationToken());
+                    ContainerWaitResponse waitContainerResponse;
+                    using (var waitCancelToken = new CancellationTokenSource())
+                    {
+                        if (instance.Limitation.ExecutionTimeout.HasValue)
+                            waitCancelToken.CancelAfter(instance.Limitation.ExecutionTimeout.Value);
+                        var waitCancelTask = Task.Delay(instance.Limitation.ExecutionTimeout.Value);
+                        var waitContainerResponseTask = client.Containers.WaitContainerAsync(
+                            containerId, waitCancelToken.Token);
+                        var waitResult = await Task.WhenAny(waitCancelTask, waitContainerResponseTask);
+                        if (waitResult != waitContainerResponseTask)
+                        {
+                            waitCancelToken.Cancel();
+                            throw new ActorExecuteException("wait container exit failed due to timeout");
+                        }
+                        waitContainerResponse = waitContainerResponseTask.Result;
+                    }
                     // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
                     string resultJson = null;
                     if (waitContainerResponse.StatusCode == 0)
@@ -554,9 +571,15 @@ namespace JoyOI.ManagementService.Services.Impl
                 finally
                 {
                     // 删除容器 (finally)
-                    // 参数指定Debug可以不删除容器
+                    // 调试模式仅结束容器, 非调试模式强制删除容器
                     instance.Parameters.TryGetValue("Debug", out string debug);
-                    if (debug != "true")
+                    if (debug == "true")
+                    {
+                        await client.Containers.StopContainerAsync(
+                            containerId,
+                            new ContainerStopParameters() { WaitBeforeKillSeconds = 1 });
+                    }
+                    else
                     {
                         await client.Containers.RemoveContainerAsync(
                             containerId,
