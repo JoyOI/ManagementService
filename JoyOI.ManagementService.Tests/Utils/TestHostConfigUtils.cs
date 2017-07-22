@@ -3,6 +3,7 @@ using JoyOI.ManagementService.Utils;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Xunit;
 using static JoyOI.ManagementService.Configuration.JoyOIManagementConfiguration;
@@ -29,7 +30,8 @@ namespace JoyOI.ManagementService.Tests.Utils
             {
                 MemorySwap = 168,
                 BlkioDeviceReadBps = 169,
-                BlkioDeviceWriteBps = 170
+                BlkioDeviceWriteBps = 170,
+                Ulimit = new Dictionary<string, long>() { { "memlock", 8196 }, { "locks", 1024 } }
             }, containerConfiguration);
             Assert.Equal(123, hostConfig.CPUPeriod);
             Assert.Equal(321, hostConfig.CPUQuota);
@@ -41,6 +43,13 @@ namespace JoyOI.ManagementService.Tests.Utils
             Assert.Equal(1, hostConfig.BlkioDeviceWriteBps.Count);
             Assert.Equal("dp", hostConfig.BlkioDeviceWriteBps[0].Path);
             Assert.Equal(170ul, hostConfig.BlkioDeviceWriteBps[0].Rate);
+            Assert.Equal(2, hostConfig.Ulimits.Count);
+            var memLock = hostConfig.Ulimits.First(x => x.Name == "memlock");
+            var locks = hostConfig.Ulimits.First(x => x.Name == "locks");
+            Assert.Equal(8196, memLock.Soft);
+            Assert.Equal(8196, memLock.Hard);
+            Assert.Equal(1024, locks.Soft);
+            Assert.Equal(1024, locks.Hard);
         }
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Migrations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using static JoyOI.ManagementService.Configuration.JoyOIManagementConfiguration;
 
@@ -43,6 +44,11 @@ namespace JoyOI.ManagementService.Utils
                     Path = containerConfiguration.DevicePath,
                     Rate = (ulong)limitation.BlkioDeviceWriteBps.Value
                 });
+            }
+            if (limitation.Ulimit.Count > 0)
+            {
+                hostConfig.Ulimits = limitation.Ulimit.Select(x =>
+                    new Ulimit() { Name = x.Key, Soft = x.Value, Hard = x.Value }).ToList();
             }
             return hostConfig;
         }

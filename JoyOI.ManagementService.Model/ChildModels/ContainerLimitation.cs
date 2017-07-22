@@ -45,6 +45,20 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// 单位是字节, 默认无限制
         /// </summary>
         public int? BlkioDeviceWriteBps { get; set; }
+        /// <summary>
+        /// Ulimit限制
+        /// 例如:
+        /// memlock, core, nofile, cpu, nproc, locks, sigpending, msgqueue, nice, rtprio
+        /// </summary>
+        public IDictionary<string, long> Ulimit { get; set; }
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        public ContainerLimitation()
+        {
+            Ulimit = new Dictionary<string, long>();
+        }
 
         /// <summary>
         /// 判断是否所有值都是默认值
@@ -57,7 +71,8 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 Memory == null &&
                 MemorySwap == null &&
                 BlkioDeviceReadBps == null &&
-                BlkioDeviceWriteBps == null;
+                BlkioDeviceWriteBps == null &&
+                Ulimit.Count == 0;
         }
 
         /// <summary>
@@ -74,6 +89,10 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             inst.MemorySwap = inst.MemorySwap ?? limitation?.MemorySwap;
             inst.BlkioDeviceReadBps = inst.BlkioDeviceReadBps ?? limitation?.BlkioDeviceReadBps;
             inst.BlkioDeviceWriteBps = inst.BlkioDeviceWriteBps ?? limitation?.BlkioDeviceWriteBps;
+            foreach (var ulimit in limitation.Ulimit)
+            {
+                inst.Ulimit[ulimit.Key] = ulimit.Value;
+            }
             return inst;
         }
 
