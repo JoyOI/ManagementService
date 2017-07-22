@@ -468,7 +468,7 @@ namespace JoyOI.ManagementService.Services.Impl
                     var waitContainerResponse = await client.Containers.WaitContainerAsync(
                         containerId, new CancellationToken());
                     // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
-                    string resultJson;
+                    string resultJson = null;
                     if (waitContainerResponse.StatusCode == 0)
                     {
                         try
@@ -484,13 +484,13 @@ namespace JoyOI.ManagementService.Services.Impl
                                 ArchiveUtils.DecompressFromTar(
                                 getArchiveFromContainerResponse.Stream).First().Item2));
                         }
-                        catch (Exception ex)
+                        catch (DockerContainerNotFoundException)
                         {
-                            throw new ActorExecuteException(
-                                $"download {node.NodeInfo.Container.ResultPath} failed", ex);
+                            // 下载失败, 可能是因为OOM(子进程OOM以后主进程仍会返回0) 
+                            resultJson = null;
                         }
                     }
-                    else
+                    if (resultJson == null)
                     {
                         string log;
                         try
@@ -505,6 +505,9 @@ namespace JoyOI.ManagementService.Services.Impl
                             log = await Task.Run(() => Encoding.UTF8.GetString(
                                 ArchiveUtils.DecompressFromTar(
                                 getArchiveFromContainerResponse.Stream).First().Item2));
+                            // 如果日志只有Killed, 可能是因为OOM
+                            if (log.StartsWith("Killed"))
+                                log += "(May cause by out of memory)";
                         }
                         catch (Exception ex)
                         {
@@ -551,9 +554,14 @@ namespace JoyOI.ManagementService.Services.Impl
                 finally
                 {
                     // 删除容器 (finally)
-                    await client.Containers.RemoveContainerAsync(
-                        containerId,
-                        new ContainerRemoveParameters() { Force = true });
+                    // 参数指定Debug可以不删除容器
+                    instance.Parameters.TryGetValue("Debug", out string debug);
+                    if (debug != "true")
+                    {
+                        await client.Containers.RemoveContainerAsync(
+                            containerId,
+                            new ContainerRemoveParameters() { Force = true });
+                    }
                 }
             }
             catch (Exception ex)

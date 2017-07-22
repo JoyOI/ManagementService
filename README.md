@@ -241,6 +241,11 @@ patch /api/v1/StateMachineInstance/{id}
 put /api/v1/StateMachineInstance 
 ```
 
+# 创建状态机实例时的参数(Parameters)一览
+
+- Host: 完成或错误时提交到的回调地址
+- Debug: 值等于true时开启除错模式, 运行的容器不会自动删除
+
 # 注意事项
 
 - 默认配置有限制IO, 如果不想限制请删除BlkioDeviceReadBps和BlkioDeviceWriteBps的所在行
