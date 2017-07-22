@@ -59,7 +59,7 @@ namespace JoyOI.ManagementService.Core
         /// <summary>
         /// 使用的限制参数
         /// </summary>
-        internal ContainerLimitation Limitation { get; set; }
+        public ContainerLimitation Limitation { get; internal set; }
         /// <summary>
         /// 自定义参数
         /// Host等等可以通过这里获取
