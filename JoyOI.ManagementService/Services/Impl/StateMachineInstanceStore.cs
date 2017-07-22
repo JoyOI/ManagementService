@@ -374,6 +374,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         instanceEntity.Status = StateMachineStatus.Failed;
                         instanceEntity.Exception = ex.ToString();
                     });
+                    // 报告错误
                     await instance.HandleErrorAsync(ex);
                 }
                 catch (StateMachineInterpretedException)
@@ -470,29 +471,46 @@ namespace JoyOI.ManagementService.Services.Impl
                     string resultJson;
                     if (waitContainerResponse.StatusCode == 0)
                     {
-                        var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                            containerId,
-                            new GetArchiveFromContainerParameters()
-                            {
-                                Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ResultPath
-                            },
-                            false, new CancellationToken());
-                        resultJson = await Task.Run(() => Encoding.UTF8.GetString(
-                            ArchiveUtils.DecompressFromTar(
-                            getArchiveFromContainerResponse.Stream).First().Item2));
+                        try
+                        {
+                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                                containerId,
+                                new GetArchiveFromContainerParameters()
+                                {
+                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ResultPath
+                                },
+                                false, new CancellationToken());
+                            resultJson = await Task.Run(() => Encoding.UTF8.GetString(
+                                ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2));
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ActorExecuteException(
+                                $"download {node.NodeInfo.Container.ResultPath} failed", ex);
+                        }
                     }
                     else
                     {
-                        var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                            containerId,
-                            new GetArchiveFromContainerParameters()
-                            {
-                                Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ActorExecuteLogPath
-                            },
-                            false, new CancellationToken());
-                        var log = await Task.Run(() => Encoding.UTF8.GetString(
-                            ArchiveUtils.DecompressFromTar(
-                            getArchiveFromContainerResponse.Stream).First().Item2));
+                        string log;
+                        try
+                        {
+                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                                containerId,
+                                new GetArchiveFromContainerParameters()
+                                {
+                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ActorExecuteLogPath
+                                },
+                                false, new CancellationToken());
+                            log = await Task.Run(() => Encoding.UTF8.GetString(
+                                ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2));
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ActorExecuteException(
+                                $"download {node.NodeInfo.Container.ActorExecuteLogPath} failed", ex);
+                        }
                         throw new ActorExecuteException(log);
                     }
                     // 根据return.json下载文件并插入到blob
@@ -500,21 +518,28 @@ namespace JoyOI.ManagementService.Services.Impl
                     var actorOutputs = new List<BlobInfo>();
                     foreach (var output in result.Outputs)
                     {
-                        var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                            containerId,
-                            new GetArchiveFromContainerParameters()
-                            {
-                                Path = node.NodeInfo.Container.WorkDir + output
-                            },
-                            false, new CancellationToken());
-                        var bytes = await Task.Run(() => ArchiveUtils.DecompressFromTar(
-                            getArchiveFromContainerResponse.Stream).First().Item2);
-                        var blobId = await PutBlob(output, bytes, getArchiveFromContainerResponse.Stat.Mtime);
-                        actorOutputs.Add(new BlobInfo()
+                        try
                         {
-                            Id = blobId,
-                            Name = output
-                        });
+                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                                containerId,
+                                new GetArchiveFromContainerParameters()
+                                {
+                                    Path = node.NodeInfo.Container.WorkDir + output
+                                },
+                                false, new CancellationToken());
+                            var bytes = await Task.Run(() => ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2);
+                            var blobId = await PutBlob(output, bytes, getArchiveFromContainerResponse.Stat.Mtime);
+                            actorOutputs.Add(new BlobInfo()
+                            {
+                                Id = blobId,
+                                Name = output
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new ActorExecuteException($"download {output} failed", ex);
+                        }
                     }
                     // 更新actorInfo的Outputs, Status, EndTime, 不更新到数据库
                     actorInfo.Outputs = actorOutputs;
@@ -591,6 +616,7 @@ namespace JoyOI.ManagementService.Services.Impl
             await Task.WhenAll(childTasks);
             // 是否发生错误?
             var anyErrorHappended = false;
+            var errors = "";
             await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
             {
                 instanceEntity.StartedActors = instance.StartedActors;
@@ -598,12 +624,15 @@ namespace JoyOI.ManagementService.Services.Impl
                 {
                     anyErrorHappended = true;
                     instanceEntity.Status = StateMachineStatus.Failed;
-                    instanceEntity.Exception = string.Join("\r\n\r\n",
+                    instanceEntity.Exception = errors = string.Join("\r\n\r\n",
                         instance.StartedActors.SelectMany(a => a.Exceptions));
                 }
             });
             if (anyErrorHappended)
             {
+                // 报告错误
+                await instance.HandleErrorAsync(new ActorExecuteException(errors));
+                // 中断状态机
                 throw new StateMachineInterpretedException();
             }
         }

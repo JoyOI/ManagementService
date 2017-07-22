@@ -12,5 +12,9 @@ namespace JoyOI.ManagementService.Core
         public ActorExecuteException(string message) : base(message)
         {
         }
+
+        public ActorExecuteException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
