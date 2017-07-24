@@ -426,7 +426,7 @@ namespace JoyOI.ManagementService.Services.Impl
                     new CreateContainerParameters()
                     {
                         Tty = true,
-                        NetworkDisabled = true,
+                        NetworkDisabled = !(instance.Limitation.EnableNetwork ?? false),
                         Image = node.NodeInfo.Image,
                         Name = containerTag,
                         HostConfig = hostConfig,

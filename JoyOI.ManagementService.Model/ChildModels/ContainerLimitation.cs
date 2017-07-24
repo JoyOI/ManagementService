@@ -51,6 +51,10 @@ namespace Microsoft.EntityFrameworkCore.Migrations
         /// </summary>
         public int? ExecutionTimeout { get; set; }
         /// <summary>
+        /// 是否启用网络, 默认不启用
+        /// </summary>
+        public bool? EnableNetwork { get; set; }
+        /// <summary>
         /// Ulimit限制
         /// 例如:
         /// memlock, core, nofile, cpu, nproc, locks, sigpending, msgqueue, nice, rtprio
@@ -78,6 +82,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
                 BlkioDeviceReadBps == null &&
                 BlkioDeviceWriteBps == null &&
                 ExecutionTimeout == null &&
+                EnableNetwork == null &&
                 Ulimit.Count == 0;
         }
 
@@ -96,6 +101,7 @@ namespace Microsoft.EntityFrameworkCore.Migrations
             inst.BlkioDeviceReadBps = inst.BlkioDeviceReadBps ?? limitation?.BlkioDeviceReadBps;
             inst.BlkioDeviceWriteBps = inst.BlkioDeviceWriteBps ?? limitation?.BlkioDeviceWriteBps;
             inst.ExecutionTimeout = inst.ExecutionTimeout ?? limitation?.ExecutionTimeout;
+            inst.EnableNetwork = inst.EnableNetwork ?? limitation?.EnableNetwork;
             if (limitation != null)
             {
                 foreach (var ulimit in limitation.Ulimit)
