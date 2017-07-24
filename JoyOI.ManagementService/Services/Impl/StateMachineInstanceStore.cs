@@ -437,26 +437,28 @@ namespace JoyOI.ManagementService.Services.Impl
                 try
                 {
                     // 上传Inputs和actor.dll到容器
-                    var inputBlobs = await ReadBlobs(actorInfo.Inputs);
+                    var inputBlobs = (await ReadBlobs(actorInfo.Inputs)).ToList();
                     var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
                     if (noExistBlob.Item1 != null)
                     {
                         throw new ArgumentException(
                             $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
                     }
-                    if (string.IsNullOrEmpty(actorCode))
+                    foreach (var (blob, bytes) in inputBlobs)
                     {
-                        throw new ArgumentException($"no code for actor '{actorInfo.Name}'");
+                        blob.Name = node.NodeInfo.Container.WorkDir + blob.Name;
                     }
-                    inputBlobs = inputBlobs.Concat(new[]
+                    inputBlobs.Add((new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorExecutablePath), actorBytes));
+                    foreach (var (blob, bytes) in inputBlobs)
                     {
-                        (new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorExecutablePath), actorBytes)
-                    });
+                        if (blob.Name.StartsWith("/"))
+                            blob.Name = blob.Name.Substring(1);
+                    }
                     using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
                     {
                         await client.Containers.ExtractArchiveToContainerAsync(
                             containerId,
-                            new ContainerPathStatParameters() { Path = node.NodeInfo.Container.WorkDir },
+                            new ContainerPathStatParameters() { Path = "/" },
                             tarStream,
                             new CancellationToken());
                     }
@@ -494,7 +496,7 @@ namespace JoyOI.ManagementService.Services.Impl
                                 containerId,
                                 new GetArchiveFromContainerParameters()
                                 {
-                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ResultPath
+                                    Path = node.NodeInfo.Container.ResultPath
                                 },
                                 false, new CancellationToken());
                             resultJson = await Task.Run(() => Encoding.UTF8.GetString(
@@ -516,7 +518,7 @@ namespace JoyOI.ManagementService.Services.Impl
                                 containerId,
                                 new GetArchiveFromContainerParameters()
                                 {
-                                    Path = node.NodeInfo.Container.WorkDir + node.NodeInfo.Container.ActorExecuteLogPath
+                                    Path = node.NodeInfo.Container.ActorExecuteLogPath
                                 },
                                 false, new CancellationToken());
                             log = await Task.Run(() => Encoding.UTF8.GetString(

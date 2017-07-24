@@ -41,10 +41,10 @@ namespace JoyOI.ManagementService.Configuration
                 DevicePath = "/dev/sda",
                 MaxRunningJobs = 32,
                 WorkDir = "/workdir/",
-                ActorExecutablePath = "actor/bin/Debug/netcoreapp2.0/actor.dll",
-                ActorExecuteCommand = "sh run-actor.sh &> run-actor.log",
-                ActorExecuteLogPath = "run-actor.log",
-                ResultPath = "return.json"
+                ActorExecutablePath = "/actor/bin/Debug/netcoreapp2.0/actor.dll",
+                ActorExecuteCommand = "/actor/run-actor.sh &> /actor/run-actor.log",
+                ActorExecuteLogPath = "/actor/run-actor.log",
+                ResultPath = "/workdir/return.json"
             };
             Limitation = new ContainerLimitation();
             Nodes = new Dictionary<string, Node>();
@@ -119,23 +119,23 @@ namespace JoyOI.ManagementService.Configuration
             /// </summary>
             public string WorkDir { get; set; }
             /// <summary>
-            /// 任务可执行文件的路径, 相对于工作目录
-            /// 例如: actor/bin/Debug/netcoreapp2.0/actor.dll
+            /// 任务可执行文件的路径
+            /// 例如: /actor/bin/Debug/netcoreapp2.0/actor.dll
             /// </summary>
             public string ActorExecutablePath { get; set; }
             /// <summary>
             /// 执行任务的命令
-            /// 例如: sh run-actor.sh &> run-actor.log
+            /// 例如: /actor/run-actor.sh &> /actor/run-actor.log
             /// </summary>
             public string ActorExecuteCommand { get; set; }
             /// <summary>
             /// 执行任务的记录文件
-            /// 例如: run-actor.log
+            /// 例如: /actor/run-actor.log
             /// </summary>
             public string ActorExecuteLogPath { get; set; }
             /// <summary>
             /// 执行任务的结果文件
-            /// 例如: return.json
+            /// 例如: /workdir/return.json
             /// </summary>
             public string ResultPath { get; set; }
 
