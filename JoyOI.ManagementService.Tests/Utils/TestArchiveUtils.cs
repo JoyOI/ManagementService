@@ -16,8 +16,8 @@ namespace JoyOI.ManagementService.Tests.Utils
         {
             var compressed = ArchiveUtils.CompressToTar(new[]
             {
-                (new BlobInfo(Guid.Empty, "123.txt"), new byte[] { 1, 2, 3 }),
-                (new BlobInfo(Guid.Empty, "321.txt"), new byte[] { 3, 2, 1 }),
+                ("123.txt", new byte[] { 1, 2, 3 }),
+                ("/321.txt", new byte[] { 3, 2, 1 }),
             });
             var decompressed = ArchiveUtils.DecompressFromTar(compressed).ToDictionary(x => x.Item1);
             Assert.Equal(2, decompressed.Count);

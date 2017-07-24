@@ -18,18 +18,21 @@ namespace JoyOI.ManagementService.Utils
         /// <summary>
         /// 压缩文件到tar
         /// </summary>
-        public static Stream CompressToTar(IEnumerable<(BlobInfo, byte[])> blobs)
+        public static Stream CompressToTar(IEnumerable<(string, byte[])> blobs)
         {
             var tmpStream = new MemoryStream();
             var resultStream = new MemoryStream();
             using (var writer = WriterFactory.Open(tmpStream, ArchiveType.Tar,
                 new WriterOptions(CompressionType.None) { LeaveStreamOpen = true }))
             {
-                foreach (var (blob, bytes) in blobs)
+                foreach (var (path, bytes) in blobs)
                 {
+                    var uploadPath = path;
+                    if (uploadPath.StartsWith("/"))
+                        uploadPath = path.Substring(1);
                     using (var blobStream = new MemoryStream(bytes))
                     {
-                        writer.Write(blob.Name, blobStream);
+                        writer.Write(path, blobStream);
                     }
                 }
                 // 类库有问题, TarWriter的LeaveStreamOpen不起作用, 解决后可以省掉这个处理

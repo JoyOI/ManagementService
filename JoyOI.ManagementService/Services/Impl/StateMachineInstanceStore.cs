@@ -444,17 +444,14 @@ namespace JoyOI.ManagementService.Services.Impl
                         throw new ArgumentException(
                             $"blob with id '{noExistBlob.Item1.Id}' and name '{noExistBlob.Item1.Name}' not found");
                     }
+                    var uploadFiles = new List<(string, byte[])>();
                     foreach (var (blob, bytes) in inputBlobs)
                     {
-                        blob.Name = node.NodeInfo.Container.WorkDir + blob.Name;
+                        var path = node.NodeInfo.Container.WorkDir + blob.Name;
+                        uploadFiles.Add(ValueTuple.Create(path, bytes));
                     }
-                    inputBlobs.Add((new BlobInfo(Guid.Empty, node.NodeInfo.Container.ActorExecutablePath), actorBytes));
-                    foreach (var (blob, bytes) in inputBlobs)
-                    {
-                        if (blob.Name.StartsWith("/"))
-                            blob.Name = blob.Name.Substring(1);
-                    }
-                    using (var tarStream = ArchiveUtils.CompressToTar(inputBlobs))
+                    uploadFiles.Add((node.NodeInfo.Container.ActorExecutablePath, actorBytes));
+                    using (var tarStream = ArchiveUtils.CompressToTar(uploadFiles))
                     {
                         await client.Containers.ExtractArchiveToContainerAsync(
                             containerId,
