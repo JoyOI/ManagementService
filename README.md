@@ -134,16 +134,16 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
 			"DevicePath": "/dev/sda",
 			"MaxRunningJobs": 8,
 			"WorkDir": "/workdir/",
-			"ActorExecutablePath": "actor/bin/Debug/netcoreapp2.0/actor.dll",
-			"ActorExecuteCommand": "sh run-actor.sh &> run-actor.log",
-			"ActorExecuteLogPath": "run-actor.log",
-			"ResultPath": "return.json"
+			"ActorExecutablePath": "/actor/bin/Debug/netcoreapp2.0/actor.dll",
+			"ActorExecuteCommand": "/actor/run-actor.sh &> /actor/run-actor.log",
+			"ActorExecuteLogPath": "/actor/run-actor.log",
+			"ResultPath": "/workdir/return.json"
 		},
 		"Limitation": {
 			"CPUPeriod": 10000,
-			"CPUQuota": 5000,
-			"Memory": 268435456,
-			"MemorySwap": 268435456,
+			"CPUQuota": 10000,
+			"Memory": 536870912,
+			"MemorySwap": 1,
 			"BlkioDeviceReadBps": 33554432,
 			"BlkioDeviceWriteBps": 33554432,
 			"ExecutionTimeout": 30000,
@@ -190,7 +190,7 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
     - "DevicePath": 主设备路径
     - "MaxRunningJobs": 单个节点可以同时运行的任务数量
     - "WorkDir": 容器中的工作目录路径, 需要以"/"结尾
-    - "ActorCodePath": 任务代码的路径, 相对于工作目录
+    - "ActorExecutablePath": 任务可执行文件的路径
     - "ActorExecuteCommand": 执行任务的命令
     - "ActorExecuteLogPath": 执行任务的记录文件
     - "ResultPath": 执行任务的结果文件
