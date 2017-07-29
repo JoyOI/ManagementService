@@ -61,7 +61,7 @@ namespace JoyOI.ManagementService.SDK
             var response = await result.Content.ReadAsStringAsync();
             if (result.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<JObject>(response)["data"].Values<T>();
+                return JsonConvert.DeserializeObject<JToken>(response)["data"].Value<JToken>().ToObject<IEnumerable<T>>();
             }
             throw new ManagementServiceException(response);
         }
@@ -78,8 +78,8 @@ namespace JoyOI.ManagementService.SDK
             {
                 var obj = JsonConvert.DeserializeObject<JObject>(response);
                 if (typeof(T) == typeof(Guid))
-                    return (T)(object)Guid.Parse(obj["data"][idFieldName].Value<string>());
-                return obj["data"][idFieldName].Value<T>();
+                    return (T)(object)Guid.Parse(obj["data"][idFieldName].Value<JToken>().ToObject<string>());
+                return obj["data"][idFieldName].Value<JToken>().ToObject<T>();
             }
             throw new ManagementServiceException(response);
         }
@@ -103,7 +103,7 @@ namespace JoyOI.ManagementService.SDK
             if (result.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 var obj = JsonConvert.DeserializeObject<JObject>(response);
-                var val = obj["data"].Value<TResponse>();
+                var val = obj["data"].Value<JToken>().ToObject<TResponse>();
                 return convert(val);
             }
             throw new ManagementServiceException(response);
