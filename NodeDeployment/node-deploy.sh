@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+apt-get update
 apt-get install curl software-properties-common -y
 
 ############ 安装docker ############
