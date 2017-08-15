@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-using SharpCompress.Common;
+﻿using SharpCompress.Common;
 using SharpCompress.Readers;
 using SharpCompress.Writers;
 using System;
@@ -20,9 +19,8 @@ namespace JoyOI.ManagementService.Utils
         /// </summary>
         public static Stream CompressToTar(IEnumerable<(string, byte[])> blobs)
         {
-            var tmpStream = new MemoryStream();
             var resultStream = new MemoryStream();
-            using (var writer = WriterFactory.Open(tmpStream, ArchiveType.Tar,
+            using (var writer = WriterFactory.Open(resultStream, ArchiveType.Tar,
                 new WriterOptions(CompressionType.None) { LeaveStreamOpen = true }))
             {
                 foreach (var (path, bytes) in blobs)
@@ -35,12 +33,8 @@ namespace JoyOI.ManagementService.Utils
                         writer.Write(path, blobStream);
                     }
                 }
-                // 类库有问题, TarWriter的LeaveStreamOpen不起作用, 解决后可以省掉这个处理
-                // https://github.com/adamhathcock/sharpcompress/issues/270
-                tmpStream.Seek(0, SeekOrigin.Begin);
-                tmpStream.CopyTo(resultStream);
-                resultStream.Seek(0, SeekOrigin.Begin);
             }
+            resultStream.Seek(0, SeekOrigin.Begin);
             return resultStream;
         }
 
