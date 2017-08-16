@@ -21,7 +21,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.0.0-preview3-10055" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.0.0-rtm-10056" />
     <PackageReference Include="SharpCompress" Version="0.18.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="1.0.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.2" />
@@ -36,5 +36,7 @@
     <ProjectReference Include="..\JoyOI.ManagementService.Model\JoyOI.ManagementService.Model.csproj" />
     <ProjectReference Include="..\JoyOI.ManagementService\JoyOI.ManagementService.csproj" />
   </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JSONSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>
