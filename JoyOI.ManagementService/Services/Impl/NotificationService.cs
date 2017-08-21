@@ -7,11 +7,11 @@ namespace JoyOI.ManagementService.Services.Impl
 {
     public class NotificationService : INotificationService
     {
-        public Task Send(string title, string message)
+        public async Task Send(string title, string message)
         {
             // TODO: 实现这里的内容
-            Console.Error.WriteLine($"Notify: {title}\r\n{message}\r\n\r\n");
-            return Task.FromResult(0);
+            Console.Error.WriteLine($"Notify {DateTime.Now}: {title}\r\n{message}\r\n\r\n");
+			await Console.Error.FlushAsync();
         }
     }
 }

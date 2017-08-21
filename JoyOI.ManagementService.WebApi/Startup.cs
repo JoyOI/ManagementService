@@ -102,7 +102,10 @@ namespace JoyOI.ManagementService.WebApi
                 }
                 catch (Exception ex)
                 {
-                    // TODO: 判断是否唯一键冲突
+                    // 输出错误的详细信息到stderr
+                    Console.Error.WriteLine($"{DateTime.Now}: {ex}");
+                    Console.Error.Flush();
+                    // 返回json
                     var json = JsonConvert.SerializeObject(
                         ApiResponse.InternalServerError(context.Response, ex, isDevelopment));
                     var jsonBytes = Encoding.UTF8.GetBytes(json);
