@@ -40,11 +40,15 @@ namespace JoyOI.ManagementService.WebApi
                 .AddEnvironmentVariables();
             _configuration = builder.Build();
 
-            // 生产模式时监听https
+            // 生产模式, 且配置文件中有Kestrel节时监听https
             if (env.IsProduction())
             {
-                _kestrelConfiguration = new KestrelConfiguration();
-                _configuration.GetSection("Kestrel").Bind(_kestrelConfiguration);
+                var kestrelConfiguration = new KestrelConfiguration();
+                _configuration.GetSection("Kestrel").Bind(kestrelConfiguration);
+                if (!string.IsNullOrEmpty(kestrelConfiguration.ServerCertificatePath))
+                {
+                    _kestrelConfiguration = kestrelConfiguration;
+                }
             }
         }
 
