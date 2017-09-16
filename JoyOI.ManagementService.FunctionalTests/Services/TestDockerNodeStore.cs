@@ -14,7 +14,7 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
 {
     public class TestDockerNodeStore : TestServiceBase
     {
-        private class TestNotificationService : INotificationService
+        internal class TestNotificationService : INotificationService
         {
             public IList<(string, string)> Sent { get; } = new List<(string, string)>();
 
@@ -60,8 +60,8 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             var store = new DockerNodeStore(_configuration, new NotificationService());
             var nodes = store.GetNodes();
             Assert.Equal(2, nodes.Count());
-            Assert.True(nodes.Any(x => x.Name == "docker-1"));
-            Assert.True(nodes.Any(x => x.Name == "docker-2"));
+            Assert.Contains(nodes, x => x.Name == "docker-1");
+            Assert.Contains(nodes, x => x.Name == "docker-2");
         }
 
         [Fact]

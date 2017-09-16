@@ -40,6 +40,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     c.AddProfile<BlobMapperProfile>();
                     c.AddProfile<StateMachineMapperProfile>();
                     c.AddProfile<StateMachineInstanceMapperProfile>();
+                    c.CreateMissingTypeMaps = true;
                 });
                 StaticFunctionsInitialized = true;
             }
@@ -66,6 +67,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddTransient<IStateMachineInstanceService, StateMachineInstanceService>();
             services.AddSingleton<IStateMachineInstanceStore, StateMachineInstanceStore>();
             services.AddSingleton<IDockerNodeStore, DockerNodeStore>();
+            services.AddTransient<IDockerNodeService, DockerNodeService>();
             services.AddSingleton<IDynamicCompileService, DynamicCompileService>();
             services.AddSingleton<INotificationService, NotificationService>();
 

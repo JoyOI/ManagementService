@@ -212,7 +212,7 @@ openssl pkcs12 -export -inkey webapi-client-key.pem -in webapi-client-cert.pem -
     - "ClientCertificatePassword": 客户端证书的密码
     - "Container": 节点单独的容器配置, 可以等于null也可以只设置部分属性, 不设置的属性会使用上面的值
 
-**常驻服务**
+**常驻服务(windows)**
 
 从"[http://www.nssm.cc/download](http://www.nssm.cc/download)"下载添加服务的工具,<br/>
 假定管理服务在"C:\inetpub\mgmtsvc"下, 执行以下命令:
@@ -230,6 +230,14 @@ nssm set joyoi_mgmtsvc AppStderr "C:\inetpub\mgmtsvc\stderr.log"
 nssm start joyoi_mgmtsvc
 ```
 
+**导入证书(linux)**
+
+TODO
+
+**常驻服务(linux)**
+
+TODO
+
 # Api一览
 
 以下是管理服务包含的Api, 更详细的格式请在本地打开[swagger](http://localhost:38415/swagger/)查看.
@@ -244,6 +252,8 @@ put /api/v1/Actor
 get /api/v1/Blob/All
 get /api/v1/Blob/{id}
 put /api/v1/Blob 
+
+get /api/v1/DockerNode/All 
 
 get /api/v1/StateMachine/All
 delete /api/v1/StateMachine/{name}
