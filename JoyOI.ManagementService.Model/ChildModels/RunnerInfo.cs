@@ -10,9 +10,11 @@ namespace Microsoft.EntityFrameworkCore.Migrations
     public class RunnerInfo
     {
         public string Command { get; set; }
-        public string Error { get; set; }
-        public int UsedTime { get; set; } // ms
-        public int ExitCode { get; set; }
+        public int UserTime { get; set; } // ms
+        public int TotalTime { get; set; } // ms
         public int PeakMemory { get; set; } // bytes, rss
+        public int ExitCode { get; set; }
+        public bool IsTimeout { get; set; }
+        public string Error { get; set; }
     }
 }

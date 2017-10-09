@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 
@@ -14,7 +15,8 @@ namespace JoyOI.ManagementService.Utils
         /// 自增数值
         /// </summary>
         private static long _count = 0;
-        
+        private static int _pid = Process.GetCurrentProcess().Id;
+
         /// <summary>
         /// 根据8个字节的缓冲区和指定时间生成序列Guid
         /// UUID Version是1, 时钟序号和MAC地址由缓冲区得到
@@ -40,6 +42,8 @@ namespace JoyOI.ManagementService.Utils
             // TODO: linux上部分环境会导致生成全0, 暂时改用自增
             // RandomUtils.GetRandomInstance().NextBytes(buffer);
             var count = Interlocked.Increment(ref _count);
+            count ^= _pid << 16;
+            count ^= (time.Ticks & 0xffffffff) << 32;
             var buffer = BitConverter.GetBytes(count);
             return SequentialGuid(time, buffer);
         }
