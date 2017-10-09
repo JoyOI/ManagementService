@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace JoyOI.ManagementService.Utils
 {
@@ -10,10 +11,15 @@ namespace JoyOI.ManagementService.Utils
     public static class PrimaryKeyUtils
     {
         /// <summary>
-		/// 根据8个字节的缓冲区和指定时间生成序列Guid
-		/// UUID Version是1, 时钟序号和MAC地址由缓冲区得到
-		/// </summary>
-		private static Guid SequentialGuid(DateTime time, byte[] buffer)
+        /// 自增数值
+        /// </summary>
+        private static long _count = 0;
+        
+        /// <summary>
+        /// 根据8个字节的缓冲区和指定时间生成序列Guid
+        /// UUID Version是1, 时钟序号和MAC地址由缓冲区得到
+        /// </summary>
+        private static Guid SequentialGuid(DateTime time, byte[] buffer)
         {
             var ticks = (time - new DateTime(1900, 1, 1)).Ticks;
             var guid = new Guid(
@@ -31,8 +37,10 @@ namespace JoyOI.ManagementService.Utils
         /// </summary>
         private static Guid SequentialGuid(DateTime time)
         {
-            var buffer = new byte[8];
-            RandomUtils.GetRandomInstance().NextBytes(buffer);
+            // TODO: linux上部分环境会导致生成全0, 暂时改用自增
+            // RandomUtils.GetRandomInstance().NextBytes(buffer);
+            var count = Interlocked.Increment(ref _count);
+            var buffer = BitConverter.GetBytes(count);
             return SequentialGuid(time, buffer);
         }
 
