@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Net;
 using JoyOI.ManagementService.Utils;
+using Newtonsoft.Json;
 
 namespace JoyOI.ManagementService.Core
 {
@@ -145,6 +146,21 @@ namespace JoyOI.ManagementService.Core
         {
             var host = Parameters["Host"];
             return HttpClientUtils.HttpInvokeAsync(host, method, endpoint, body);
+        }
+
+        protected Task<Guid> UploadBlobAsync(string filename, byte[] bytes)
+        {
+            return Store.PutBlob(filename, bytes, DateTime.Now);
+        }
+
+        protected Task<Guid> UploadTextFileAsync(string filename, string text)
+        {
+            return UploadBlobAsync(filename, Encoding.UTF8.GetBytes(text));
+        }
+
+        protected Task<Guid> UploadJsonFileAsync(string filename, object obj)
+        {
+            return UploadTextFileAsync(filename, JsonConvert.SerializeObject(obj));
         }
 
         /// <summary>
