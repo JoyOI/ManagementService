@@ -49,7 +49,7 @@ namespace JoyOI.ManagementService.Utils
                     Content = new JsonContent(body),
                 };
                 var result = await client.SendAsync(message);
-                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                if ((int)result.StatusCode < 500)
                 {
                     return await result.Content.ReadAsStringAsync();
                 }
