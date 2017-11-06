@@ -97,6 +97,8 @@ namespace JoyOI.ManagementService.Services.Impl
         private Func<IDisposable, IRepository<StateMachineInstanceEntity, Guid>> _stateMachineInstanceRepositoryFactory;
         private bool _initilaized;
         private object _initializeLock;
+        private string _prefixWithoutSession;
+        private string _prefixWithSession;
 
         public StateMachineInstanceStore(
             JoyOIManagementConfiguration configuration,
@@ -137,112 +139,129 @@ namespace JoyOI.ManagementService.Services.Impl
                 _actorRepositoryFactory = actorRepositoryFactory;
                 _stateMachineRepositoryFactory = stateMachineRepositoryFactory;
                 _stateMachineInstanceRepositoryFactory = stateMachineInstanceRepositoryFactory;
-                RemoveStoppedContainers();
-                ContinueRunningInstances();
+                _prefixWithoutSession = $"{_configuration.Name}.";
+                _prefixWithSession = $"{_prefixWithoutSession}{DateTime.UtcNow.Ticks % int.MaxValue}.";
+                BackgroundRemoveStoppedContainers();
+                BackgroundContinueRunningInstances();
                 _initilaized = true;
             }
         }
 
-        private void RemoveStoppedContainers()
+        private void BackgroundRemoveStoppedContainers()
         {
             // 因为xunit会并发执行, 测试时无法实现这里的逻辑
             if (_configuration.TestMode)
             {
                 return;
             }
-            // 删除属于当前管理服务的容器, 无论是否已停止
-            // 名称默认以"/Default."开头
-            var prefix = $"{_configuration.Name}.";
-            var childTasks = _dockerNodeStore.GetNodes().Select(node => Task.Run(async () =>
+            // 后台删除属于当前管理服务的容器, 无论是否已停止
+            // 删除名称以'_prefixWithoutSession'开头但不以'_prefixWithSession'开头的容器
+            // 因为每次启动mgmtsvc都会分配一个独立的session, 在后台删除也不会影响到当前进程添加的任务
+            var nodes = _dockerNodeStore.GetNodes().ToList();
+            foreach (var node in nodes)
             {
-                try
+                Task.Run(async () =>
                 {
-                    var client = node.Client;
-                    var result = await client.Containers.ListContainersAsync(
-                        new ContainersListParameters() { All = true });
-                    foreach (var container in result)
+                    try
                     {
-                        // 如果需要判断是否已停止可以判断State == "created" || State == "exited"
-                        if (!container.Names.Any(x => x.IndexOf(prefix) <= 1))
-                            continue;
-                        try
+                        var client = node.Client;
+                        var result = await client.Containers.ListContainersAsync(
+                            new ContainersListParameters() { All = true });
+                        foreach (var container in result)
                         {
-                            await client.Containers.RemoveContainerAsync(container.ID,
-                                new ContainerRemoveParameters() { Force = true });
-                        }
-                        catch (DockerContainerNotFoundException)
-                        {
-                            // 可能已经被删除了
+                            // 如果需要判断是否已停止可以判断State == "created" || State == "exited"
+                            bool shouldRemove = false;
+                            foreach (var name in container.Names)
+                            {
+                                shouldRemove = shouldRemove || (
+                                    name.IndexOf(_prefixWithoutSession) >= 0 &&
+                                    name.IndexOf(_prefixWithSession) < 0);
+                            }
+                            if (shouldRemove)
+                            {
+                                try
+                                {
+                                    await client.Containers.RemoveContainerAsync(container.ID,
+                                        new ContainerRemoveParameters() { Force = true });
+                                }
+                                catch (DockerContainerNotFoundException)
+                                {
+                                    // 可能已经被删除了
+                                }
+                            }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    // 如果是连接错误则记录日志并正常启动程序, 否则让程序启动失败
-                    if (DockerNode.IsConnectionError(ex))
+                    catch (Exception ex)
+                    {
                         Console.Error.WriteLine(ex.ToString());
-                    else
-                        throw;
-                }
-            })).ToArray();
-            Task.WaitAll(childTasks);
+                    }
+                });
+            }
         }
 
-        private void ContinueRunningInstances()
+        private void BackgroundContinueRunningInstances()
         {
-            // 获取运行中的状态机实例
-            IDictionary<string, StateMachineEntity> stateMachineMap;
-            var continueInstances = new List<StateMachineInstanceEntity>();
-            using (var context = _contextFactory())
+            // 后台继续上次正在运行的状态机实例
+            var beforeContinue = DateTime.UtcNow;
+            Task.Run(async () =>
             {
-                var stateMachineRepository = _stateMachineRepositoryFactory(context);
-                var stateMachineInstanceRepository = _stateMachineInstanceRepositoryFactory(context);
-                var runningInstances = stateMachineInstanceRepository.QueryAsync(q => q
-                    .Where(x =>
-                        x.Status == StateMachineStatus.Running &&
-                        x.FromManagementService == _configuration.Name).ToListAsyncTestable()).Result;
-                var stateMachineNames = runningInstances
-                    .Select(c => c.Name).Distinct().ToList();
-                stateMachineMap = stateMachineRepository.QueryAsync(q => q
-                    .Where(x => stateMachineNames
-                    .Contains(x.Name)).ToDictionaryAsyncTestable(x => x.Name)).Result;
-                // 判断重新运行次数, 超过最大次数的标记状态到失败
-                foreach (var instance in runningInstances)
+                IDictionary<string, StateMachineEntity> stateMachineMap;
+                var continueInstances = new List<StateMachineInstanceEntity>();
+                using (var context = _contextFactory())
                 {
-                    if (instance.ReRunTimes >= StateMachineInstanceEntity.MaxReRunTimes)
+                    var stateMachineRepository = _stateMachineRepositoryFactory(context);
+                    var stateMachineInstanceRepository = _stateMachineInstanceRepositoryFactory(context);
+                    var runningInstances = await stateMachineInstanceRepository.QueryAsync(q => q
+                        .Where(x => x.Status == StateMachineStatus.Running).ToListAsyncTestable());
+                    var stateMachineNames = runningInstances.Select(c => c.Name).Distinct().ToList();
+                    stateMachineMap = await stateMachineRepository.QueryAsync(q => q
+                        .Where(x => stateMachineNames
+                        .Contains(x.Name)).ToDictionaryAsyncTestable(x => x.Name));
+                    
+                    foreach (var instance in runningInstances)
                     {
-                        instance.Status = StateMachineStatus.Failed;
-                        instance.Exception = "re-run times exhausted";
+                        // 跳过不属于当前管理服务的实例
+                        if (instance.FromManagementService != _configuration.Name)
+                            continue;
+                        // 跳过创建时间大于处理开始时间的实例
+                        if (instance.StartTime >= beforeContinue)
+                            continue;
+                        // 判断重新运行次数, 超过最大次数的标记状态到失败
+                        if (instance.ReRunTimes >= StateMachineInstanceEntity.MaxReRunTimes)
+                        {
+                            instance.Status = StateMachineStatus.Failed;
+                            instance.Exception = "re-run times exhausted";
+                        }
+                        else if (!stateMachineMap.ContainsKey(instance.Name))
+                        {
+                            instance.Status = StateMachineStatus.Failed;
+                            instance.Exception = "state machine not found";
+                        }
+                        else
+                        {
+                            ++instance.ReRunTimes;
+                            instance.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
+                            continueInstances.Add(instance);
+                        }
+                        if (instance.Status == StateMachineStatus.Failed)
+                        {
+                            var startedActors = instance.StartedActors;
+                            instance.StartedActors = startedActors;
+                        }
                     }
-                    else if (!stateMachineMap.ContainsKey(instance.Name))
-                    {
-                        instance.Status = StateMachineStatus.Failed;
-                        instance.Exception = "state machine not found";
-                    }
-                    else
-                    {
-                        ++instance.ReRunTimes;
-                        instance.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
-                        continueInstances.Add(instance);
-                    }
-                    if (instance.Status == StateMachineStatus.Failed)
-                    {
-                        var startedActors = instance.StartedActors;
-                        instance.StartedActors = startedActors;
-                    }
+                    stateMachineRepository.SaveChangesAsync().Wait();
+                    stateMachineInstanceRepository.SaveChangesAsync().Wait();
                 }
-                stateMachineRepository.SaveChangesAsync().Wait();
-                stateMachineInstanceRepository.SaveChangesAsync().Wait();
-            }
-            // 继续执行这些状态机实例
-            foreach (var instance in continueInstances)
-            {
-                var stateMachine = stateMachineMap[instance.Name];
-                var instanceObj = CreateInstance(stateMachine, instance).Result;
+                // 继续执行这些状态机实例
+                foreach (var instance in continueInstances)
+                {
+                    var stateMachine = stateMachineMap[instance.Name];
+                    var instanceObj = CreateInstance(stateMachine, instance).Result;
 #pragma warning disable CS4014
-                RunInstance(instanceObj); // 在后台运行
+                    RunInstance(instanceObj); // 在后台运行
 #pragma warning restore CS4014
-            }
+                }
+            });
         }
 
         private async Task UpdateInstanceEntity(
@@ -411,7 +430,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 // 获取docker客户端
                 var client = node.Client;
                 // 生成一个容器名称
-                var containerTag = $"{_configuration.Name}.{PrimaryKeyUtils.Generate<Guid>()}";
+                var containerTag = $"{_prefixWithSession}{PrimaryKeyUtils.Generate<Guid>()}";
                 // 更新actorInfo的UsedNode和UsedContainer, 不更新到数据库
                 actorInfo.UsedNode = node.Name;
                 actorInfo.UsedContainer = containerTag;
@@ -614,9 +633,15 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
                 catch (Exception ex)
                 {
-                    // 仅在连接错误时允许重试
+                    // 判断是否应该重试
                     lastEx = ex;
-                    if (!DockerNode.IsConnectionError(ex))
+                    // 连接错误
+                    bool shouldRetry = DockerNode.IsConnectionError(ex);
+                    // docker内部错误
+                    shouldRetry = shouldRetry || ex is DockerApiException;
+                    // httpclient错误
+                    shouldRetry = shouldRetry || ex is TaskCanceledException;
+                    if (!shouldRetry)
                         break;
                 }
             }
