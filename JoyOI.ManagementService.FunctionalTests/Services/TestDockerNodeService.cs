@@ -20,5 +20,11 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             Assert.Contains(nodes, x => x.Name == "docker-1");
             Assert.Contains(nodes, x => x.Name == "docker-2");
         }
+
+        [Fact]
+        public void GetWaitingTasks()
+        {
+            Assert.True(false, "TODO");
+        }
     }
 }

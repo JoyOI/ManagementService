@@ -104,6 +104,19 @@ namespace JoyOI.ManagementService.Services.Impl
             return _nodesMap.Select(x => x.Value);
         }
 
+        public IDictionary<int, int> GetWaitingTasks()
+        {
+            var result = new Dictionary<int, int>();
+            lock (_nodesLock)
+            {
+                foreach (var pair in _waitReleaseQueue)
+                {
+                    result[pair.Key] = pair.Value.Count;
+                }
+            }
+            return result;
+        }
+
         public async Task<DockerNode> AcquireNode(int priority)
         {
             Task<DockerNode> waitRelease;

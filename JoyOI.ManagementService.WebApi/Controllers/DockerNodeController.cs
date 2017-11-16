@@ -27,5 +27,12 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             IList<DockerNodeOutputDto> dtos = _dockerNodeService.GetNodes().ToList();
             return Task.FromResult(ApiResponse.OK(dtos));
         }
+
+        [HttpGet("WaitingTasks")]
+        public Task<ApiResponse<IDictionary<int, int>>> WaitingTasks()
+        {
+            IDictionary<int, int> waiting = _dockerNodeService.GetWaitingTasks();
+            return Task.FromResult(ApiResponse.OK(waiting));
+        }
     }
 }

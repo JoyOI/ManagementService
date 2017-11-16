@@ -14,5 +14,10 @@ namespace JoyOI.ManagementService.Services
         /// 获取所有节点
         /// </summary>
         IEnumerable<DockerNodeOutputDto> GetNodes();
+
+        /// <summary>
+        /// 获取等待中的任务数量, 返回{ 优先度: 任务数量 }
+        /// </summary>
+        IDictionary<int, int> GetWaitingTasks();
     }
 }
