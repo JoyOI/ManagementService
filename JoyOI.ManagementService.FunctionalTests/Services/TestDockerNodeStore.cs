@@ -67,7 +67,9 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         [Fact]
         public void GetWaitingTasks()
         {
-            Assert.True(false, "TODO");
+            var store = new DockerNodeStore(_configuration, new NotificationService());
+            var result = store.GetWaitingTasks();
+            Assert.NotNull(result);
         }
 
         [Fact]
