@@ -53,6 +53,7 @@ namespace JoyOI.ManagementService.DbContexts
             stateMachineInstanceEntity.Ignore(x => x.Parameters);
             stateMachineInstanceEntity.HasIndex(x => x.Name);
             stateMachineInstanceEntity.HasIndex(x => new { x.Name, x.Status });
+            stateMachineInstanceEntity.HasIndex(x => x.Status);
             stateMachineInstanceEntity.Property(x => x.ExecutionKey).IsConcurrencyToken();
         }
     }

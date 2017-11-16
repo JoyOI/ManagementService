@@ -65,6 +65,14 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
         }
 
         [Fact]
+        public void GetWaitingTasks()
+        {
+            var store = new DockerNodeStore(_configuration, new NotificationService());
+            var result = store.GetWaitingTasks();
+            Assert.NotNull(result);
+        }
+
+        [Fact]
         public void AcquireAndReleaseNode()
         {
             var store = new DockerNodeStore(_configuration, new NotificationService());

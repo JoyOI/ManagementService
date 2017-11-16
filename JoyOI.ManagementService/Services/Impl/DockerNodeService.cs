@@ -31,5 +31,10 @@ namespace JoyOI.ManagementService.Services.Impl
                 .ToList();
             return nodes;
         }
+
+        public IDictionary<int, int> GetWaitingTasks()
+        {
+            return _store.GetWaitingTasks();
+        }
     }
 }

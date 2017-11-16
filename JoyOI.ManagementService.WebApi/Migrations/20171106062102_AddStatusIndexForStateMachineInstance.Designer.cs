@@ -12,9 +12,10 @@ using System;
 namespace JoyOI.ManagementService.WebApi.Migrations
 {
     [DbContext(typeof(MigrationJoyOIManagementContext))]
-    partial class MigrationJoyOIManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20171106062102_AddStatusIndexForStateMachineInstance")]
+    partial class AddStatusIndexForStateMachineInstance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
