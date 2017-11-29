@@ -641,6 +641,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     shouldRetry = shouldRetry || ex is DockerApiException;
                     // httpclient错误
                     shouldRetry = shouldRetry || ex is TaskCanceledException;
+                    // httpclient错误
+                    shouldRetry = shouldRetry || ex is OperationCanceledException;
                     if (!shouldRetry)
                         break;
                 }
