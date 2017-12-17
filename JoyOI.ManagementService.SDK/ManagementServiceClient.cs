@@ -57,13 +57,15 @@ namespace JoyOI.ManagementService.SDK
         #region Base
         private async Task<IEnumerable<T>> GetAllBaseAsync<T>(string controller, string queryString = null, CancellationToken token = default(CancellationToken))
         {
-            var result = await _client.GetAsync(_apiVersion + "/" + controller + "/all" + (string.IsNullOrEmpty(queryString) ? "" : queryString), token);
-            var response = await result.Content.ReadAsStringAsync();
-            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var result = await _client.GetAsync(_apiVersion + "/" + controller + "/all" + (string.IsNullOrEmpty(queryString) ? "" : queryString), token))
             {
-                return JsonConvert.DeserializeObject<JToken>(response)["data"].Value<JToken>().ToObject<IEnumerable<T>>();
+                var response = await result.Content.ReadAsStringAsync();
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<JToken>(response)["data"].Value<JToken>().ToObject<IEnumerable<T>>();
+                }
+                throw new ManagementServiceException(response);
             }
-            throw new ManagementServiceException(response);
         }
 
         private Task<IEnumerable<T>> GetAllBaseAsync<T>(string controller, CancellationToken token = default(CancellationToken))
@@ -72,41 +74,47 @@ namespace JoyOI.ManagementService.SDK
         private async Task<T> PutBaseAsync<T>(string controller, object body, string idFieldName = "id", CancellationToken token = default(CancellationToken))
         {
             var stringContent = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
-            var result = await _client.PutAsync(_apiVersion + "/" + controller, stringContent, token);
-            var response = await result.Content.ReadAsStringAsync();
-            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var result = await _client.PutAsync(_apiVersion + "/" + controller, stringContent, token))
             {
-                var obj = JsonConvert.DeserializeObject<JObject>(response);
-                if (typeof(T) == typeof(Guid))
-                    return (T)(object)Guid.Parse(obj["data"][idFieldName].Value<JToken>().ToObject<string>());
-                return obj["data"][idFieldName].Value<JToken>().ToObject<T>();
+                var response = await result.Content.ReadAsStringAsync();
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    var obj = JsonConvert.DeserializeObject<JObject>(response);
+                    if (typeof(T) == typeof(Guid))
+                        return (T)(object)Guid.Parse(obj["data"][idFieldName].Value<JToken>().ToObject<string>());
+                    return obj["data"][idFieldName].Value<JToken>().ToObject<T>();
+                }
+                throw new ManagementServiceException(response);
             }
-            throw new ManagementServiceException(response);
         }
 
         private async Task PutBaseAsync(string controller, object body, CancellationToken token = default(CancellationToken))
         {
             var stringContent = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
-            var result = await _client.PutAsync(_apiVersion + "/" + controller, stringContent, token);
-            var response = await result.Content.ReadAsStringAsync();
-            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var result = await _client.PutAsync(_apiVersion + "/" + controller, stringContent, token))
             {
-                return;
+                var response = await result.Content.ReadAsStringAsync();
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return;
+                }
+                throw new ManagementServiceException(response);
             }
-            throw new ManagementServiceException(response);
         }
 
         private async Task<TReturn> GetBaseAsync<TResponse, TReturn>(string controller, object id, Func<TResponse, TReturn> convert, CancellationToken token = default(CancellationToken))
         {
-            var result = await _client.GetAsync(_apiVersion + "/" + controller + "/" + id, token);
-            var response = await result.Content.ReadAsStringAsync();
-            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var result = await _client.GetAsync(_apiVersion + "/" + controller + "/" + id, token))
             {
-                var obj = JsonConvert.DeserializeObject<JObject>(response);
-                var val = obj["data"].Value<JToken>().ToObject<TResponse>();
-                return convert(val);
+                var response = await result.Content.ReadAsStringAsync();
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    var obj = JsonConvert.DeserializeObject<JObject>(response);
+                    var val = obj["data"].Value<JToken>().ToObject<TResponse>();
+                    return convert(val);
+                }
+                throw new ManagementServiceException(response);
             }
-            throw new ManagementServiceException(response);
         }
 
         private Task<T> GetBaseAsync<T>(string controller, object id, CancellationToken token = default(CancellationToken))
@@ -114,13 +122,15 @@ namespace JoyOI.ManagementService.SDK
 
         private async Task DeleteBaseAsync(string controller, object id, CancellationToken token = default(CancellationToken))
         {
-            var result = await _client.DeleteAsync(_apiVersion + "/" + controller + "/" + id, token);
-            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var result = await _client.DeleteAsync(_apiVersion + "/" + controller + "/" + id, token))
             {
-                return;
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return;
+                }
+                var response = await result.Content.ReadAsStringAsync();
+                throw new ManagementServiceException(response);
             }
-            var response = await result.Content.ReadAsStringAsync();
-            throw new ManagementServiceException(response);
         }
 
         private async Task PatchBaseAsync(string controller, object id, object body, CancellationToken token = default(CancellationToken))
@@ -128,13 +138,15 @@ namespace JoyOI.ManagementService.SDK
             var stringContent = new StringContent(JsonConvert.SerializeObject(body),
                Encoding.UTF8,
                "application/json");
-            var result = await _client.PatchAsync(_apiVersion + "/" + controller + "/" + id, stringContent, token);
-            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var result = await _client.PatchAsync(_apiVersion + "/" + controller + "/" + id, stringContent, token))
             {
-                return;
+                if (result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return;
+                }
+                var response = await result.Content.ReadAsStringAsync();
+                throw new ManagementServiceException(response);
             }
-            var response = await result.Content.ReadAsStringAsync();
-            throw new ManagementServiceException(response);
         }
         #endregion
 
