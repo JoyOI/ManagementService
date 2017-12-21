@@ -99,6 +99,8 @@ namespace JoyOI.ManagementService.Services.Impl
         private object _initializeLock;
         private string _prefixWithoutSession;
         private string _prefixWithSession;
+        private LRUCache<byte[], Guid> _blobContentToIdCache;
+        private LRUCache<Guid, byte[]> _blobIdToContentCache;
 
         public StateMachineInstanceStore(
             JoyOIManagementConfiguration configuration,
@@ -119,6 +121,8 @@ namespace JoyOI.ManagementService.Services.Impl
             _stateMachineInstanceRepositoryFactory = null;
             _initilaized = false;
             _initializeLock = new object();
+            _blobContentToIdCache = new LRUCache<byte[], Guid>(100);
+            _blobIdToContentCache = new LRUCache<Guid, byte[]>(100);
         }
 
         public void Initialize(
@@ -696,25 +700,38 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task<Guid> PutBlob(string filename, byte[] contents, DateTime timeStamp)
         {
+            // 从缓存获取
+            var id = _blobContentToIdCache.Get(contents);
+            if (id != Guid.Empty)
+                return id;
             // 添加单个blob, 返回blob id
             using (var context = _contextFactory())
             {
                 var repository = _blobRepositoryFactory(context);
                 var blobService = new BlobService(repository);
-                return await blobService.Put(new BlobInputDto()
+                id = await blobService.Put(new BlobInputDto()
                 {
                     Body = Mapper.Map<byte[], string>(contents),
                     TimeStamp = Mapper.Map<DateTime, long>(timeStamp),
                     Remark = filename
                 });
+                // 设置到缓存
+                _blobContentToIdCache.Set(contents, id);
+                _blobIdToContentCache.Set(id, contents);
+                return id;
             }
         }
 
         public async Task<IEnumerable<(BlobInfo, byte[])>> ReadBlobs(IEnumerable<BlobInfo> blobInfos)
         {
-            // 批量获取blob的内容
-            var result = blobInfos.Select(x => ValueTuple.Create(x, (byte[])null)).ToList();
-            var blobIds = result.Select(x => x.Item1.Id).ToList();
+            // 批量获取blob的内容, 先从缓存获取
+            var result = blobInfos
+                .Select(x => ValueTuple.Create(x, _blobIdToContentCache.Get(x.Id)))
+                .ToList();
+            var blobIds = result
+                .Where(x => x.Item2 == null)
+                .Select(x => x.Item1.Id)
+                .ToList();
             using (var context = _contextFactory())
             {
                 var repository = _blobRepositoryFactory(context);
@@ -727,7 +744,11 @@ namespace JoyOI.ManagementService.Services.Impl
                     var (blob, contents) = result[x];
                     if (blobs.TryGetValue(blob.Id, out var blobEntities))
                     {
-                        result[x] = (blob, BlobUtils.MergeChunksBody(blobEntities));
+                        var bytes = BlobUtils.MergeChunksBody(blobEntities);
+                        result[x] = (blob, bytes);
+                        // 设置到缓存
+                        _blobIdToContentCache.Set(blob.Id, bytes);
+                        _blobContentToIdCache.Set(bytes, blob.Id);
                     }
                 }
             }
