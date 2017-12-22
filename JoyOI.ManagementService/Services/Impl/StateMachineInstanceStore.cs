@@ -601,19 +601,23 @@ namespace JoyOI.ManagementService.Services.Impl
                 finally
                 {
                     // 删除容器 (finally)
-                    // 调试模式仅结束容器, 非调试模式强制删除容器
+                    // 调试模式仅结束容器, 非调试模式强制删除容器, 这个步骤不需要等待
                     instance.Parameters.TryGetValue("Debug", out string debug);
                     if (debug == "true")
                     {
-                        await client.Containers.StopContainerAsync(
+#pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
+                        client.Containers.StopContainerAsync(
                             containerId,
                             new ContainerStopParameters() { WaitBeforeKillSeconds = 1 });
+#pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
                     }
                     else
                     {
-                        await client.Containers.RemoveContainerAsync(
+#pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
+                        client.Containers.RemoveContainerAsync(
                             containerId,
                             new ContainerRemoveParameters() { Force = true });
+#pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
                     }
                 }
             }
@@ -666,15 +670,11 @@ namespace JoyOI.ManagementService.Services.Impl
 
         public async Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)
         {
-            // 更新状态机实例的StartedActors, 更新到数据库
+            // 更新状态机实例的StartedActors
             foreach (var actorInfo in actorInfos)
             {
                 instance.StartedActors.Add(actorInfo);
             }
-            await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
-            {
-                instanceEntity.StartedActors = instance.StartedActors;
-            });
             // 并列处理
             var childTasks = new List<Task>();
             foreach (var actorInfo in actorInfos)
@@ -683,7 +683,7 @@ namespace JoyOI.ManagementService.Services.Impl
             }
             // 等待全部完成
             await Task.WhenAll(childTasks);
-            // 是否发生错误?
+            // 更新到数据库
             var anyErrorHappended = false;
             var errors = "";
             await UpdateInstanceEntity(instance.Id, instance.ExecutionKey, instanceEntity =>
@@ -697,6 +697,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         instance.StartedActors.SelectMany(a => a.Exceptions));
                 }
             });
+            // 是否发生错误?
             if (anyErrorHappended)
             {
                 // 报告错误
