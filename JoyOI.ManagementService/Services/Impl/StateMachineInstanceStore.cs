@@ -83,24 +83,24 @@ namespace JoyOI.ManagementService.Services.Impl
     /// </summary>
     internal class StateMachineInstanceStore : IStateMachineInstanceStore
     {
-        private JoyOIManagementConfiguration _configuration;
-        private IDockerNodeStore _dockerNodeStore;
-        private IDynamicCompileService _dynamicCompileService;
-        private ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
-        private ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
-        private TimeSpan _actorCodeCacheTime;
-        private int _actorMaxRetryTimes;
+        private readonly JoyOIManagementConfiguration _configuration;
+        private readonly IDockerNodeStore _dockerNodeStore;
+        private readonly IDynamicCompileService _dynamicCompileService;
+        private readonly ConcurrentDictionary<string, (string, Func<StateMachineBase>)> _factoryCache;
+        private readonly ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
+        private readonly TimeSpan _actorCodeCacheTime;
+        private readonly int _actorMaxRetryTimes;
         private Func<IDisposable> _contextFactory;
         private Func<IDisposable, IRepository<BlobEntity, Guid>> _blobRepositoryFactory;
         private Func<IDisposable, IRepository<ActorEntity, Guid>> _actorRepositoryFactory;
         private Func<IDisposable, IRepository<StateMachineEntity, Guid>> _stateMachineRepositoryFactory;
         private Func<IDisposable, IRepository<StateMachineInstanceEntity, Guid>> _stateMachineInstanceRepositoryFactory;
         private bool _initilaized;
-        private object _initializeLock;
+        private readonly object _initializeLock;
         private string _prefixWithoutSession;
         private string _prefixWithSession;
-        private LRUCache<byte[], Guid> _blobContentToIdCache;
-        private LRUCache<Guid, byte[]> _blobIdToContentCache;
+        private readonly LRUCache<byte[], Guid> _blobContentToIdCache;
+        private readonly LRUCache<Guid, byte[]> _blobIdToContentCache;
 
         public StateMachineInstanceStore(
             JoyOIManagementConfiguration configuration,
@@ -112,7 +112,7 @@ namespace JoyOI.ManagementService.Services.Impl
             _dynamicCompileService = dynamicCompileService;
             _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
             _actorCodeCache = new ConcurrentDictionary<string, (string, DateTime)>();
-            _actorCodeCacheTime = TimeSpan.FromSeconds(1);
+            _actorCodeCacheTime = TimeSpan.FromSeconds(5);
             _actorMaxRetryTimes = 3;
             _contextFactory = null;
             _blobRepositoryFactory = null;
@@ -221,7 +221,7 @@ namespace JoyOI.ManagementService.Services.Impl
                     stateMachineMap = await stateMachineRepository.QueryAsync(q => q
                         .Where(x => stateMachineNames
                         .Contains(x.Name)).ToDictionaryAsyncTestable(x => x.Name));
-                    
+
                     foreach (var instance in runningInstances)
                     {
                         // 跳过不属于当前管理服务的实例
@@ -404,6 +404,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 }
                 catch (StateMachineInterpretedException)
                 {
+                    // 状态机已中断
                 }
             }
             finally
@@ -557,30 +558,37 @@ namespace JoyOI.ManagementService.Services.Impl
                     }
                     // 根据return.json下载文件并插入到blob
                     var result = JsonConvert.DeserializeObject<RunActorResult>(resultJson);
-                    var actorOutputs = new List<BlobInfo>();
+                    var actorOutputTasks = new List<(string, Task<BlobInfo>)>();
                     foreach (var output in result.Outputs)
                     {
-                        try
+                        var path = output;
+                        actorOutputTasks.Add((path, Task.Run(async () =>
                         {
-                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
+                            var getArchiveFromContainerResponse =
+                            await client.Containers.GetArchiveFromContainerAsync(
                                 containerId,
                                 new GetArchiveFromContainerParameters()
                                 {
-                                    Path = node.NodeInfo.Container.WorkDir + output
+                                    Path = node.NodeInfo.Container.WorkDir + path
                                 },
                                 false, new CancellationToken());
-                            var bytes = await Task.Run(() => ArchiveUtils.DecompressFromTar(
-                                getArchiveFromContainerResponse.Stream).First().Item2);
-                            var blobId = await PutBlob(output, bytes, getArchiveFromContainerResponse.Stat.Mtime);
-                            actorOutputs.Add(new BlobInfo()
-                            {
-                                Id = blobId,
-                                Name = output
-                            });
+                            var bytes = ArchiveUtils.DecompressFromTar(
+                                getArchiveFromContainerResponse.Stream).First().Item2;
+                            var blobId = await PutBlob(
+                                path, bytes, getArchiveFromContainerResponse.Stat.Mtime);
+                            return new BlobInfo() { Id = blobId, Name = path };
+                        })));
+                    }
+                    var actorOutputs = new List<BlobInfo>();
+                    foreach (var task in actorOutputTasks)
+                    {
+                        try
+                        {
+                            actorOutputs.Add(await task.Item2);
                         }
                         catch (Exception ex)
                         {
-                            throw new ActorExecuteException($"download {output} failed", ex);
+                            throw new ActorExecuteException($"download {task.Item1} failed", ex);
                         }
                     }
                     // 更新actorInfo的Outputs, Status, EndTime, 不更新到数据库

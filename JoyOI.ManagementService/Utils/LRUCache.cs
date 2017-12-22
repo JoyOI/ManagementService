@@ -11,29 +11,29 @@ namespace JoyOI.ManagementService.Utils
     public class LRUCache<K, V>
     {
         private int _capacity;
-        private Dictionary<K, LinkedListNode<LRUCacheItem<K, V>>> _cacheMap;
-        private LinkedList<LRUCacheItem<K, V>> _lruList;
+        private Dictionary<K, LinkedListNode<LRUCacheItem>> _cacheMap;
+        private LinkedList<LRUCacheItem> _lruList;
 
         public LRUCache(int capacity)
         {
             _capacity = capacity;
             if (typeof(K) == typeof(byte[]))
             {
-                _cacheMap = new Dictionary<K, LinkedListNode<LRUCacheItem<K, V>>>(
+                _cacheMap = new Dictionary<K, LinkedListNode<LRUCacheItem>>(
                     (IEqualityComparer<K>)new ByteArrayComparer());
             }
             else
             {
-                _cacheMap = new Dictionary<K, LinkedListNode<LRUCacheItem<K, V>>>();
+                _cacheMap = new Dictionary<K, LinkedListNode<LRUCacheItem>>();
             }
-            _lruList = new LinkedList<LRUCacheItem<K, V>>();
+            _lruList = new LinkedList<LRUCacheItem>();
         }
 
         public V Get(K key)
         {
             lock (this)
             {
-                LinkedListNode<LRUCacheItem<K, V>> node;
+                LinkedListNode<LRUCacheItem> node;
                 if (_cacheMap.TryGetValue(key, out node))
                 {
                     V value = node.Value.value;
@@ -49,7 +49,7 @@ namespace JoyOI.ManagementService.Utils
         {
             lock (this)
             {
-                LinkedListNode<LRUCacheItem<K, V>> node;
+                LinkedListNode<LRUCacheItem> node;
                 if (_cacheMap.TryGetValue(key, out node))
                 {
                     _lruList.Remove(node);
@@ -61,8 +61,8 @@ namespace JoyOI.ManagementService.Utils
                     RemoveFirst();
                 }
 
-                var cacheItem = new LRUCacheItem<K, V>(key, val);
-                node = new LinkedListNode<LRUCacheItem<K, V>>(cacheItem);
+                var cacheItem = new LRUCacheItem(key, val);
+                node = new LinkedListNode<LRUCacheItem>(cacheItem);
                 _lruList.AddLast(node);
                 _cacheMap.Add(key, node);
             }
@@ -71,14 +71,14 @@ namespace JoyOI.ManagementService.Utils
         private void RemoveFirst()
         {
             // Remove from LRUPriority
-            LinkedListNode<LRUCacheItem<K, V>> node = _lruList.First;
+            LinkedListNode<LRUCacheItem> node = _lruList.First;
             _lruList.RemoveFirst();
 
             // Remove from cache
             _cacheMap.Remove(node.Value.key);
         }
 
-        class LRUCacheItem<K, V>
+        class LRUCacheItem
         {
             public LRUCacheItem(K k, V v)
             {
