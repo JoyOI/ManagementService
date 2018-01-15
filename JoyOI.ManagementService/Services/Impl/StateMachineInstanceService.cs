@@ -158,6 +158,7 @@ namespace JoyOI.ManagementService.Services.Impl
                 stateMachineInstanceEntity.Stage = dto.Stage ?? StateMachineBase.InitialStage;
                 stateMachineInstanceEntity.ExecutionKey = PrimaryKeyUtils.Generate<Guid>().ToString();
                 stateMachineInstanceEntity.FromManagementService = _configuration.Name;
+                stateMachineInstanceEntity.StartTime = DateTime.UtcNow; // 柚子大姐要求
                 if (dto.Parameters != null)
                 {
                     var parameters = stateMachineInstanceEntity.Parameters;
