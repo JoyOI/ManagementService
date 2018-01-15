@@ -23,6 +23,10 @@ namespace JoyOI.ManagementService.Model.Dtos
         /// </summary>
         public int RunningJobs { get; set; }
         /// <summary>
+        /// 正在运行的任务描述
+        /// </summary>
+        public List<string> RunningJobDescriptions { get; set; }
+        /// <summary>
         /// 上次使用此节点执行任务是否出错
         /// </summary>
         public bool ErrorFlags { get; set; }

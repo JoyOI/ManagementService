@@ -117,7 +117,7 @@ namespace JoyOI.ManagementService.Services.Impl
             return result;
         }
 
-        public async Task<DockerNode> AcquireNode(int priority)
+        public async Task<DockerNode> AcquireNode(int priority, string jobDescription)
         {
             Task<DockerNode> waitRelease;
             lock (_nodesLock)
@@ -134,6 +134,7 @@ namespace JoyOI.ManagementService.Services.Impl
                         {
                             ++node.RunningJobs;
                             _nodes.Sort(new DockerNodeComparer());
+                            node.RunningJobDescriptions[jobDescription] = 1;
                             return node;
                         }
                     }
@@ -147,14 +148,16 @@ namespace JoyOI.ManagementService.Services.Impl
                 childQueue.Enqueue(source);
             }
             var released = await waitRelease;
+            released.RunningJobDescriptions[jobDescription] = 1;
             return released;
         }
 
-        public void ReleaseNode(DockerNode node)
+        public void ReleaseNode(DockerNode node, string jobDescription)
         {
             TaskCompletionSource<DockerNode> source = null;
             lock (_nodesLock)
             {
+                node.RunningJobDescriptions.TryRemove(jobDescription, out var _);
                 // 判断等待队列是否为空
                 foreach (var childQueue in _waitReleaseQueue)
                 {

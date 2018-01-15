@@ -429,7 +429,10 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             // 请勿直接调用此函数, 此函数不会更新StartedActors
             // 此函数可以反复重试, 注意不要做出不可逆的修改
-            var node = await _dockerNodeStore.AcquireNode(instance.Priority);
+            // 每个异步操作的超时如果不指定则默认为15分钟, 防止节点被永久占用
+            var timeout = TimeSpan.FromMilliseconds(instance.Limitation.ExecutionTimeout ?? 15 * 60 * 1000);
+            var jobDescription = $"StateMachineInstance:{instance.Id},ActorId:{actorInfo.Name}";
+            var node = await _dockerNodeStore.AcquireNode(instance.Priority, jobDescription);
             try
             {
                 // 获取docker客户端
@@ -440,28 +443,32 @@ namespace JoyOI.ManagementService.Services.Impl
                 actorInfo.UsedNode = node.Name;
                 actorInfo.UsedContainer = containerTag;
                 // 编译actor代码
-                var actorCode = await ReadActorCode(actorInfo.Name);
+                var actorCode = await AwaitUtils.WithTimeout(_ => ReadActorCode(actorInfo.Name), timeout);
                 var actorBytes = _dynamicCompileService.Compile(
                     actorCode, OutputKind.ConsoleApplication);
                 // 创建容器
                 var hostConfig = HostConfigUtils.WithLimitation(
                     new HostConfig(), instance.Limitation, node.NodeInfo.Container);
-                var createContainerResponse = await client.Containers.CreateContainerAsync(
-                    new CreateContainerParameters()
-                    {
-                        Tty = true,
-                        NetworkDisabled = !(instance.Limitation.EnableNetwork ?? false),
-                        Image = node.NodeInfo.Image,
-                        Name = containerTag,
-                        HostConfig = hostConfig,
-                        WorkingDir = node.NodeInfo.Container.WorkDir,
-                        Cmd = new[] { "bash", "-c", node.NodeInfo.Container.ActorExecuteCommand }
-                    });
+                var createContainerResponse = await AwaitUtils.WithTimeout(
+                    token => client.Containers.CreateContainerAsync(
+                        new CreateContainerParameters()
+                        {
+                            Tty = true,
+                            NetworkDisabled = !(instance.Limitation.EnableNetwork ?? false),
+                            Image = node.NodeInfo.Image,
+                            Name = containerTag,
+                            HostConfig = hostConfig,
+                            WorkingDir = node.NodeInfo.Container.WorkDir,
+                            Cmd = new[] { "bash", "-c", node.NodeInfo.Container.ActorExecuteCommand }
+                        }, token),
+                    timeout);
                 var containerId = createContainerResponse.ID;
                 try
                 {
                     // 上传Inputs和actor.dll到容器
-                    var inputBlobs = (await ReadBlobs(actorInfo.Inputs)).ToList();
+                    var inputBlobs = (await AwaitUtils.WithTimeout(
+                        _ => ReadBlobs(actorInfo.Inputs),
+                        timeout)).ToList();
                     var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
                     if (noExistBlob.Item1 != null)
                     {
@@ -477,52 +484,45 @@ namespace JoyOI.ManagementService.Services.Impl
                     uploadFiles.Add((node.NodeInfo.Container.ActorExecutablePath, actorBytes));
                     using (var tarStream = ArchiveUtils.CompressToTar(uploadFiles))
                     {
-                        await client.Containers.ExtractArchiveToContainerAsync(
-                            containerId,
-                            new ContainerPathStatParameters() { Path = "/" },
-                            tarStream,
-                            new CancellationToken());
+                        await AwaitUtils.WithTimeout(
+                            token => client.Containers.ExtractArchiveToContainerAsync(
+                                containerId,
+                                new ContainerPathStatParameters() { Path = "/" },
+                                tarStream,
+                                token),
+                            timeout);
                     }
                     // 运行容器并等待完毕
                     // WaitContainerAsync对CancellationToken的支持有问题, 需要使用额外的逻辑
-                    var startContainerResponse = await client.Containers.StartContainerAsync(
-                        containerId, new ContainerStartParameters());
+                    var startContainerResponse = await AwaitUtils.WithTimeout(
+                        token => client.Containers.StartContainerAsync(
+                            containerId, new ContainerStartParameters(), token),
+                        timeout);
                     if (!startContainerResponse)
                     {
                         throw new InvalidOperationException("start container failed");
                     }
-                    ContainerWaitResponse waitContainerResponse;
-                    using (var waitCancelToken = new CancellationTokenSource())
-                    {
-                        if (instance.Limitation.ExecutionTimeout.HasValue)
-                            waitCancelToken.CancelAfter(instance.Limitation.ExecutionTimeout.Value);
-                        var waitCancelTask = Task.Delay(instance.Limitation.ExecutionTimeout.Value);
-                        var waitContainerResponseTask = client.Containers.WaitContainerAsync(
-                            containerId, waitCancelToken.Token);
-                        var waitResult = await Task.WhenAny(waitCancelTask, waitContainerResponseTask);
-                        if (waitResult != waitContainerResponseTask)
-                        {
-                            waitCancelToken.Cancel();
-                            throw new ActorExecuteException("wait container exit failed due to timeout");
-                        }
-                        waitContainerResponse = waitContainerResponseTask.Result;
-                    }
+                    var waitContainerResponse = await AwaitUtils.WithTimeout(
+                        token => client.Containers.WaitContainerAsync(containerId, token),
+                        timeout);
                     // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
                     string resultJson = null;
                     if (waitContainerResponse.StatusCode == 0)
                     {
                         try
                         {
-                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                                containerId,
-                                new GetArchiveFromContainerParameters()
-                                {
-                                    Path = node.NodeInfo.Container.ResultPath
-                                },
-                                false, new CancellationToken());
-                            resultJson = await Task.Run(() => Encoding.UTF8.GetString(
+                            var getArchiveFromContainerResponse = await AwaitUtils.WithTimeout(
+                                token => client.Containers.GetArchiveFromContainerAsync(
+                                    containerId,
+                                    new GetArchiveFromContainerParameters()
+                                    {
+                                        Path = node.NodeInfo.Container.ResultPath
+                                    },
+                                    false, token),
+                                timeout);
+                            resultJson = Encoding.UTF8.GetString(
                                 ArchiveUtils.DecompressFromTar(
-                                getArchiveFromContainerResponse.Stream).First().Item2));
+                                getArchiveFromContainerResponse.Stream).First().Item2);
                         }
                         catch (DockerContainerNotFoundException)
                         {
@@ -535,16 +535,18 @@ namespace JoyOI.ManagementService.Services.Impl
                         string log;
                         try
                         {
-                            var getArchiveFromContainerResponse = await client.Containers.GetArchiveFromContainerAsync(
-                                containerId,
-                                new GetArchiveFromContainerParameters()
-                                {
-                                    Path = node.NodeInfo.Container.ActorExecuteLogPath
-                                },
-                                false, new CancellationToken());
-                            log = await Task.Run(() => Encoding.UTF8.GetString(
+                            var getArchiveFromContainerResponse = await AwaitUtils.WithTimeout(
+                                token => client.Containers.GetArchiveFromContainerAsync(
+                                    containerId,
+                                    new GetArchiveFromContainerParameters()
+                                    {
+                                        Path = node.NodeInfo.Container.ActorExecuteLogPath
+                                    },
+                                    false, token),
+                                timeout);
+                            log = Encoding.UTF8.GetString(
                                 ArchiveUtils.DecompressFromTar(
-                                getArchiveFromContainerResponse.Stream).First().Item2));
+                                getArchiveFromContainerResponse.Stream).First().Item2);
                             // 如果日志只有Killed, 可能是因为OOM
                             if (log.StartsWith("Killed"))
                                 log += "(May cause by out of memory)";
@@ -564,18 +566,20 @@ namespace JoyOI.ManagementService.Services.Impl
                         var path = output;
                         actorOutputTasks.Add((path, Task.Run(async () =>
                         {
-                            var getArchiveFromContainerResponse =
-                            await client.Containers.GetArchiveFromContainerAsync(
-                                containerId,
-                                new GetArchiveFromContainerParameters()
-                                {
-                                    Path = node.NodeInfo.Container.WorkDir + path
-                                },
-                                false, new CancellationToken());
+                            var getArchiveFromContainerResponse = await AwaitUtils.WithTimeout(
+                                token => client.Containers.GetArchiveFromContainerAsync(
+                                    containerId,
+                                    new GetArchiveFromContainerParameters()
+                                    {
+                                        Path = node.NodeInfo.Container.WorkDir + path
+                                    },
+                                    false, token),
+                                timeout);
                             var bytes = ArchiveUtils.DecompressFromTar(
                                 getArchiveFromContainerResponse.Stream).First().Item2;
-                            var blobId = await PutBlob(
-                                path, bytes, getArchiveFromContainerResponse.Stat.Mtime);
+                            var blobId = await AwaitUtils.WithTimeout(
+                                token => PutBlob(path, bytes, getArchiveFromContainerResponse.Stat.Mtime),
+                                timeout);
                             return new BlobInfo() { Id = blobId, Name = path };
                         })));
                     }
@@ -631,7 +635,7 @@ namespace JoyOI.ManagementService.Services.Impl
             finally
             {
                 // 释放节点
-                _dockerNodeStore.ReleaseNode(node);
+                _dockerNodeStore.ReleaseNode(node, jobDescription);
             }
         }
 

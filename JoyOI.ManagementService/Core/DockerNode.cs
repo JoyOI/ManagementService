@@ -30,6 +30,10 @@ namespace JoyOI.ManagementService.Core
         /// </summary>
         public int RunningJobs { get; internal set; }
         /// <summary>
+        /// 正在运行的任务描述
+        /// </summary>
+        public ConcurrentDictionary<string, int> RunningJobDescriptions { get; internal set; }
+        /// <summary>
         /// 上次使用此节点执行任务是否出错
         /// </summary>
         public bool ErrorFlags { get; internal set; }
@@ -47,6 +51,9 @@ namespace JoyOI.ManagementService.Core
         {
             Name = name;
             NodeInfo = nodeInfo;
+            RunningJobs = 0;
+            RunningJobDescriptions = new ConcurrentDictionary<string, int>();
+            ErrorFlags = false;
             _credentials = new CertificateCredentials(
                 new X509Certificate2(nodeInfo.ClientCertificatePath, nodeInfo.ClientCertificatePassword));
             _dockerClientConfiguration = new DockerClientConfiguration(new Uri(nodeInfo.Address), _credentials);

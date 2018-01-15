@@ -27,7 +27,11 @@ namespace JoyOI.ManagementService.Services.Impl
         public IEnumerable<DockerNodeOutputDto> GetNodes()
         {
             var nodes = _store.GetNodes()
-                .Select(x => Mapper.Map<DockerNode, DockerNodeOutputDto>(x))
+                .Select(x => {
+                    var dto = Mapper.Map<DockerNode, DockerNodeOutputDto>(x);
+                    dto.RunningJobDescriptions = x.RunningJobDescriptions.Keys.ToList();
+                    return dto;
+                })
                 .ToList();
             return nodes;
         }

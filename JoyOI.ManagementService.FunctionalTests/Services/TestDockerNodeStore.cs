@@ -80,11 +80,11 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             // 获取节点直到达到上限值
             for (var x = 0; x < _configuration.Container.MaxRunningJobs * _configuration.Nodes.Count; ++x)
             {
-                tasks.Add(store.AcquireNode(0));
+                tasks.Add(store.AcquireNode(0, ""));
             }
             Task.WaitAll(tasks.ToArray());
             // 之后再获取需要等待
-            var waitTask = store.AcquireNode(0);
+            var waitTask = store.AcquireNode(0, "");
             Assert.True(!waitTask.Wait(TimeSpan.FromMilliseconds(100)));
             // 判断节点的运行任务数量
             foreach (var node in store.GetNodes())
@@ -94,11 +94,11 @@ namespace JoyOI.ManagementService.FunctionalTests.Services
             // 释放获取到的节点
             foreach (var task in tasks)
             {
-                store.ReleaseNode(task.Result);
+                store.ReleaseNode(task.Result, "");
             }
             // 处理waitTask
             Assert.True(waitTask.Wait(TimeSpan.FromMilliseconds(100)));
-            store.ReleaseNode(waitTask.Result);
+            store.ReleaseNode(waitTask.Result, "");
             // 判断节点的运行任务数量
             foreach (var node in store.GetNodes())
             {

@@ -34,11 +34,11 @@ namespace JoyOI.ManagementService.Services
         /// <summary>
         /// 获取可以用于执行任务的Docker节点
         /// </summary>
-        Task<DockerNode> AcquireNode(int priority);
+        Task<DockerNode> AcquireNode(int priority, string jobDescription);
 
         /// <summary>
         /// 释放可以用于执行任务的Docker节点
         /// </summary>
-        void ReleaseNode(DockerNode node);
+        void ReleaseNode(DockerNode node, string jobDescription);
     }
 }
