@@ -431,7 +431,7 @@ namespace JoyOI.ManagementService.Services.Impl
             // 此函数可以反复重试, 注意不要做出不可逆的修改
             // 每个异步操作的超时如果不指定则默认为15分钟, 防止节点被永久占用
             var timeout = TimeSpan.FromMilliseconds(instance.Limitation.ExecutionTimeout ?? 15 * 60 * 1000);
-            var jobDescription = $"StateMachineInstance:{instance.Id},ActorId:{actorInfo.Name}";
+            var jobDescription = $"StateMachineInstance:{instance.Id},ActorId:{actorInfo.Name},Time:{DateTime.Now}";
             var node = await _dockerNodeStore.AcquireNode(instance.Priority, jobDescription);
             try
             {
