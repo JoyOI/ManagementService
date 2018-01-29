@@ -73,18 +73,20 @@ namespace JoyOI.ManagementService.WebApi
             loggerFactory.AddConsole(_configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            // 添加swagger和错误页面
+            // 添加错误页面
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "JoyOI Management Service V1"));
             }
             else
             {
                 app.UseStatusCodePages();
             }
+
+            // 添加swagger, 生产环境也使用以便除错(有客户端证书验证)
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "JoyOI Management Service V1"));
 
             // 全局处理mvc的错误, 发生错误时返回统一格式的json
             CatchExceptionAndReplyJson(app, env.IsDevelopment());
