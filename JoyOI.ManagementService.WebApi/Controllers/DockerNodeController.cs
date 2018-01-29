@@ -34,5 +34,12 @@ namespace JoyOI.ManagementService.WebApi.Controllers
             IDictionary<int, int> waiting = _dockerNodeService.GetWaitingTasks();
             return Task.FromResult(ApiResponse.OK(waiting));
         }
+
+        [HttpGet("TimeoutErrors")]
+        public Task<ApiResponse<IList<string>>> TimeoutErrors()
+        {
+            IList<string> timeoutErrors = _dockerNodeService.GetTimeoutErrors();
+            return Task.FromResult(ApiResponse.OK(timeoutErrors));
+        }
     }
 }

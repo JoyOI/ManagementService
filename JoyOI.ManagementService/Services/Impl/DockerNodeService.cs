@@ -6,6 +6,7 @@ using System.Linq;
 using AutoMapper;
 using JoyOI.ManagementService.Core;
 using Microsoft.Extensions.DependencyInjection;
+using JoyOI.ManagementService.Utils;
 
 namespace JoyOI.ManagementService.Services.Impl
 {
@@ -39,6 +40,11 @@ namespace JoyOI.ManagementService.Services.Impl
         public IDictionary<int, int> GetWaitingTasks()
         {
             return _store.GetWaitingTasks();
+        }
+
+        public IList<string> GetTimeoutErrors()
+        {
+            return AwaitUtils.GetTimeoutErrors();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using JoyOI.ManagementService.Configuration;
 using JoyOI.ManagementService.Core;
+using JoyOI.ManagementService.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace JoyOI.ManagementService.Services.Impl
         private object _nodesLock;
         private TimeSpan _keepaliveReportInterval;
         private TimeSpan _keepaliveScanInterval;
+        private TimeSpan _keepaliveTimeout;
         private int _keepaliveMaxErrorCount;
 
         public DockerNodeStore(
@@ -35,9 +37,10 @@ namespace JoyOI.ManagementService.Services.Impl
             _nodesMap = new Dictionary<string, DockerNode>();
             _waitReleaseQueue = new SortedDictionary<int, Queue<TaskCompletionSource<DockerNode>>>();
             _nodesLock = new object();
-            _keepaliveReportInterval = TimeSpan.FromHours(1);
-            _keepaliveScanInterval = TimeSpan.FromSeconds(5);
-            _keepaliveMaxErrorCount = 3;
+            _keepaliveReportInterval = TimeSpan.FromHours(1); // 最多1小时报告一次错误
+            _keepaliveScanInterval = TimeSpan.FromSeconds(5); // 5秒扫描一次
+            _keepaliveTimeout = TimeSpan.FromSeconds(30); // 每个节点最多使用30秒
+            _keepaliveMaxErrorCount = 3; // 3次失败后标记节点状态异常
             foreach (var nodeInfo in _configuration.Nodes)
             {
                 var node = new DockerNode(nodeInfo.Key, nodeInfo.Value);
@@ -59,7 +62,10 @@ namespace JoyOI.ManagementService.Services.Impl
                     {
                         // 检查连接是否正常
                         var client = pair.Value.Client;
-                        await client.System.GetVersionAsync();
+                        await AwaitUtils.WithTimeout(
+                            token => client.System.GetVersionAsync(token),
+                            _keepaliveTimeout,
+                            $"GetVersionAsync,Node:{pair.Value.NodeInfo.Address}");
                         // 重置错误标记
                         pair.Value.ErrorFlags = false;
                         // 重置出错次数

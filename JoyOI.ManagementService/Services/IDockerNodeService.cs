@@ -19,5 +19,10 @@ namespace JoyOI.ManagementService.Services
         /// 获取等待中的任务数量, 返回{ 优先度: 任务数量 }
         /// </summary>
         IDictionary<int, int> GetWaitingTasks();
+
+        /// <summary>
+        /// 获取超时错误的历史记录
+        /// </summary>
+        IList<string> GetTimeoutErrors();
     }
 }

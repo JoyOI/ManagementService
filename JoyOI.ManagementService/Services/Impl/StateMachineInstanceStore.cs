@@ -90,6 +90,7 @@ namespace JoyOI.ManagementService.Services.Impl
         private readonly ConcurrentDictionary<string, (string, DateTime)> _actorCodeCache;
         private readonly TimeSpan _actorCodeCacheTime;
         private readonly int _actorMaxRetryTimes;
+        private readonly TimeSpan _minOperationTimeout;
         private Func<IDisposable> _contextFactory;
         private Func<IDisposable, IRepository<BlobEntity, Guid>> _blobRepositoryFactory;
         private Func<IDisposable, IRepository<ActorEntity, Guid>> _actorRepositoryFactory;
@@ -113,7 +114,8 @@ namespace JoyOI.ManagementService.Services.Impl
             _factoryCache = new ConcurrentDictionary<string, (string, Func<StateMachineBase>)>();
             _actorCodeCache = new ConcurrentDictionary<string, (string, DateTime)>();
             _actorCodeCacheTime = TimeSpan.FromSeconds(5);
-            _actorMaxRetryTimes = 3;
+            _actorMaxRetryTimes = 100;
+            _minOperationTimeout = TimeSpan.FromMinutes(3);
             _contextFactory = null;
             _blobRepositoryFactory = null;
             _actorRepositoryFactory = null;
@@ -429,10 +431,15 @@ namespace JoyOI.ManagementService.Services.Impl
         {
             // 请勿直接调用此函数, 此函数不会更新StartedActors
             // 此函数可以反复重试, 注意不要做出不可逆的修改
-            // 每个异步操作的超时如果不指定则默认为15分钟, 防止节点被永久占用
-            var timeout = TimeSpan.FromMilliseconds(instance.Limitation.ExecutionTimeout ?? 15 * 60 * 1000);
+            // 超时:
+            // 执行超时: 如果有传入值则使用传入值, 否则使用最小操作超时
+            // 其他超时: 如果执行超时>最小操作超时则使用执行超时, 否则使用最小操作超时
+            var executionTimeout = TimeSpan.FromMilliseconds(
+                instance.Limitation.ExecutionTimeout ?? _minOperationTimeout.TotalMilliseconds);
+            var otherOperationTimeout = executionTimeout > _minOperationTimeout ? executionTimeout : _minOperationTimeout;
             var jobDescription = $"StateMachineInstance:{instance.Id},ActorId:{actorInfo.Name},Time:{DateTime.Now}";
             var node = await _dockerNodeStore.AcquireNode(instance.Priority, jobDescription);
+            var operationHint = $"{jobDescription},Node:{node.NodeInfo.Address}";
             try
             {
                 // 获取docker客户端
@@ -443,7 +450,10 @@ namespace JoyOI.ManagementService.Services.Impl
                 actorInfo.UsedNode = node.Name;
                 actorInfo.UsedContainer = containerTag;
                 // 编译actor代码
-                var actorCode = await AwaitUtils.WithTimeout(_ => ReadActorCode(actorInfo.Name), timeout);
+                var actorCode = await AwaitUtils.WithTimeout(
+                    _ => ReadActorCode(actorInfo.Name),
+                    otherOperationTimeout,
+                    $"ReadActorCode,{operationHint}");
                 var actorBytes = _dynamicCompileService.Compile(
                     actorCode, OutputKind.ConsoleApplication);
                 // 创建容器
@@ -461,14 +471,16 @@ namespace JoyOI.ManagementService.Services.Impl
                             WorkingDir = node.NodeInfo.Container.WorkDir,
                             Cmd = new[] { "bash", "-c", node.NodeInfo.Container.ActorExecuteCommand }
                         }, token),
-                    timeout);
+                    otherOperationTimeout,
+                    $"CreateContainerAsync,{operationHint}");
                 var containerId = createContainerResponse.ID;
                 try
                 {
                     // 上传Inputs和actor.dll到容器
                     var inputBlobs = (await AwaitUtils.WithTimeout(
                         _ => ReadBlobs(actorInfo.Inputs),
-                        timeout)).ToList();
+                        otherOperationTimeout,
+                        $"ReadBlobs,{operationHint}")).ToList();
                     var noExistBlob = inputBlobs.FirstOrDefault(x => x.Item2 == null);
                     if (noExistBlob.Item1 != null)
                     {
@@ -490,21 +502,24 @@ namespace JoyOI.ManagementService.Services.Impl
                                 new ContainerPathStatParameters() { Path = "/" },
                                 tarStream,
                                 token),
-                            timeout);
+                            otherOperationTimeout,
+                            $"ExtractArchiveToContainerAsync,{operationHint}");
                     }
                     // 运行容器并等待完毕
                     // WaitContainerAsync对CancellationToken的支持有问题, 需要使用额外的逻辑
                     var startContainerResponse = await AwaitUtils.WithTimeout(
                         token => client.Containers.StartContainerAsync(
                             containerId, new ContainerStartParameters(), token),
-                        timeout);
+                        otherOperationTimeout,
+                        $"StartContainerAsync,{operationHint}");
                     if (!startContainerResponse)
                     {
                         throw new InvalidOperationException("start container failed");
                     }
                     var waitContainerResponse = await AwaitUtils.WithTimeout(
                         token => client.Containers.WaitContainerAsync(containerId, token),
-                        timeout);
+                        executionTimeout,
+                        $"WaitContainerAsync,{operationHint}");
                     // 成功时下载return.json, 失败时下载run-actor.log并抛出里面的内容
                     string resultJson = null;
                     if (waitContainerResponse.StatusCode == 0)
@@ -519,7 +534,8 @@ namespace JoyOI.ManagementService.Services.Impl
                                         Path = node.NodeInfo.Container.ResultPath
                                     },
                                     false, token),
-                                timeout);
+                                otherOperationTimeout,
+                                $"GetArchiveFromContainerAsync,{operationHint}");
                             resultJson = Encoding.UTF8.GetString(
                                 ArchiveUtils.DecompressFromTar(
                                 getArchiveFromContainerResponse.Stream).First().Item2);
@@ -543,7 +559,8 @@ namespace JoyOI.ManagementService.Services.Impl
                                         Path = node.NodeInfo.Container.ActorExecuteLogPath
                                     },
                                     false, token),
-                                timeout);
+                                otherOperationTimeout,
+                                $"GetArchiveFromContainerAsync,{operationHint}");
                             log = Encoding.UTF8.GetString(
                                 ArchiveUtils.DecompressFromTar(
                                 getArchiveFromContainerResponse.Stream).First().Item2);
@@ -574,12 +591,14 @@ namespace JoyOI.ManagementService.Services.Impl
                                         Path = node.NodeInfo.Container.WorkDir + path
                                     },
                                     false, token),
-                                timeout);
+                                otherOperationTimeout,
+                                $"GetArchiveFromContainerAsync,{operationHint}");
                             var bytes = ArchiveUtils.DecompressFromTar(
                                 getArchiveFromContainerResponse.Stream).First().Item2;
                             var blobId = await AwaitUtils.WithTimeout(
                                 token => PutBlob(path, bytes, getArchiveFromContainerResponse.Stat.Mtime),
-                                timeout);
+                                otherOperationTimeout,
+                                $"PutBlob,{operationHint}");
                             return new BlobInfo() { Id = blobId, Name = path };
                         })));
                     }
@@ -657,6 +676,8 @@ namespace JoyOI.ManagementService.Services.Impl
                     lastEx = ex;
                     // 连接错误
                     bool shouldRetry = DockerNode.IsConnectionError(ex);
+                    // 超时错误
+                    shouldRetry = shouldRetry || ex is TimeoutException;
                     // docker内部错误
                     shouldRetry = shouldRetry || ex is DockerApiException;
                     // httpclient错误
@@ -669,7 +690,7 @@ namespace JoyOI.ManagementService.Services.Impl
             }
             // 运行任务失败
             actorInfo.Status = ActorStatus.Failed;
-            actorInfo.Exceptions = new[] { lastEx.ToString() };
+            actorInfo.Exceptions = new[] { lastEx?.ToString() };
         }
 
         public async Task RunActors(StateMachineBase instance, IList<ActorInfo> actorInfos)
